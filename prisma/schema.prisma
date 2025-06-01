@@ -38,8 +38,6 @@ model User {
 
   // Relations métier (à adapter selon votre nouveau domaine)
   comments                  Comment[]
-  assignedTasks             Task[]            // Peut être renommé selon votre domaine
-  objectAccess              ObjectAccess[]    // À adapter
 
   @@index([inviteCode], map: "user_inviteCode_key")
   @@map("user")
@@ -102,8 +100,6 @@ model Organization {
   storageUsage     StorageUsage?
   users            User[]
   
-  // Relations métier (à adapter)
-  Objet            Objet[]           // Remplacer par vos entités principales
   @@map("organization")
 }
 
@@ -280,99 +276,6 @@ model Notification {
 // NOUVEAUX MODÈLES MÉTIER (À ADAPTER)
 // ==========================================
 
-// Exemple pour un système de gestion de projets
-// Remplacez par vos propres entités
-
-model Objet {
-  id             String         @id @default(uuid())
-  nom            String
-  adresse        String         // Peut devenir "description" ou autre
-  secteur        String         // Peut devenir "category" ou "type"
-  organizationId String
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
-  objectAccess   ObjectAccess[]
-  organization   Organization   @relation(fields: [organizationId], references: [id])
-  sectors        Sector[]       // Peut devenir "phases", "modules", etc.
-  @@map("objet")
-}
-
-model ObjectAccess {
-  id          String   @id @default(uuid())
-  userId      String
-  objectId    String
-  accessLevel String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  object      Objet    @relation(fields: [objectId], references: [id], onDelete: Cascade)
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, objectId])
-  @@map("object_access")
-}
-
-// Adaptez ces modèles selon votre domaine :
-// - Pour un CRM : remplacer par Company, Contact, Deal
-// - Pour un e-commerce : remplacer par Product, Category, Order
-// - Pour un blog : remplacer par Post, Category, Tag
-
-model Sector {
-  id          String    @id @default(uuid())
-  name        String
-  image       String?
-  objectId    String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  imageHeight Int?
-  imageWidth  Int?
-  articles    Article[]
-  object      Objet     @relation(fields: [objectId], references: [id], onDelete: Cascade)
-  @@map("sector")
-}
-
-model Article {
-  id          String   @id @default(uuid())
-  title       String
-  description String?
-  positionX   Float?
-  positionY   Float?
-  width       Float?
-  height      Float?
-  sectorId    String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  sector      Sector   @relation(fields: [sectorId], references: [id], onDelete: Cascade)
-  tasks       Task[]
-  @@map("article")
-}
-
-model Task {
-  id                     String     @id @default(uuid())
-  name                   String
-  description            String?
-  executantComment       String?
-  done                   Boolean    @default(false)
-  realizationDate        DateTime?
-  status                 String     @default("pending")
-  taskType               String?
-  color                  String?
-  recurring              Boolean    @default(false)
-  period                 String?
-  endDate                DateTime?
-  recurrenceReminderDate DateTime?
-  articleId              String
-  assignedToId           String?
-  createdAt              DateTime   @default(now())
-  updatedAt              DateTime   @updatedAt
-  archived               Boolean    @default(false)
-  archivedAt             DateTime?
-  comments               Comment[]
-  documents              Document[]
-  article                Article    @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  assignedTo             User?      @relation(fields: [assignedToId], references: [id])
-  @@map("task")
-}
-
 model Document {
   id        String   @id @default(cuid())
   name      String
@@ -382,7 +285,6 @@ model Document {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   taskId    String
-  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
   @@index([taskId])
 }
 
@@ -393,7 +295,6 @@ model Comment {
   userId    String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([taskId])
