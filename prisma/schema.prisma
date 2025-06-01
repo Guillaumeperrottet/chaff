@@ -7,6 +7,10 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ==========================================
+// SYSTÈME D'AUTHENTIFICATION
+// ==========================================
+
 model User {
   id                        String            @id @default(uuid())
   name                      String
@@ -23,15 +27,19 @@ model User {
   inviteCode                String?
   planType                  String?           @default("FREE")
   tempOrganizationId        String?
-  comments                  Comment[]
+  
+  // Relations système 
   deviceTokens              DeviceToken[]
   notifications             Notification[]
   accounts                  Account[]
-  objectAccess              ObjectAccess[]
-  OrganizationUser          OrganizationUser?
   sessions                  Session[]
-  assignedTasks             Task[]
+  OrganizationUser          OrganizationUser?
   Organization              Organization?     @relation(fields: [organizationId], references: [id])
+
+  // Relations métier (à adapter selon votre nouveau domaine)
+  comments                  Comment[]
+  assignedTasks             Task[]            // Peut être renommé selon votre domaine
+  objectAccess              ObjectAccess[]    // À adapter
 
   @@index([inviteCode], map: "user_inviteCode_key")
   @@map("user")
@@ -47,7 +55,6 @@ model Session {
   userAgent String?
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
   @@map("session")
 }
 
@@ -66,7 +73,6 @@ model Account {
   createdAt             DateTime
   updatedAt             DateTime
   user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
   @@map("account")
 }
 
@@ -77,9 +83,12 @@ model Verification {
   expiresAt  DateTime
   createdAt  DateTime?
   updatedAt  DateTime?
-
   @@map("verification")
 }
+
+// ==========================================
+// SYSTÈME D'ORGANISATIONS (À CONSERVER)
+// ==========================================
 
 model Organization {
   id               String             @id @default(uuid())
@@ -88,28 +97,14 @@ model Organization {
   updatedAt        DateTime           @updatedAt
   subscription     Subscription?
   invitationCodes  InvitationCode[]
-  Objet            Objet[]
   OrganizationUser OrganizationUser[]
   planChangeAudits PlanChangeAudit[]
   storageUsage     StorageUsage?
   users            User[]
-
+  
+  // Relations métier (à adapter)
+  Objet            Objet[]           // Remplacer par vos entités principales
   @@map("organization")
-}
-
-model Objet {
-  id             String         @id @default(uuid())
-  nom            String
-  adresse        String
-  secteur        String
-  organizationId String
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
-  objectAccess   ObjectAccess[]
-  organization   Organization   @relation(fields: [organizationId], references: [id])
-  sectors        Sector[]
-
-  @@map("objet")
 }
 
 model OrganizationUser {
@@ -121,7 +116,6 @@ model OrganizationUser {
   updatedAt      DateTime     @updatedAt
   organization   Organization @relation(fields: [organizationId], references: [id])
   user           User         @relation(fields: [userId], references: [id])
-
   @@map("organization_user")
 }
 
@@ -135,131 +129,12 @@ model InvitationCode {
   expiresAt      DateTime
   isUsed         Boolean      @default(false)
   organization   Organization @relation(fields: [organizationId], references: [id])
-
   @@map("invitation_code")
 }
 
-model ObjectAccess {
-  id          String   @id @default(uuid())
-  userId      String
-  objectId    String
-  accessLevel String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  object      Objet    @relation(fields: [objectId], references: [id], onDelete: Cascade)
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, objectId])
-  @@map("object_access")
-}
-
-model Sector {
-  id          String    @id @default(uuid())
-  name        String
-  image       String?
-  objectId    String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  imageHeight Int?
-  imageWidth  Int?
-  articles    Article[]
-  object      Objet     @relation(fields: [objectId], references: [id], onDelete: Cascade)
-
-  @@map("sector")
-}
-
-model Article {
-  id          String   @id @default(uuid())
-  title       String
-  description String?
-  positionX   Float?
-  positionY   Float?
-  width       Float?
-  height      Float?
-  sectorId    String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  sector      Sector   @relation(fields: [sectorId], references: [id], onDelete: Cascade)
-  tasks       Task[]
-
-  @@map("article")
-}
-
-model Task {
-  id                     String     @id @default(uuid())
-  name                   String
-  description            String?
-  executantComment       String?
-  done                   Boolean    @default(false)
-  realizationDate        DateTime?
-  status                 String     @default("pending")
-  taskType               String?
-  color                  String?
-  recurring              Boolean    @default(false)
-  period                 String?
-  endDate                DateTime?
-  recurrenceReminderDate DateTime?
-  articleId              String
-  assignedToId           String?
-  createdAt              DateTime   @default(now())
-  updatedAt              DateTime   @updatedAt
-  archived               Boolean    @default(false)
-  archivedAt             DateTime?
-  comments               Comment[]
-  documents              Document[]
-  article                Article    @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  assignedTo             User?      @relation(fields: [assignedToId], references: [id])
-
-  @@map("task")
-}
-
-model Document {
-  id        String   @id @default(cuid())
-  name      String
-  filePath  String
-  fileSize  Int
-  fileType  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  taskId    String
-  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-
-  @@index([taskId])
-}
-
-model DeviceToken {
-  id         String   @id @default(uuid())
-  token      String   @unique
-  device     String?
-  userId     String
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  isActive   Boolean  @default(true)
-  lastActive DateTime @default(now())
-  platform   Platform @default(WEB)
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([token])
-  @@index([lastActive])
-}
-
-model Notification {
-  id        String   @id @default(uuid())
-  link      String?
-  createdAt DateTime @default(now())
-  userId    String
-  category  String?
-  data      Json?
-  message   String
-  read      Boolean  @default(false)
-  title     String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([read])
-  @@index([createdAt])
-}
+// ==========================================
+// SYSTÈME D'ABONNEMENTS (À CONSERVER/ADAPTER)
+// ==========================================
 
 model Plan {
   id                 String         @id @default(uuid())
@@ -270,7 +145,7 @@ model Plan {
   monthlyPrice       Decimal
   yearlyPrice        Decimal?
   maxUsers           Int?
-  maxObjects         Int?
+  maxObjects         Int?           // Adapter selon vos entités
   hasCustomPricing   Boolean        @default(false)
   trialDays          Int            @default(0)
   features           String[]
@@ -283,27 +158,18 @@ model Plan {
   hasCustomBranding  Boolean        @default(false)
   isActive           Boolean        @default(true)
   maxApiCalls        Int?
-  maxArticles        Int?
+  
+  // Limites métier (à adapter selon votre domaine)
+  maxSectors         Int?           // Peut devenir maxCategories, maxProjects, etc.
+  maxArticles        Int?           // Peut devenir maxItems, maxProducts, etc.
+  maxTasks           Int?           // Peut devenir maxActions, maxEvents, etc.
   maxDocuments       Int?
   maxExports         Int?
   maxInvitations     Int?
-  maxSectors         Int?
-  maxTasks           Int?
+  
   sortOrder          Int            @default(0)
   supportLevel       String         @default("community")
   subscriptions      Subscription[]
-}
-
-model StorageUsage {
-  id               String       @id @default(uuid())
-  organizationId   String       @unique
-  totalUsedBytes   BigInt       @default(0)
-  lastCalculatedAt DateTime     @default(now())
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
-  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  @@map("storage_usage")
 }
 
 model Subscription {
@@ -327,18 +193,15 @@ model Subscription {
   @@index([stripeSubscriptionId])
 }
 
-model Comment {
-  id        String   @id @default(uuid())
-  content   String
-  taskId    String
-  userId    String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([taskId])
-  @@index([userId])
+model StorageUsage {
+  id               String       @id @default(uuid())
+  organizationId   String       @unique
+  totalUsedBytes   BigInt       @default(0)
+  lastCalculatedAt DateTime     @default(now())
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  @@map("storage_usage")
 }
 
 model PlanChangeAudit {
@@ -374,6 +237,172 @@ model PendingUser {
   @@index([token])
   @@index([email])
 }
+
+// ==========================================
+// SYSTÈME DE NOTIFICATIONS (À CONSERVER)
+// ==========================================
+
+model DeviceToken {
+  id         String   @id @default(uuid())
+  token      String   @unique
+  device     String?
+  userId     String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  isActive   Boolean  @default(true)
+  lastActive DateTime @default(now())
+  platform   Platform @default(WEB)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([lastActive])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  link      String?
+  createdAt DateTime @default(now())
+  userId    String
+  category  String?
+  data      Json?
+  message   String
+  read      Boolean  @default(false)
+  title     String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([read])
+  @@index([createdAt])
+}
+
+// ==========================================
+// NOUVEAUX MODÈLES MÉTIER (À ADAPTER)
+// ==========================================
+
+// Exemple pour un système de gestion de projets
+// Remplacez par vos propres entités
+
+model Objet {
+  id             String         @id @default(uuid())
+  nom            String
+  adresse        String         // Peut devenir "description" ou autre
+  secteur        String         // Peut devenir "category" ou "type"
+  organizationId String
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  objectAccess   ObjectAccess[]
+  organization   Organization   @relation(fields: [organizationId], references: [id])
+  sectors        Sector[]       // Peut devenir "phases", "modules", etc.
+  @@map("objet")
+}
+
+model ObjectAccess {
+  id          String   @id @default(uuid())
+  userId      String
+  objectId    String
+  accessLevel String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  object      Objet    @relation(fields: [objectId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, objectId])
+  @@map("object_access")
+}
+
+// Adaptez ces modèles selon votre domaine :
+// - Pour un CRM : remplacer par Company, Contact, Deal
+// - Pour un e-commerce : remplacer par Product, Category, Order
+// - Pour un blog : remplacer par Post, Category, Tag
+
+model Sector {
+  id          String    @id @default(uuid())
+  name        String
+  image       String?
+  objectId    String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  imageHeight Int?
+  imageWidth  Int?
+  articles    Article[]
+  object      Objet     @relation(fields: [objectId], references: [id], onDelete: Cascade)
+  @@map("sector")
+}
+
+model Article {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  positionX   Float?
+  positionY   Float?
+  width       Float?
+  height      Float?
+  sectorId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  sector      Sector   @relation(fields: [sectorId], references: [id], onDelete: Cascade)
+  tasks       Task[]
+  @@map("article")
+}
+
+model Task {
+  id                     String     @id @default(uuid())
+  name                   String
+  description            String?
+  executantComment       String?
+  done                   Boolean    @default(false)
+  realizationDate        DateTime?
+  status                 String     @default("pending")
+  taskType               String?
+  color                  String?
+  recurring              Boolean    @default(false)
+  period                 String?
+  endDate                DateTime?
+  recurrenceReminderDate DateTime?
+  articleId              String
+  assignedToId           String?
+  createdAt              DateTime   @default(now())
+  updatedAt              DateTime   @updatedAt
+  archived               Boolean    @default(false)
+  archivedAt             DateTime?
+  comments               Comment[]
+  documents              Document[]
+  article                Article    @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  assignedTo             User?      @relation(fields: [assignedToId], references: [id])
+  @@map("task")
+}
+
+model Document {
+  id        String   @id @default(cuid())
+  name      String
+  filePath  String
+  fileSize  Int
+  fileType  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  @@index([taskId])
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  content   String
+  taskId    String
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@index([userId])
+}
+
+// ==========================================
+// ENUMS (À ADAPTER SELON VOS BESOINS)
+// ==========================================
 
 enum Platform {
   WEB
