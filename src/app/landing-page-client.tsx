@@ -3,14 +3,12 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, useInView, AnimatePresence } from "framer-motion";
 import { track } from "@vercel/analytics";
-import Header from "@/app/components/landing/Header";
-import PricingSection from "@/app/components/landing/Pricing";
+
 import { Button } from "@/app/components/ui/button";
 import Link from "next/link";
 import Image from "next/image";
 import { ChevronRight, Check } from "lucide-react";
 import React from "react";
-import CampingFeatureShowcase from "@/app/components/landing/CampingFeatureShowcase";
 
 const ModernLandingPage = () => {
   const heroRef = useRef(null);
@@ -160,7 +158,6 @@ const ModernLandingPage = () => {
   return (
     <div className="min-h-screen bg-[#f9f3ec] text-[#141313] overflow-hidden">
       {/* Header */}
-      <Header />
 
       {/* Hero Section */}
       <section
@@ -443,7 +440,6 @@ const ModernLandingPage = () => {
           </motion.div>
 
           {/* Composant de fonctionnalités vidéo immersif pour campings */}
-          <CampingFeatureShowcase />
         </div>
       </section>
 
@@ -663,9 +659,7 @@ const ModernLandingPage = () => {
       </section>
 
       {/* Pricing Section */}
-      <div id="pricing" ref={pricingRef}>
-        <PricingSection />
-      </div>
+      <div id="pricing" ref={pricingRef}></div>
 
       {/* FAQ Section */}
       <section

@@ -2,7 +2,6 @@ import { Toaster } from "sonner";
 import Navbar from "./components/Navbar";
 import { getUser } from "../lib/auth-session";
 import "./globals.css";
-import TodoListAgendaWrapper from "./components/TodoListAgendaWrapper";
 import { prisma } from "@/lib/prisma";
 import { NotificationProvider } from "./components/notification-provider";
 import { Analytics } from "@vercel/analytics/react";
@@ -100,7 +99,6 @@ export default async function RootLayout({
               <InactivityManager />
               <Navbar user={userWithRole} />
               <div className="pb-16 md:pb-14">{children}</div>
-              <TodoListAgendaWrapper />
             </NotificationProvider>
           ) : (
             <>{children}</>
