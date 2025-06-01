@@ -1,0 +1,409 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String             @id @default(uuid())
+  name             String
+  email            String
+  organizationId   String?
+  emailVerified    Boolean
+  image            String?
+   metadata         Json?              // Nouveau champ pour stocker des données flexibles
+  notificationsEnabled Boolean @default(true)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  sessions         Session[]
+  accounts         Account[]
+  OrganizationUser OrganizationUser[]
+  Organization     Organization?      @relation(fields: [organizationId], references: [id])
+  emailNotificationsEnabled Boolean @default(true)
+  objectAccess     ObjectAccess[]
+  assignedTasks   Task[]
+  deviceTokens     DeviceToken[]
+  notifications     Notification[]
+  comments         Comment[]
+
+  @@unique([email])
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String
+  createdAt DateTime
+  updatedAt DateTime
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime
+  updatedAt             DateTime
+
+  @@map("account")
+}
+
+model Verification {
+  id         String    @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime?
+  updatedAt  DateTime?
+
+  @@map("verification")
+}
+
+model Organization {
+  id               String             @id @default(uuid())
+  name             String
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  users            User[]
+  Objet            Objet[]
+  OrganizationUser OrganizationUser[]
+  invitationCodes  InvitationCode[]
+  planChangeAudits PlanChangeAudit[]
+  subscription     Subscription?
+  storageUsage     StorageUsage?
+
+  @@map("organization")
+}
+
+model Objet {
+  id             String       @id @default(uuid())
+  nom            String
+  adresse        String
+  secteur        String
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  objectAccess   ObjectAccess[]
+  sectors         Sector[]
+
+  @@map("objet")
+}
+
+model OrganizationUser {
+  id             String       @id @default(uuid())
+  user           User         @relation(fields: [userId], references: [id])
+  userId         String       @unique // <--- Ajoute cette contrainte
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  organizationId String
+  role           String // ex: "admin", "member"
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@map("organization_user")
+}
+
+model InvitationCode {
+  id             String       @id @default(uuid())
+  code           String       @unique // Un code court et facile à partager
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  organizationId String
+  role           String // "admin" ou "member"
+  createdBy      String // ID de l'utilisateur qui a créé l'invitation
+  createdAt      DateTime     @default(now())
+  expiresAt      DateTime
+  isUsed         Boolean      @default(false)
+
+  @@map("invitation_code")
+}
+
+model ObjectAccess {
+  id             String   @id @default(uuid())
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String
+  object         Objet    @relation(fields: [objectId], references: [id], onDelete: Cascade)
+  objectId       String
+  accessLevel    String   // "none", "read", "write", "admin"
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([userId, objectId])
+  @@map("object_access")
+}
+
+model Sector {
+  id             String    @id @default(uuid())
+  name           String
+  image          String?   // URL or path to the image
+  imageWidth     Int?      // Nouvelle propriété: largeur originale de l'image
+  imageHeight    Int?      // Nouvelle propriété: hauteur originale de l'image
+  objectId       String    // Foreign key to Object
+  object         Objet     @relation(fields: [objectId], references: [id], onDelete: Cascade)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  articles       Article[] // Relation to articles in this sector
+
+  @@map("sector")
+}
+
+model Article {
+  id             String    @id @default(uuid())
+  title          String
+  description    String?
+  // Coordinates and dimensions for UI display
+  positionX      Float?
+  positionY      Float?
+  width          Float?
+  height         Float?
+  sectorId       String    // Foreign key to Sector
+  sector         Sector    @relation(fields: [sectorId], references: [id], onDelete: Cascade)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  tasks          Task[]    // Relation to tasks for this article
+
+  @@map("article")
+}
+
+model Task {
+  id                    String    @id @default(uuid())
+  name                  String
+  description           String?
+  executantComment      String?
+  done                  Boolean   @default(false)
+  realizationDate       DateTime?
+  status                String    @default("pending") // pending, in_progress, completed, etc.
+  taskType              String?
+  color                 String?
+  // Recurrence fields
+  recurring             Boolean   @default(false)
+  period                String?   // daily, weekly, monthly, etc.
+  endDate               DateTime?
+  recurrenceReminderDate DateTime?
+  // Relations
+  documents Document[]
+  articleId             String    // Foreign key to Article
+  article               Article   @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  assignedToId          String?   // Optional foreign key to User
+  assignedTo            User?     @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  comments              Comment[]
+
+    archived              Boolean   @default(false)
+  archivedAt            DateTime?
+
+  @@map("task")
+}
+
+model Document {
+  id        String   @id @default(cuid())
+  name      String
+  filePath  String
+  fileSize  Int
+  fileType  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relation avec la tâche
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId    String
+
+  @@index([taskId])
+}
+
+model DeviceToken {
+  id          String    @id @default(uuid())
+  token       String    @unique
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  device      String?   // Informations sur l'appareil (user-agent)
+  platform    Platform  @default(WEB)
+  lastActive  DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  isActive    Boolean   @default(true)
+
+  @@index([userId])
+  @@index([token])
+  @@index([lastActive])
+}
+
+model Notification {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  message     String
+  read        Boolean   @default(false)
+  category    String?   // 'task', 'message', etc.
+  link        String?   // URL à ouvrir lorsque l'utilisateur clique
+  createdAt   DateTime  @default(now())
+  data        Json?     // Données supplémentaires (metadata)
+
+  @@index([userId])
+  @@index([read])
+  @@index([createdAt])
+}
+
+model Plan {
+  id                String       @id @default(uuid())
+  name              PlanType     @unique
+  stripeProductId   String?      // ID Stripe du produit
+  stripePriceId     String?      // ID Stripe du prix
+  price             Decimal      // Prix en euros
+  monthlyPrice      Decimal      // Prix mensuel
+  yearlyPrice       Decimal?     // Prix annuel (optionnel)
+  
+  // Limites principales
+  maxUsers          Int?         // Null = illimité
+  maxObjects        Int?         // Null = illimité
+  maxStorage        Int?         // Limite de stockage en MB, Null = illimité
+  
+  // Nouvelles limites granulaires
+  maxSectors        Int?         // Limite de secteurs par objet, Null = illimité
+  maxArticles       Int?         // Limite d'articles par secteur, Null = illimité
+  maxTasks          Int?         // Limite de tâches par article, Null = illimité
+  maxDocuments      Int?         // Limite de documents par tâche, Null = illimité
+  
+  // Métadonnées
+  hasCustomPricing  Boolean      @default(false)
+  trialDays         Int          @default(0)
+  features          String[]     // Liste des fonctionnalités
+  description       String?      // Description du plan
+  isActive          Boolean      @default(true) // Pour désactiver un plan
+  sortOrder         Int          @default(0)    // Ordre d'affichage
+  
+  // Nouvelles limites fonctionnelles
+  maxInvitations    Int?         // Limite d'invitations simultanées
+  maxExports        Int?         // Limite d'exports par mois
+  maxApiCalls       Int?         // Limite d'appels API par mois
+  
+  // Support et fonctionnalités
+  supportLevel      String       @default("community") // community, email, priority, phone
+  hasAdvancedReports Boolean     @default(false)
+  hasApiAccess      Boolean      @default(false)
+  hasCustomBranding Boolean      @default(false)
+  
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  
+  subscriptions     Subscription[]
+}
+
+model StorageUsage {
+  id                String       @id @default(uuid())
+  organizationId    String       @unique
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  totalUsedBytes    BigInt       @default(0)
+  lastCalculatedAt  DateTime     @default(now())
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@map("storage_usage")
+}
+
+
+model Subscription {
+  id                    String            @id @default(uuid())
+  organizationId        String            @unique
+  organization          Organization      @relation(fields: [organizationId], references: [id])
+  planId                String
+  plan                  Plan              @relation(fields: [planId], references: [id])
+  stripeSubscriptionId  String?           @unique
+  stripeCustomerId      String?
+  status                SubscriptionStatus
+  currentPeriodStart    DateTime
+  currentPeriodEnd      DateTime
+  trialStart            DateTime?
+  trialEnd              DateTime?
+  cancelAtPeriodEnd     Boolean           @default(false)
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  
+  @@index([organizationId])
+  @@index([stripeSubscriptionId])
+}
+
+model Comment {
+  id          String   @id @default(uuid())
+  content     String
+  taskId      String
+  userId      String
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([taskId])
+  @@index([userId])
+}
+
+model PlanChangeAudit {
+  id              String        @id @default(uuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  fromPlan        String?
+  toPlan          String
+  initiatedBy     String        // userId de l'admin
+  initiatedAt     DateTime      @default(now())
+  completedAt     DateTime?
+  status          String        // pending, completed, failed
+  stripeSessionId String?
+  notes           String?
+
+  @@index([organizationId])
+  @@index([status])
+  @@map("plan_change_audit")
+}
+
+enum Platform {
+  WEB
+  ANDROID
+  IOS
+  DESKTOP
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  UNPAID
+  INCOMPLETE
+  INCOMPLETE_EXPIRED
+  TRIALING
+}
+
+enum PlanType {
+  FREE
+  PERSONAL
+  PROFESSIONAL
+  ENTERPRISE
+  SUPER_ADMIN
+  ILLIMITE
+  CUSTOM  
+}
