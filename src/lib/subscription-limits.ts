@@ -18,60 +18,6 @@ interface LimitCheckResult {
   remaining?: number;
 }
 
-interface OrganizationLimits {
-  users: LimitCheckResult;
-  objects: LimitCheckResult;
-  storage: LimitCheckResult;
-  sectors: LimitCheckResult;
-  articles: LimitCheckResult;
-  tasks: LimitCheckResult;
-  planName: string;
-  planId: string;
-  isActive: boolean;
-}
-
-/**
- * Vérifie toutes les limites d'une organisation
- */
-export async function checkAllOrganizationLimits(
-  organizationId: string
-): Promise<OrganizationLimits> {
-  const subscription = await getOrganizationSubscription(organizationId);
-  const planDetails = getPlanDetails(subscription.planName);
-
-  // Récupérer tous les compteurs actuels
-  const [
-    userCount,
-    objectCount,
-    storageUsage,
-    sectorCount,
-    articleCount,
-    taskCount,
-  ] = await Promise.all([
-    getCurrentCount(organizationId, "users"),
-    getCurrentCount(organizationId, "objects"),
-    getCurrentStorageUsage(organizationId),
-    getCurrentCount(organizationId, "sectors"),
-    getCurrentCount(organizationId, "articles"),
-    getCurrentCount(organizationId, "tasks"),
-  ]);
-
-  return {
-    users: buildLimitResult(userCount, planDetails.maxUsers),
-    objects: buildLimitResult(objectCount, planDetails.maxObjects),
-    storage: buildLimitResult(
-      storageUsage,
-      planDetails.maxStorage ? planDetails.maxStorage * 1024 * 1024 : null
-    ),
-    sectors: buildLimitResult(sectorCount, planDetails.maxSectors),
-    articles: buildLimitResult(articleCount, planDetails.maxArticles),
-    tasks: buildLimitResult(taskCount, planDetails.maxTasks),
-    planName: subscription.planName,
-    planId: subscription.planId,
-    isActive: subscription.isActive,
-  };
-}
-
 /**
  * Vérifie une limite spécifique
  */
@@ -186,65 +132,9 @@ async function getCurrentCount(
         where: { organizationId },
       });
 
-    case "objects":
-      return await prisma.objet.count({
-        where: { organizationId },
-      });
-
-    case "sectors":
-      return await prisma.sector.count({
-        where: { object: { organizationId } },
-      });
-
-    case "articles":
-      return await prisma.article.count({
-        where: { sector: { object: { organizationId } } },
-      });
-
-    case "tasks":
-      return await prisma.task.count({
-        where: {
-          article: { sector: { object: { organizationId } } },
-          archived: false, // Ne compter que les tâches non archivées
-        },
-      });
-
-    case "storage":
-      return await getCurrentStorageUsage(organizationId);
-
     default:
       return 0;
   }
-}
-
-/**
- * Récupère l'usage actuel du stockage en bytes
- */
-async function getCurrentStorageUsage(organizationId: string): Promise<number> {
-  // Vérifier si on a un enregistrement de stockage récent
-  const storageUsage = await prisma.storageUsage.findUnique({
-    where: { organizationId },
-  });
-
-  if (storageUsage) {
-    return Number(storageUsage.totalUsedBytes);
-  }
-
-  // Sinon, calculer à la volée
-  const documentsSize = await prisma.document.aggregate({
-    where: {
-      task: {
-        article: {
-          sector: {
-            object: { organizationId },
-          },
-        },
-      },
-    },
-    _sum: { fileSize: true },
-  });
-
-  return documentsSize._sum.fileSize || 0;
 }
 
 /**
@@ -281,7 +171,6 @@ export async function updateCustomLimits(
           price: 0,
           monthlyPrice: 0,
           maxUsers: customLimits.maxUsers,
-          maxObjects: customLimits.maxObjects,
           maxStorage: customLimits.maxStorage,
           hasCustomPricing: true,
           features: ["Limites personnalisées"],
@@ -307,12 +196,7 @@ export async function updateCustomLimits(
     where: { id: subscription.planId },
     data: {
       maxUsers: customLimits.maxUsers,
-      maxObjects: customLimits.maxObjects,
       maxStorage: customLimits.maxStorage,
-      // Note: Vous devrez ajouter ces champs au modèle Plan
-      // maxSectors: customLimits.maxSectors,
-      // maxArticles: customLimits.maxArticles,
-      // maxTasks: customLimits.maxTasks,
     },
   });
 }
