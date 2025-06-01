@@ -1,36 +1,11 @@
 // src/lib/email.ts
 import { Resend } from "resend";
-import { Task, Plan, Organization, User } from "@prisma/client";
-
-// Définition du type TaskWithDetails harmonisée pour être compatible avec tous les templates
-export type TaskWithDetails = Task & {
-  article: {
-    title: string;
-    sector: {
-      name: string;
-      object: {
-        nom: string;
-      };
-    };
-  };
-  assignedTo: {
-    name: string;
-    email: string;
-  } | null;
-  // Le champ period peut être string, null ou undefined
-  period?: string | null;
-};
+import { Plan, Organization, User } from "@prisma/client";
 
 // Import direct des templates
 import { getSubscriptionConfirmationTemplate } from "./email-templates/subscription-confirmation";
 import { getWelcomeEmailTemplate } from "./email-templates/welcome-email";
-import { getTaskAssignmentEmailTemplate } from "./email-templates/task-assignement-email";
-import { getTasksReminderEmailTemplate } from "./email-templates/tasks-reminder-mail";
 import { getPlanChangeEmailTemplate } from "./email-templates/plan-change-email";
-import {
-  getDailySummaryEmailTemplate,
-  type DailySummaryData,
-} from "./email-templates/daily-summary-email";
 
 let resend: Resend | null = null;
 
@@ -233,105 +208,6 @@ export const EmailService = {
         return "Entreprise";
       default:
         return planType;
-    }
-  },
-
-  /**
-   * Envoie un email pour les tâches assignées
-   */
-  async sendTaskAssignmentEmail(
-    to: string,
-    userName: string,
-    tasks: TaskWithDetails[]
-  ) {
-    try {
-      const { data, error } = await getResend().emails.send({
-        from:
-          process.env.RESEND_FROM_EMAIL ||
-          "PlanniKeeper <notifications@resend.dev>",
-        to: [to],
-        subject: `Nouvelles tâches assignées - ${new Date().toLocaleDateString()}`,
-        html: getTaskAssignmentEmailTemplate(userName, tasks),
-        replyTo: process.env.RESEND_REPLY_TO_EMAIL,
-      });
-
-      if (error) {
-        console.error("Error sending email:", error);
-        return { success: false, error };
-      }
-
-      return { success: true, data };
-    } catch (error) {
-      console.error("Error in email service:", error);
-      return { success: false, error };
-    }
-  },
-
-  /**
-   * Envoie un email de rappel pour les tâches récurrentes à échéance proche
-   */
-  async sendReminderEmail(
-    to: string,
-    userName: string,
-    tasks: TaskWithDetails[],
-    daysBeforeDue: number
-  ) {
-    try {
-      const { data, error } = await getResend().emails.send({
-        from:
-          process.env.RESEND_FROM_EMAIL ||
-          "PlanniKeeper <notifications@resend.dev>",
-        to: [to],
-        subject: `Rappel : Tâches récurrentes à échéance dans ${daysBeforeDue} jours`,
-        html: getTasksReminderEmailTemplate(userName, tasks, daysBeforeDue),
-        replyTo: process.env.RESEND_REPLY_TO_EMAIL,
-      });
-
-      if (error) {
-        console.error("Error sending reminder email:", error);
-        return { success: false, error };
-      }
-
-      return { success: true, data };
-    } catch (error) {
-      console.error("Error in email reminder service:", error);
-      return { success: false, error };
-    }
-  },
-
-  /**
-   * Envoie un email de récapitulatif quotidien
-   */
-  async sendDailySummaryEmail(to: string, summaryData: DailySummaryData) {
-    try {
-      const subject =
-        summaryData.totalTasksAdded + summaryData.totalTasksCompleted > 0
-          ? `Récapitulatif quotidien - ${summaryData.totalTasksAdded + summaryData.totalTasksCompleted} activité${summaryData.totalTasksAdded + summaryData.totalTasksCompleted > 1 ? "s" : ""} - ${summaryData.date}`
-          : `Récapitulatif quotidien - ${summaryData.date}`;
-
-      const { data, error } = await getResend().emails.send({
-        from:
-          process.env.RESEND_FROM_EMAIL ||
-          "PlanniKeeper <notifications@plannikeeper.ch>",
-        to: [to],
-        subject,
-        html: getDailySummaryEmailTemplate(summaryData),
-        replyTo: process.env.RESEND_REPLY_TO_EMAIL,
-        headers: {
-          "List-Unsubscribe": `<${process.env.NEXT_PUBLIC_APP_URL}/profile/notifications?unsubscribe=daily>`,
-          "X-Entity-Ref-ID": `daily-summary-${summaryData.date}-${Date.now()}`,
-        },
-      });
-
-      if (error) {
-        console.error("Error sending daily summary email:", error);
-        return { success: false, error };
-      }
-
-      return { success: true, data };
-    } catch (error) {
-      console.error("Error in daily summary email service:", error);
-      return { success: false, error };
     }
   },
 };
