@@ -2,7 +2,6 @@
 
 import { VT323 } from "next/font/google";
 import Switch from "@/app/components/ui/switchmode";
-import Breadcrumbs from "@/app/components/Breadcrumbs";
 import UserMenu from "@/app/components/ui/UserMenu";
 import NotificationIndicator from "./NotificationIndicator";
 import { useRouter } from "@/lib/router-helper";
@@ -82,9 +81,7 @@ export default function Navbar({ user }: { user: User }) {
       </a>
 
       {/* Reste du code inchangé */}
-      <div className="hidden md:flex flex-1 justify-center">
-        <Breadcrumbs />
-      </div>
+      <div className="hidden md:flex flex-1 justify-center"></div>
 
       <div className="flex items-center gap-2 md:gap-4">
         <Switch />
