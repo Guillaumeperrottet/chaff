@@ -305,7 +305,9 @@ async function processBatchOptimized(
             if (year < 100) {
               year += year < 50 ? 2000 : 1900;
             }
-            date = new Date(year, parseInt(parts[0]) - 1, parseInt(parts[1]));
+            date = new Date(
+              Date.UTC(year, parseInt(parts[0]) - 1, parseInt(parts[1]))
+            );
           } else {
             throw new Error("Format de date invalide");
           }
