@@ -16,6 +16,11 @@ interface DashboardData {
   daysSinceLastEntry: number | null;
 }
 
+interface ColumnLabel {
+  key: string;
+  label: string;
+}
+
 export async function GET(request: NextRequest) {
   try {
     // Vérifier l'authentification
@@ -29,6 +34,8 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const includeInactive = searchParams.get("includeInactive") === "true";
+    // Nouveau : permettre de spécifier le nombre de jours
+    const days = parseInt(searchParams.get("days") || "7");
 
     // Récupérer tous les mandats avec leurs valeurs récentes
     const mandates = await prisma.mandate.findMany({
@@ -45,14 +52,26 @@ export async function GET(request: NextRequest) {
       orderBy: [{ group: "asc" }, { name: "asc" }],
     });
 
-    // Générer les colonnes de dates (derniers 7 jours)
+    // Générer les colonnes de dates (derniers X jours)
     const dateColumns: string[] = [];
+    const columnLabels: ColumnLabel[] = [];
     const today = new Date();
 
-    for (let i = 6; i >= 0; i--) {
+    for (let i = days - 1; i >= 0; i--) {
       const date = new Date(today);
       date.setDate(date.getDate() - i);
-      dateColumns.push(date.toISOString().split("T")[0]);
+      const dateKey = date.toISOString().split("T")[0];
+      dateColumns.push(dateKey);
+
+      // Créer aussi les labels avec jour de la semaine
+      const dayNames = ["dim.", "lun.", "mar.", "mer.", "jeu.", "ven.", "sam."];
+      const dayName = dayNames[date.getDay()];
+      const formattedDate = formatDateShort(date);
+
+      columnLabels.push({
+        key: dateKey,
+        label: `${dayName} ${formattedDate}`,
+      });
     }
 
     // Transformer les données pour le frontend
@@ -64,7 +83,7 @@ export async function GET(request: NextRequest) {
           orderBy: { date: "desc" }, // Trier par DATE de la valeur, pas par date de création
         });
 
-        // Récupérer les valeurs pour les 7 derniers jours pour l'affichage
+        // Récupérer les valeurs pour les X derniers jours pour l'affichage
         const recentValues = await prisma.dayValue.findMany({
           where: {
             mandateId: mandate.id,
@@ -172,27 +191,37 @@ export async function GET(request: NextRequest) {
           item.daysSinceLastEntry !== null && item.daysSinceLastEntry > 7
       ).length,
       dailyTotals: {} as Record<string, number>,
+      subtotalsByCategory: {
+        hebergement: {} as Record<string, number>,
+        restauration: {} as Record<string, number>,
+      },
     };
 
-    // Calculer les totaux par jour
+    // Calculer les totaux par jour et les sous-totaux par catégorie
     dateColumns.forEach((dateKey) => {
-      totals.dailyTotals[dateKey] = dashboardData.reduce((sum, item) => {
+      // Initialiser les totaux pour ce jour
+      totals.dailyTotals[dateKey] = 0;
+      totals.subtotalsByCategory.hebergement[dateKey] = 0;
+      totals.subtotalsByCategory.restauration[dateKey] = 0;
+
+      // Parcourir les données pour calculer totaux et sous-totaux
+      dashboardData.forEach((item) => {
         const value = item.values[dateKey];
-        return sum + (value ? parseFloat(value.replace(/[^\d.-]/g, "")) : 0);
-      }, 0);
+        const numValue = value ? parseFloat(value.replace(/[^\d.-]/g, "")) : 0;
+
+        // Ajouter au total quotidien
+        totals.dailyTotals[dateKey] += numValue;
+
+        // Ajouter au sous-total par catégorie
+        if (item.category === "Hébergement") {
+          totals.subtotalsByCategory.hebergement[dateKey] += numValue;
+        } else if (item.category === "Restauration") {
+          totals.subtotalsByCategory.restauration[dateKey] += numValue;
+        }
+      });
     });
 
-    // Générer les labels des colonnes avec jour de la semaine
-    const columnLabels = dateColumns.map((dateKey) => {
-      const date = new Date(dateKey);
-      const dayNames = ["dim.", "lun.", "mar.", "mer.", "jeu.", "ven.", "sam."];
-      const dayName = dayNames[date.getDay()];
-      const formattedDate = formatDateShort(date);
-      return {
-        key: dateKey,
-        label: `${dayName} ${formattedDate}`,
-      };
-    });
+    // Note: Les labels sont maintenant générés au début avec les dateColumns
 
     return NextResponse.json({
       data: dashboardData,
@@ -202,6 +231,7 @@ export async function GET(request: NextRequest) {
         dateRange: {
           start: dateColumns[0],
           end: dateColumns[dateColumns.length - 1],
+          days: days, // Ajouter le nombre de jours à la réponse
         },
         generatedAt: new Date().toISOString(),
       },

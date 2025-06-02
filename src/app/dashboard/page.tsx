@@ -18,6 +18,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  TableFooter,
 } from "@/app/components/ui/table";
 import {
   DropdownMenu,
@@ -74,6 +75,10 @@ interface DashboardResponse {
     totalMandates: number;
     activeMandates: number;
     dailyTotals: Record<string, number>;
+    subtotalsByCategory: {
+      hebergement: Record<string, number>;
+      restauration: Record<string, number>;
+    };
   };
   columnLabels: ColumnLabel[];
   meta: {
@@ -134,6 +139,42 @@ export default function DashboardPage() {
 
       return matchesSearch && matchesCategory && matchesStatus;
     }) || [];
+
+  // Calculer les totaux filtrés
+  const calculateFilteredTotals = () => {
+    if (!dashboardData) return null;
+
+    const dailyTotals: Record<string, number> = {};
+    const hebergementTotals: Record<string, number> = {};
+    const restaurationTotals: Record<string, number> = {};
+
+    // Calculer les totaux pour les données filtrées
+    filteredData.forEach((item) => {
+      dashboardData.columnLabels.forEach((col) => {
+        const value = parseFloat(item.values[col.key] || "0");
+
+        // Total général
+        dailyTotals[col.key] = (dailyTotals[col.key] || 0) + value;
+
+        // Sous-totaux par catégorie
+        if (item.category === "Hébergement") {
+          hebergementTotals[col.key] =
+            (hebergementTotals[col.key] || 0) + value;
+        } else if (item.category === "Restauration") {
+          restaurationTotals[col.key] =
+            (restaurationTotals[col.key] || 0) + value;
+        }
+      });
+    });
+
+    return {
+      dailyTotals,
+      hebergementTotals,
+      restaurationTotals,
+    };
+  };
+
+  const filteredTotals = calculateFilteredTotals();
 
   const handleExport = async () => {
     try {
@@ -196,13 +237,21 @@ export default function DashboardPage() {
       }
 
       toast.success("Mandat supprimé avec succès");
-      fetchDashboardData(); // Recharger les données
+      fetchDashboardData();
     } catch (error) {
       console.error("Erreur:", error);
       toast.error(
         error instanceof Error ? error.message : "Erreur lors de la suppression"
       );
     }
+  };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("fr-CH", {
+      style: "decimal",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value);
   };
 
   if (loading) {
@@ -360,7 +409,6 @@ export default function DashboardPage() {
                               {campus.category}
                             </Badge>
 
-                            {/* 🔧 NOUVEAU: Badge d'alerte pour saisies anciennes */}
                             {campus.daysSinceLastEntry !== null &&
                               campus.daysSinceLastEntry > 7 && (
                                 <Badge
@@ -465,6 +513,71 @@ export default function DashboardPage() {
                   </TableRow>
                 ))}
               </TableBody>
+
+              {/* Section des totaux */}
+              {filteredTotals && (
+                <TableFooter>
+                  {/* Sous-total Hébergement */}
+                  <TableRow className="bg-blue-50 hover:bg-blue-50">
+                    <TableCell
+                      colSpan={3}
+                      className="font-medium text-blue-700"
+                    >
+                      Hébergement
+                    </TableCell>
+                    {dashboardData.columnLabels.map((col) => (
+                      <TableCell
+                        key={col.key}
+                        className="text-center font-medium text-blue-700"
+                      >
+                        {formatCurrency(
+                          filteredTotals.hebergementTotals[col.key] || 0
+                        )}
+                      </TableCell>
+                    ))}
+                    <TableCell></TableCell>
+                  </TableRow>
+
+                  {/* Sous-total Restauration */}
+                  <TableRow className="bg-orange-50 hover:bg-orange-50">
+                    <TableCell
+                      colSpan={3}
+                      className="font-medium text-orange-700"
+                    >
+                      Restauration
+                    </TableCell>
+                    {dashboardData.columnLabels.map((col) => (
+                      <TableCell
+                        key={col.key}
+                        className="text-center font-medium text-orange-700"
+                      >
+                        {formatCurrency(
+                          filteredTotals.restaurationTotals[col.key] || 0
+                        )}
+                      </TableCell>
+                    ))}
+                    <TableCell></TableCell>
+                  </TableRow>
+
+                  {/* Total général */}
+                  <TableRow className="bg-gray-100 hover:bg-gray-100">
+                    <TableCell colSpan={3} className="font-bold text-gray-900">
+                      Total
+                    </TableCell>
+                    {dashboardData.columnLabels.map((col) => (
+                      <TableCell
+                        key={col.key}
+                        className="text-center font-bold text-gray-900"
+                      >
+                        {formatCurrency(
+                          filteredTotals.dailyTotals[col.key] || 0
+                        )}
+                      </TableCell>
+                    ))}
+                    <TableCell></TableCell>
+                  </TableRow>
+                </TableFooter>
+              )}
             </Table>
           </div>
 
@@ -490,26 +603,108 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      {/* Footer avec totaux */}
+      {/* Footer avec résumé */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-muted-foreground">
-              Affichage de {filteredData.length} campus sur{" "}
-              {dashboardData.totals.totalMandates} au total
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Résumé général */}
+            <div className="space-y-2">
+              <h4 className="font-medium text-sm text-muted-foreground">
+                RÉSUMÉ GÉNÉRAL
+              </h4>
+              <div className="space-y-1">
+                <div className="flex justify-between text-sm">
+                  <span>Campus affichés:</span>
+                  <span className="font-medium">{filteredData.length}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Total mandats:</span>
+                  <span className="font-medium">
+                    {dashboardData.totals.totalMandates}
+                  </span>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center space-x-4 text-sm">
-              <div className="font-medium">
-                Total:{" "}
-                <span className="text-lg">
-                  {new Intl.NumberFormat("fr-CH", {
-                    style: "currency",
-                    currency: "CHF",
-                  }).format(dashboardData.totals.totalRevenue)}
-                </span>
+
+            {/* Hébergement */}
+            <div className="space-y-2">
+              <h4 className="font-medium text-sm text-blue-700">HÉBERGEMENT</h4>
+              <div className="space-y-1">
+                <div className="flex justify-between text-sm">
+                  <span>Campus:</span>
+                  <span className="font-medium text-blue-700">
+                    {
+                      filteredData.filter(
+                        (item) => item.category === "Hébergement"
+                      ).length
+                    }
+                  </span>
+                </div>
+                {filteredTotals && dashboardData.columnLabels.length > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span>Total semaine:</span>
+                    <span className="font-medium text-blue-700">
+                      {formatCurrency(
+                        Object.values(filteredTotals.hebergementTotals).reduce(
+                          (a, b) => a + b,
+                          0
+                        )
+                      )}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Restauration */}
+            <div className="space-y-2">
+              <h4 className="font-medium text-sm text-orange-700">
+                RESTAURATION
+              </h4>
+              <div className="space-y-1">
+                <div className="flex justify-between text-sm">
+                  <span>Campus:</span>
+                  <span className="font-medium text-orange-700">
+                    {
+                      filteredData.filter(
+                        (item) => item.category === "Restauration"
+                      ).length
+                    }
+                  </span>
+                </div>
+                {filteredTotals && dashboardData.columnLabels.length > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span>Total semaine:</span>
+                    <span className="font-medium text-orange-700">
+                      {formatCurrency(
+                        Object.values(filteredTotals.restaurationTotals).reduce(
+                          (a, b) => a + b,
+                          0
+                        )
+                      )}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
+
+          {/* Total général en bas */}
+          {filteredTotals && dashboardData.columnLabels.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-border">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-lg">TOTAL PÉRIODE:</span>
+                <span className="font-bold text-xl text-primary">
+                  {formatCurrency(
+                    Object.values(filteredTotals.dailyTotals).reduce(
+                      (a, b) => a + b,
+                      0
+                    )
+                  )}
+                </span>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

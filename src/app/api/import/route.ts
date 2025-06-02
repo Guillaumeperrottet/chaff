@@ -105,8 +105,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Traitement des données avec toutes les corrections
-    const result = await processExcelDataComplete(workbook);
+    // Traitement des données avec la méthode robuste
+    const result = await processExcelDataRobust(workbook);
 
     console.log("✅ Import terminé avec succès");
     return NextResponse.json(result);
@@ -244,7 +244,8 @@ function parseSmartValue(valueStr: string | number): number {
   return parsedValue;
 }
 
-async function processExcelDataComplete(
+// Nouvelle fonction robuste pour le traitement des données Excel
+async function processExcelDataRobust(
   workbook: XLSX.WorkBook
 ): Promise<ImportResult> {
   const stats = {
@@ -256,30 +257,28 @@ async function processExcelDataComplete(
   };
 
   try {
-    // 1. Traiter les mandats d'abord
+    // 1. Traiter les mandats avec UPSERT (plus robuste)
     const mandantsSheet = workbook.Sheets["Mandants"];
     const mandantsData: ExcelMandant[] = XLSX.utils.sheet_to_json(
       mandantsSheet,
       { raw: false }
     );
 
-    console.log(`📋 Traitement de ${mandantsData.length} mandants...`);
+    console.log(
+      `📋 Traitement de ${mandantsData.length} mandants avec UPSERT...`
+    );
 
-    const mandateMapping = new Map<string, string>(); // MandantId -> mandateId en DB
+    const mandateMapping = new Map<string, string>();
 
+    // 🔧 TRAITEMENT SÉQUENTIEL des mandats (pas de transaction globale)
     for (const mandantRow of mandantsData) {
       try {
-        console.log(`🏢 Traitement mandat: ${JSON.stringify(mandantRow)}`);
-
-        // Validation des données
         if (!mandantRow.Id || !mandantRow.Nom || !mandantRow.Catégorie) {
-          const error = `Mandant invalide - Id: "${mandantRow.Id}", Nom: "${mandantRow.Nom}", Catégorie: "${mandantRow.Catégorie}"`;
-          stats.errors.push(error);
-          console.log(`❌ ${error}`);
+          stats.errors.push(`Mandant invalide: ${JSON.stringify(mandantRow)}`);
           continue;
         }
 
-        // Mapper correctement la catégorie
+        // Mapper la catégorie
         let group: "HEBERGEMENT" | "RESTAURATION";
         const category = mandantRow.Catégorie.toLowerCase().trim();
 
@@ -295,56 +294,47 @@ async function processExcelDataComplete(
         ) {
           group = "RESTAURATION";
         } else {
-          const error = `Catégorie inconnue pour ${mandantRow.Nom}: "${mandantRow.Catégorie}". Utilisez "Hébergement" ou "Restauration"`;
-          stats.errors.push(error);
-          console.log(`❌ ${error}`);
+          stats.errors.push(
+            `Catégorie inconnue pour ${mandantRow.Nom}: "${mandantRow.Catégorie}"`
+          );
           continue;
         }
 
-        // Vérifier si le mandat existe déjà par nom
-        const existingMandate = await prisma.mandate.findFirst({
+        // 🔧 UPSERT au lieu de find + create/update
+        const existingCount = await prisma.mandate.count({
           where: { name: mandantRow.Nom.trim() },
         });
 
-        if (existingMandate) {
-          // Mettre à jour si nécessaire
-          await prisma.mandate.update({
-            where: { id: existingMandate.id },
-            data: {
-              group,
-              active: true,
-            },
-          });
-          mandateMapping.set(mandantRow.Id, existingMandate.id);
+        const mandate = await prisma.mandate.upsert({
+          where: { name: mandantRow.Nom.trim() },
+          update: {
+            group,
+            active: true,
+          },
+          create: {
+            name: mandantRow.Nom.trim(),
+            group,
+            active: true,
+          },
+        });
+
+        mandateMapping.set(mandantRow.Id, mandate.id);
+
+        if (existingCount > 0) {
           stats.mandatesUpdated++;
-          console.log(`🔄 Mandat mis à jour: ${mandantRow.Nom} -> ${group}`);
+          console.log(`🔄 Mandat mis à jour: ${mandantRow.Nom}`);
         } else {
-          // Créer nouveau mandat
-          const newMandate = await prisma.mandate.create({
-            data: {
-              name: mandantRow.Nom.trim(),
-              group,
-              active: true,
-            },
-          });
-          mandateMapping.set(mandantRow.Id, newMandate.id);
           stats.mandatesCreated++;
-          console.log(
-            `🆕 Nouveau mandat créé: ${mandantRow.Nom} -> ${group} (ID: ${newMandate.id})`
-          );
+          console.log(`🆕 Nouveau mandat: ${mandantRow.Nom}`);
         }
       } catch (error) {
-        const errorMsg = `Erreur lors du traitement du mandant ${mandantRow.Nom}: ${error}`;
+        const errorMsg = `Erreur mandat ${mandantRow.Nom}: ${error}`;
         stats.errors.push(errorMsg);
         console.error(`❌ ${errorMsg}`);
       }
     }
 
-    console.log(
-      `📊 Mandats traités: ${stats.mandatesCreated} créés, ${stats.mandatesUpdated} mis à jour`
-    );
-
-    // 2. Traiter les valeurs journalières
+    // 2. Traiter les valeurs par TRÈS petits lots
     const dayValuesSheet = workbook.Sheets["DayValues"];
     const dayValuesData: ExcelDayValue[] = XLSX.utils.sheet_to_json(
       dayValuesSheet,
@@ -352,114 +342,50 @@ async function processExcelDataComplete(
     );
 
     console.log(
-      `📊 Traitement de ${dayValuesData.length} valeurs journalières...`
+      `📊 Traitement de ${dayValuesData.length} valeurs par petits lots...`
     );
 
-    // Traiter par lot pour éviter les timeouts
-    const batchSize = 100;
-    for (let i = 0; i < dayValuesData.length; i += batchSize) {
-      const batch = dayValuesData.slice(i, i + batchSize);
+    const SMALL_BATCH_SIZE = 25; // Très petit pour éviter les timeouts
 
-      await Promise.all(
-        batch.map(async (valueRow, batchIndex) => {
-          const globalIndex = i + batchIndex;
-          try {
-            console.log(
-              `📈 [${globalIndex + 1}/${dayValuesData.length}] Traitement: ${JSON.stringify(valueRow)}`
-            );
+    for (let i = 0; i < dayValuesData.length; i += SMALL_BATCH_SIZE) {
+      const batch = dayValuesData.slice(i, i + SMALL_BATCH_SIZE);
+      const batchNumber = Math.floor(i / SMALL_BATCH_SIZE) + 1;
+      const totalBatches = Math.ceil(dayValuesData.length / SMALL_BATCH_SIZE);
 
-            // Validation des données
-            if (!valueRow.Date || !valueRow.Valeur || !valueRow.MandantId) {
-              const error = `Valeur invalide [ligne ${globalIndex + 1}] - Date: "${valueRow.Date}", Valeur: "${valueRow.Valeur}", MandantId: "${valueRow.MandantId}"`;
-              stats.errors.push(error);
-              console.log(`❌ ${error}`);
-              return;
-            }
-
-            // Récupérer l'ID du mandat
-            const mandateId = mandateMapping.get(valueRow.MandantId);
-            if (!mandateId) {
-              const error = `Mandat non trouvé pour MandantId: ${valueRow.MandantId} (${valueRow.Mandant}) [ligne ${globalIndex + 1}]`;
-              stats.errors.push(error);
-              console.log(`❌ ${error}`);
-              return;
-            }
-
-            // Parser la date avec la nouvelle fonction
-            let date: Date;
-            try {
-              date = parseSmartDate(valueRow.Date);
-              console.log(
-                `📅 Date parsée: ${valueRow.Date} -> ${date.toISOString().split("T")[0]}`
-              );
-            } catch (dateError) {
-              const error = `Date invalide [ligne ${globalIndex + 1}] pour ${valueRow.Mandant}: "${valueRow.Date}" - ${dateError}`;
-              stats.errors.push(error);
-              console.log(`❌ ${error}`);
-              return;
-            }
-
-            // Parser la valeur avec la nouvelle fonction
-            let value: number;
-            try {
-              value = parseSmartValue(valueRow.Valeur);
-              console.log(`💰 Valeur parsée: ${valueRow.Valeur} -> ${value}`);
-            } catch (valueError) {
-              const error = `Valeur invalide [ligne ${globalIndex + 1}] pour ${valueRow.Mandant}: "${valueRow.Valeur}" - ${valueError}`;
-              stats.errors.push(error);
-              console.log(`❌ ${error}`);
-              return;
-            }
-
-            // Vérifier si la valeur existe déjà
-            const existingValue = await prisma.dayValue.findUnique({
-              where: {
-                date_mandateId: {
-                  date: date,
-                  mandateId: mandateId,
-                },
-              },
-            });
-
-            if (existingValue) {
-              // Mettre à jour la valeur existante
-              await prisma.dayValue.update({
-                where: { id: existingValue.id },
-                data: { value },
-              });
-              stats.valuesSkipped++;
-              console.log(
-                `🔄 Valeur mise à jour: ${valueRow.Mandant} - ${date.toISOString().split("T")[0]} = ${value}`
-              );
-            } else {
-              // Créer nouvelle valeur
-              await prisma.dayValue.create({
-                data: {
-                  date: date,
-                  value: value,
-                  mandateId: mandateId,
-                },
-              });
-              stats.valuesCreated++;
-              console.log(
-                `✅ Nouvelle valeur: ${valueRow.Mandant} - ${date.toISOString().split("T")[0]} = ${value}`
-              );
-            }
-          } catch (error) {
-            const errorMsg = `Erreur lors du traitement de la valeur [ligne ${globalIndex + 1}] ${valueRow.Mandant} ${valueRow.Date}: ${error}`;
-            stats.errors.push(errorMsg);
-            console.error(`❌ ${errorMsg}`);
-          }
-        })
+      console.log(
+        `📦 Lot ${batchNumber}/${totalBatches}: ${batch.length} valeurs`
       );
+
+      // 🔧 Sans transaction (plus robuste)
+      for (const valueRow of batch) {
+        try {
+          await processSingleValueRobust(
+            valueRow,
+            mandateMapping,
+            stats,
+            i + batch.indexOf(valueRow)
+          );
+        } catch (error) {
+          const errorMsg = `Erreur valeur individuelle: ${error}`;
+          stats.errors.push(errorMsg);
+          console.error(`❌ ${errorMsg}`);
+        }
+      }
+
+      // Pause entre les lots
+      if (i + SMALL_BATCH_SIZE < dayValuesData.length) {
+        await new Promise((resolve) => setTimeout(resolve, 200));
+      }
 
       // Log de progression
-      console.log(
-        `📊 Progression: ${Math.min(i + batchSize, dayValuesData.length)}/${dayValuesData.length} valeurs traitées`
-      );
+      if (batchNumber % 10 === 0 || batchNumber === totalBatches) {
+        console.log(
+          `📊 Progression: ${Math.min(i + SMALL_BATCH_SIZE, dayValuesData.length)}/${dayValuesData.length} valeurs (${Math.round(((i + SMALL_BATCH_SIZE) / dayValuesData.length) * 100)}%)`
+        );
+      }
     }
 
-    // 3. Mettre à jour les statistiques des mandats
+    // 3. Mettre à jour les statistiques (séquentiellement)
     console.log("🔄 Mise à jour des statistiques des mandats...");
 
     for (const [excelId, mandateId] of mandateMapping.entries()) {
@@ -468,7 +394,6 @@ async function processExcelDataComplete(
           where: { mandateId },
           _sum: { value: true },
           _max: { date: true },
-          _count: { _all: true },
         });
 
         await prisma.mandate.update({
@@ -479,43 +404,110 @@ async function processExcelDataComplete(
           },
         });
 
-        console.log(
-          `📈 Stats mises à jour pour mandat ${mandateId}: ${mandateStats._count._all} valeurs, total: ${mandateStats._sum.value}`
-        );
+        console.log(`📈 Stats ${mandateId}: ${mandateStats._sum.value}`);
       } catch (error) {
-        console.error(
-          `❌ Erreur lors de la mise à jour des stats pour ${mandateId}:`,
-          error
-        );
-        stats.errors.push(
-          `Erreur mise à jour stats mandat ${excelId}: ${error}`
-        );
+        console.error(`❌ Erreur stats ${excelId}:`, error);
+        stats.errors.push(`Erreur stats ${excelId}: ${error}`);
       }
+
+      // Petite pause entre chaque mise à jour
+      await new Promise((resolve) => setTimeout(resolve, 50));
     }
 
-    console.log("✅ Import terminé avec succès!");
-    console.log(`📊 Résumé final:`, {
-      mandatesCreated: stats.mandatesCreated,
-      mandatesUpdated: stats.mandatesUpdated,
-      valuesCreated: stats.valuesCreated,
-      valuesSkipped: stats.valuesSkipped,
-      errors: stats.errors.length,
-    });
-
+    console.log("✅ Import robuste terminé!");
     return {
       success: true,
-      message: `Import terminé avec succès! ${stats.valuesCreated} valeurs créées, ${stats.valuesSkipped} mises à jour.`,
+      message: `Import terminé: ${stats.valuesCreated} valeurs créées, ${stats.valuesSkipped} mises à jour`,
       stats,
     };
   } catch (error) {
-    console.error("❌ Erreur lors du traitement des données:", error);
+    console.error("❌ Erreur générale:", error);
     return {
       success: false,
-      message: "Erreur lors du traitement des données",
+      message: "Erreur lors du traitement",
       stats: {
         ...stats,
         errors: [...stats.errors, `Erreur générale: ${error}`],
       },
     };
+  }
+}
+
+// Fonction auxiliaire pour le traitement individuel robuste des valeurs
+async function processSingleValueRobust(
+  valueRow: ExcelDayValue,
+  mandateMapping: Map<string, string>,
+  stats: ImportResult["stats"],
+  index: number
+) {
+  // Validation
+  if (!valueRow.Date || !valueRow.Valeur || !valueRow.MandantId) {
+    const error = `Valeur invalide [ligne ${index + 1}]: ${JSON.stringify(valueRow)}`;
+    stats.errors.push(error);
+    return;
+  }
+
+  // Récupérer mandat
+  const mandateId = mandateMapping.get(valueRow.MandantId);
+  if (!mandateId) {
+    const error = `Mandat non trouvé [ligne ${index + 1}] pour MandantId: ${valueRow.MandantId}`;
+    stats.errors.push(error);
+    return;
+  }
+
+  // Parser date et valeur
+  let date: Date, value: number;
+
+  try {
+    date = parseSmartDate(valueRow.Date);
+  } catch (dateError) {
+    const error = `Date invalide [ligne ${index + 1}]: "${valueRow.Date}" - ${dateError}`;
+    stats.errors.push(error);
+    return;
+  }
+
+  try {
+    value = parseSmartValue(valueRow.Valeur);
+  } catch (valueError) {
+    const error = `Valeur invalide [ligne ${index + 1}]: "${valueRow.Valeur}" - ${valueError}`;
+    stats.errors.push(error);
+    return;
+  }
+
+  // UPSERT individuel (très robuste)
+  try {
+    const result = await prisma.dayValue.upsert({
+      where: {
+        date_mandateId: {
+          date: date,
+          mandateId: mandateId,
+        },
+      },
+      update: {
+        value: value,
+      },
+      create: {
+        date: date,
+        value: value,
+        mandateId: mandateId,
+      },
+    });
+
+    // Déterminer si c'est une création ou une mise à jour
+    if (result.createdAt.getTime() === result.updatedAt.getTime()) {
+      stats.valuesCreated++;
+    } else {
+      stats.valuesSkipped++;
+    }
+
+    if (index % 100 === 0) {
+      console.log(
+        `✅ [${index + 1}] ${valueRow.Mandant}: ${date.toISOString().split("T")[0]} = ${value}`
+      );
+    }
+  } catch (upsertError) {
+    const error = `Erreur UPSERT [ligne ${index + 1}]: ${upsertError}`;
+    stats.errors.push(error);
+    console.error(`❌ ${error}`);
   }
 }
