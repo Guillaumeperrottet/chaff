@@ -54,6 +54,7 @@ interface DashboardData {
   id: string;
   name: string;
   lastEntry: string | null;
+  daysSinceLastEntry: number | null;
   performance: string;
   values: Record<string, string>;
   category: string;
@@ -343,7 +344,7 @@ export default function DashboardPage() {
                       <div className="flex items-center space-x-2">
                         <div>
                           <div className="font-medium">{campus.name}</div>
-                          <div className="text-sm text-muted-foreground flex items-center">
+                          <div className="text-sm text-muted-foreground flex items-center gap-2">
                             <Badge
                               variant={
                                 campus.status === "active"
@@ -354,18 +355,27 @@ export default function DashboardPage() {
                                       ? "destructive"
                                       : "outline"
                               }
-                              className="text-xs mr-2"
+                              className="text-xs"
                             >
                               {campus.category}
                             </Badge>
+
+                            {/* 🔧 NOUVEAU: Badge d'alerte pour saisies anciennes */}
+                            {campus.daysSinceLastEntry !== null &&
+                              campus.daysSinceLastEntry > 7 && (
+                                <Badge
+                                  variant="destructive"
+                                  className="text-xs"
+                                >
+                                  {campus.daysSinceLastEntry > 30
+                                    ? `⚠️ ${Math.floor(campus.daysSinceLastEntry / 30)}M`
+                                    : `⚠️ ${campus.daysSinceLastEntry}J`}
+                                </Badge>
+                              )}
+
                             {campus.status === "new" && (
-                              <Badge variant="destructive" className="text-xs">
-                                Nouveau
-                              </Badge>
-                            )}
-                            {campus.status === "warning" && (
-                              <Badge variant="destructive" className="text-xs">
-                                ⚠️ Ancien
+                              <Badge variant="secondary" className="text-xs">
+                                🆕 Nouveau
                               </Badge>
                             )}
                           </div>
@@ -373,8 +383,37 @@ export default function DashboardPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="text-sm font-medium">
-                        {campus.lastEntry || "Jamais"}
+                      <div className="flex flex-col">
+                        <div className="text-sm font-medium">
+                          {campus.lastEntry || "Jamais"}
+                        </div>
+                        {campus.daysSinceLastEntry !== null && (
+                          <div
+                            className={`text-xs ${
+                              campus.daysSinceLastEntry === 0
+                                ? "text-green-600"
+                                : campus.daysSinceLastEntry <= 3
+                                  ? "text-blue-600"
+                                  : campus.daysSinceLastEntry <= 7
+                                    ? "text-yellow-600"
+                                    : campus.daysSinceLastEntry <= 30
+                                      ? "text-orange-600"
+                                      : "text-red-600"
+                            }`}
+                          >
+                            {campus.daysSinceLastEntry === 0 &&
+                              "🟢 Aujourd'hui"}
+                            {campus.daysSinceLastEntry === 1 && "🟡 Hier"}
+                            {campus.daysSinceLastEntry > 1 &&
+                              campus.daysSinceLastEntry <= 7 &&
+                              `🟡 ${campus.daysSinceLastEntry} jours`}
+                            {campus.daysSinceLastEntry > 7 &&
+                              campus.daysSinceLastEntry <= 30 &&
+                              `🟠 ${campus.daysSinceLastEntry} jours`}
+                            {campus.daysSinceLastEntry > 30 &&
+                              `🔴 ${Math.floor(campus.daysSinceLastEntry / 30)} mois`}
+                          </div>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>

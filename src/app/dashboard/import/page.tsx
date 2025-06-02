@@ -102,6 +102,10 @@ export default function ImportPage() {
   const [chunkedProgress, setChunkedProgress] =
     useState<ChunkedProgress | null>(null);
   const [chunkedStats, setChunkedStats] = useState<ImportStats | null>(null);
+  // Ajout d'un état pour stocker l'ID de session d'import
+  const [currentImportSessionId, setCurrentImportSessionId] = useState<
+    string | null
+  >(null);
 
   const handleFileSelect = async (file: File) => {
     // Vérifier le type de fichier
@@ -133,7 +137,94 @@ export default function ImportPage() {
     await generatePreview(file);
   };
 
-  // NOUVELLE FONCTION: Import par chunks
+  // Fonction pour vérifier le statut de l'import en cours
+  const checkImportStatus = async (sessionId: string) => {
+    try {
+      const response = await fetch(
+        `/api/import/chunked?sessionId=${sessionId}`
+      );
+      if (response.ok) {
+        const status = await response.json();
+        return status;
+      }
+    } catch (err) {
+      console.error("Impossible de vérifier le statut:", err);
+    }
+    return null;
+  };
+
+  // Composant pour la récupération d'un import interrompu
+  const RecoveryButton = ({ sessionId }: { sessionId: string | null }) => {
+    const [isChecking, setIsChecking] = useState(false);
+
+    const handleCheckStatus = async () => {
+      if (!sessionId) return;
+
+      setIsChecking(true);
+      try {
+        const status = await checkImportStatus(sessionId);
+        if (status) {
+          toast.info(
+            `Statut: ${status.status} - ${status.progress?.percentage || 0}% terminé`
+          );
+
+          // Si l'import est terminé, mettre à jour l'interface
+          if (status.status === "completed") {
+            setChunkedStats(
+              status.stats || {
+                mandatesCreated: 0,
+                mandatesUpdated: 0,
+                valuesCreated: 0,
+                valuesSkipped: 0,
+                errors: [],
+              }
+            );
+            toast.success("Import terminé avec succès!");
+          }
+        } else {
+          toast.warning("Impossible de récupérer le statut de l'import");
+        }
+      } catch {
+        toast.error("Erreur lors de la vérification du statut");
+      } finally {
+        setIsChecking(false);
+      }
+    };
+
+    if (!sessionId) return null;
+
+    return (
+      <Card className="border-yellow-200 bg-yellow-50">
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="font-medium text-yellow-800">Import en cours</h4>
+              <p className="text-sm text-yellow-700">
+                L&apos;import continue en arrière-plan même si l&apos;interface
+                a planté
+              </p>
+            </div>
+            <Button
+              onClick={handleCheckStatus}
+              disabled={isChecking}
+              variant="outline"
+              size="sm"
+            >
+              {isChecking ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Vérification...
+                </>
+              ) : (
+                "Vérifier le statut"
+              )}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
   const handleChunkedImport = async (file: File) => {
     const allowedTypes = [
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -195,6 +286,7 @@ export default function ImportPage() {
 
       // Générer ID de session
       const sessionId = `import_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      setCurrentImportSessionId(sessionId);
 
       // Diviser en chunks
       const dataChunks: Array<{
@@ -234,72 +326,153 @@ export default function ImportPage() {
     }
   };
 
+  // Correction du processChunks avec gestion d'erreurs robuste
   const processChunks = async (
     chunks: Array<{ mandates: ImportData[]; dayValues: ImportData[] }>,
     sessionId: string
   ) => {
-    for (let i = 0; i < chunks.length; i++) {
-      const chunk = chunks[i];
-      const isFirstChunk = i === 0;
-      const isLastChunk = i === chunks.length - 1;
+    try {
+      for (let i = 0; i < chunks.length; i++) {
+        const chunk = chunks[i];
+        const isFirstChunk = i === 0;
+        const isLastChunk = i === chunks.length - 1;
 
-      try {
-        console.log(`📦 Envoi chunk ${i + 1}/${chunks.length}...`);
+        try {
+          console.log(`📦 Envoi chunk ${i + 1}/${chunks.length}...`);
 
-        const response = await fetch("/api/import/chunked", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            chunkIndex: i,
-            totalChunks: chunks.length,
-            sessionId,
-            mandates: chunk.mandates,
-            dayValues: chunk.dayValues,
-            isFirstChunk,
-            isLastChunk,
-          }),
-        });
-
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(`Erreur chunk ${i + 1}: ${error.error}`);
-        }
-
-        const result = await response.json();
-
-        // Mettre à jour la progression
-        setChunkedProgress({
-          chunkIndex: result.progress.chunkIndex,
-          totalChunks: result.progress.totalChunks,
-          processedRows: result.progress.processedRows,
-          percentage: result.progress.percentage,
-        });
-
-        // Mettre à jour les stats
-        setChunkedStats(result.stats);
-
-        // Afficher les erreurs importantes
-        if (result.errors.length > 0) {
-          result.errors.slice(0, 2).forEach((error: string) => {
-            toast.warning(`Chunk ${i + 1}: ${error}`);
+          const response = await fetch("/api/import/chunked", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              chunkIndex: i,
+              totalChunks: chunks.length,
+              sessionId,
+              mandates: chunk.mandates || [],
+              dayValues: chunk.dayValues || [],
+              isFirstChunk,
+              isLastChunk,
+            }),
           });
-        }
 
-        // Si c'est le dernier chunk
-        if (isLastChunk && result.finalStats) {
-          setChunkedStats(result.finalStats);
-          toast.success(
-            `Import terminé! ${result.finalStats.valuesCreated} valeurs importées`
-          );
-        }
+          if (!response.ok) {
+            const errorText = await response.text();
+            let errorMessage;
+            try {
+              const errorJson = JSON.parse(errorText);
+              errorMessage = errorJson.error || errorText;
+            } catch {
+              errorMessage = errorText;
+            }
+            throw new Error(`Erreur chunk ${i + 1}: ${errorMessage}`);
+          }
 
-        // Pause entre chunks
-        await new Promise((resolve) => setTimeout(resolve, 100));
-      } catch (error) {
-        console.error(`Erreur chunk ${i + 1}:`, error);
-        toast.error(`Erreur chunk ${i + 1}: ${error}`);
-        throw error;
+          const result = await response.json();
+
+          // Vérification de la structure de la réponse
+          if (!result) {
+            throw new Error(`Réponse vide pour chunk ${i + 1}`);
+          }
+
+          // Mettre à jour la progression avec vérifications
+          if (result.progress) {
+            setChunkedProgress({
+              chunkIndex: result.progress.chunkIndex || i + 1,
+              totalChunks: result.progress.totalChunks || chunks.length,
+              processedRows: result.progress.processedRows || 0,
+              percentage:
+                result.progress.percentage ||
+                Math.round(((i + 1) / chunks.length) * 100),
+            });
+          }
+
+          // Mettre à jour les stats avec vérifications
+          if (result.stats) {
+            setChunkedStats({
+              mandatesCreated: result.stats.mandatesCreated || 0,
+              mandatesUpdated: result.stats.mandatesUpdated || 0,
+              valuesCreated: result.stats.valuesCreated || 0,
+              valuesSkipped: result.stats.valuesSkipped || 0,
+              errors: result.stats.errors || [],
+            });
+          }
+
+          // Afficher les erreurs s'il y en a
+          if (
+            result.errors &&
+            Array.isArray(result.errors) &&
+            result.errors.length > 0
+          ) {
+            result.errors.slice(0, 2).forEach((error: string) => {
+              toast.warning(`Chunk ${i + 1}: ${error}`);
+            });
+          }
+
+          // Si c'est le dernier chunk
+          if (isLastChunk) {
+            if (result.finalStats) {
+              setChunkedStats({
+                mandatesCreated: result.finalStats.mandatesCreated || 0,
+                mandatesUpdated: result.finalStats.mandatesUpdated || 0,
+                valuesCreated: result.finalStats.valuesCreated || 0,
+                valuesSkipped: result.finalStats.valuesSkipped || 0,
+                errors: result.finalStats.errors || [],
+              });
+            }
+
+            const totalCreated =
+              result.finalStats?.valuesCreated ||
+              result.stats?.valuesCreated ||
+              0;
+            toast.success(`Import terminé! ${totalCreated} valeurs importées`);
+
+            // Rediriger vers le dashboard après 3 secondes
+            setTimeout(() => {
+              if (
+                confirm("Import terminé! Voulez-vous retourner au dashboard ?")
+              ) {
+                window.location.href = "/dashboard";
+              }
+            }, 3000);
+          }
+
+          // Pause entre chunks
+          await new Promise((resolve) => setTimeout(resolve, 200));
+        } catch (chunkError) {
+          console.error(`❌ Erreur chunk ${i + 1}:`, chunkError);
+
+          // Pour les erreurs de chunk, on continue avec les suivants
+          toast.error(`Erreur chunk ${i + 1}: ${chunkError}`, {
+            duration: 5000,
+          });
+
+          // Si c'est une erreur réseau, on peut essayer de continuer
+          if (
+            chunkError instanceof TypeError &&
+            chunkError.message.includes("fetch")
+          ) {
+            toast.warning("Erreur réseau - Tentative de continuation...");
+            await new Promise((resolve) => setTimeout(resolve, 2000));
+          }
+
+          // Pour les autres erreurs, on s'arrête
+          else {
+            throw chunkError;
+          }
+        }
       }
+    } catch (globalError) {
+      console.error("❌ Erreur globale de traitement:", globalError);
+      toast.error(`Erreur globale: ${globalError}`, {
+        duration: 10000,
+      });
+
+      // Afficher un message de récupération
+      toast.info(
+        "L'import peut continuer en arrière-plan. Vérifiez votre dashboard.",
+        {
+          duration: 10000,
+        }
+      );
     }
   };
 
@@ -406,6 +579,7 @@ export default function ImportPage() {
     setProgress(0);
     setChunkedProgress(null);
     setChunkedStats(null);
+    setCurrentImportSessionId(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -806,6 +980,11 @@ export default function ImportPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Bouton de récupération - Affiché uniquement si un import est en cours */}
+      {currentImportSessionId && (
+        <RecoveryButton sessionId={currentImportSessionId} />
+      )}
     </div>
   );
 }
