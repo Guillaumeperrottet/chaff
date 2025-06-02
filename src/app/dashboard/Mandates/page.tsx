@@ -112,7 +112,7 @@ export default function MandatesIndexPage() {
 
   // Fonction pour créer un nouveau mandat
   const handleCreateNew = () => {
-    router.push("/dashboard/mandates/Create");
+    router.push("/dashboard/mandates/create");
   };
 
   // Fonction pour l'import

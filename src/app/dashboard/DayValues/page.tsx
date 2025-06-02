@@ -156,11 +156,11 @@ export default function ValeursPage() {
   };
 
   const handleCreateNew = () => {
-    router.push("/dashboard/DayValues/Create");
+    router.push("/dashboard/dayvalues/create");
   };
 
   const handleEdit = (valueId: string) => {
-    router.push(`/dashboard/DayValues/${valueId}/edit`);
+    router.push(`/dashboard/dayvalues/${valueId}/edit`);
   };
 
   const handleDelete = async (valueId: string) => {

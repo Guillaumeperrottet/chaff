@@ -592,7 +592,7 @@ export default function DashboardPage() {
               </p>
               {dashboardData.data.length === 0 && (
                 <Button
-                  onClick={() => router.push("/dashboard/mandates/Create")}
+                  onClick={() => router.push("/dashboard/mandates/create")}
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   Créer un mandat
