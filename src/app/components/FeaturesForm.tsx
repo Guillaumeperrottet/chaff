@@ -1,19 +1,18 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2, CheckCircle2 } from "lucide-react";
-import { useRouter } from "@/lib/router-helper";
 
 type FeedbackType = "feature" | "bug" | "improvement";
-
 export default function FeaturesForm() {
+  const router = useRouter();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [type, setType] = useState<FeedbackType>("feature");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,13 +43,9 @@ export default function FeaturesForm() {
       }
 
       setIsSubmitted(true);
-      toast.success("Merci pour votre contribution !");
-
       // Rediriger l'utilisateur vers le dashboard après 2 secondes
       setTimeout(() => {
-        router.navigateWithLoading("/dashboard", {
-          loadingMessage: "Redirection vers le dashboard...",
-        });
+        router.push("/dashboard");
       }, 2000);
     } catch (error) {
       toast.error(
@@ -74,7 +69,7 @@ export default function FeaturesForm() {
           attentivement.
         </p>
         <button
-          onClick={() => router.navigateWithLoading("/dashboard")}
+          onClick={() => router.push("/dashboard")}
           className="px-4 py-2 bg-[color:var(--primary)] text-[color:var(--primary-foreground)] rounded-md hover:bg-[color:var(--primary)]/90 transition-colors"
         >
           Retour au dashboard
