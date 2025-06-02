@@ -18,13 +18,15 @@ import {
   Upload,
   FileSpreadsheet,
   CheckCircle,
-  AlertCircle,
   Info,
   Download,
   Loader2,
   HelpCircle,
+  Zap,
+  Clock,
 } from "lucide-react";
 import { ImportHelp } from "@/app/components/ImportHelp";
+import * as XLSX from "xlsx";
 
 interface ImportStats {
   mandatesCreated: number;
@@ -38,6 +40,17 @@ interface ImportResult {
   success: boolean;
   message: string;
   stats: ImportStats;
+}
+
+interface ChunkedProgress {
+  chunkIndex: number;
+  totalChunks: number;
+  processedRows: number;
+  percentage: number;
+}
+
+interface ImportData {
+  [key: string]: string | number | Date | null | undefined;
 }
 
 interface PreviewData {
@@ -76,36 +89,19 @@ interface PreviewResult {
 export default function ImportPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const chunkedFileInputRef = useRef<HTMLInputElement>(null);
 
   const [isUploading, setIsUploading] = useState(false);
-  const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [previewData, setPreviewData] = useState<PreviewData | null>(null);
-  const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [progress, setProgress] = useState(0);
 
-  // Gestion du drag & drop
-  const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFileSelect(e.dataTransfer.files[0]);
-    }
-  };
+  // Nouveaux états pour l'import par chunks
+  const [chunkedProgress, setChunkedProgress] =
+    useState<ChunkedProgress | null>(null);
+  const [chunkedStats, setChunkedStats] = useState<ImportStats | null>(null);
 
   const handleFileSelect = async (file: File) => {
     // Vérifier le type de fichier
@@ -130,13 +126,184 @@ export default function ImportPage() {
     setSelectedFile(file);
     setImportResult(null);
     setPreviewData(null);
+    setChunkedProgress(null);
+    setChunkedStats(null);
 
     // Générer automatiquement la prévisualisation
     await generatePreview(file);
   };
 
+  // NOUVELLE FONCTION: Import par chunks
+  const handleChunkedImport = async (file: File) => {
+    const allowedTypes = [
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "application/vnd.ms-excel",
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Format de fichier non supporté");
+      return;
+    }
+
+    if (file.size > 100 * 1024 * 1024) {
+      // 100MB pour chunks
+      toast.error("Fichier trop volumineux (max 100MB)");
+      return;
+    }
+
+    setIsUploading(true);
+    setChunkedProgress(null);
+    setChunkedStats(null);
+
+    try {
+      // Lire le fichier Excel
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const workbook = XLSX.read(buffer, {
+        cellDates: true,
+        cellNF: true,
+        cellFormula: false,
+      });
+
+      // Vérifier les feuilles
+      if (
+        !workbook.SheetNames.includes("Mandants") ||
+        !workbook.SheetNames.includes("DayValues")
+      ) {
+        throw new Error("Feuilles 'Mandants' et 'DayValues' requises");
+      }
+
+      // Extraire les données
+      const mandantsData = XLSX.utils.sheet_to_json(
+        workbook.Sheets["Mandants"],
+        { raw: false }
+      ) as ImportData[];
+      const dayValuesData = XLSX.utils.sheet_to_json(
+        workbook.Sheets["DayValues"],
+        { raw: false }
+      ) as ImportData[];
+
+      console.log(
+        `📊 Fichier analysé: ${mandantsData.length} mandats, ${dayValuesData.length} valeurs`
+      );
+
+      // Déterminer la taille de chunk optimale
+      const CHUNK_SIZE = 1000;
+      const totalData = mandantsData.length + dayValuesData.length;
+      const chunks = Math.ceil(totalData / CHUNK_SIZE);
+
+      console.log(`📦 Création de ${chunks} chunks de ${CHUNK_SIZE} éléments`);
+
+      // Générer ID de session
+      const sessionId = `import_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      // Diviser en chunks
+      const dataChunks: Array<{
+        mandates: ImportData[];
+        dayValues: ImportData[];
+      }> = [];
+
+      // Premier chunk avec tous les mandats
+      dataChunks.push({
+        mandates: mandantsData,
+        dayValues: dayValuesData.slice(
+          0,
+          Math.max(0, CHUNK_SIZE - mandantsData.length)
+        ),
+      });
+
+      // Chunks suivants avec seulement des valeurs
+      const remainingValues = dayValuesData.slice(
+        Math.max(0, CHUNK_SIZE - mandantsData.length)
+      );
+      for (let i = 0; i < remainingValues.length; i += CHUNK_SIZE) {
+        dataChunks.push({
+          mandates: [],
+          dayValues: remainingValues.slice(i, i + CHUNK_SIZE),
+        });
+      }
+
+      // Traiter les chunks
+      await processChunks(dataChunks, sessionId);
+    } catch (error) {
+      console.error("Erreur import par chunks:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Erreur lors de l'import"
+      );
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const processChunks = async (
+    chunks: Array<{ mandates: ImportData[]; dayValues: ImportData[] }>,
+    sessionId: string
+  ) => {
+    for (let i = 0; i < chunks.length; i++) {
+      const chunk = chunks[i];
+      const isFirstChunk = i === 0;
+      const isLastChunk = i === chunks.length - 1;
+
+      try {
+        console.log(`📦 Envoi chunk ${i + 1}/${chunks.length}...`);
+
+        const response = await fetch("/api/import/chunked", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chunkIndex: i,
+            totalChunks: chunks.length,
+            sessionId,
+            mandates: chunk.mandates,
+            dayValues: chunk.dayValues,
+            isFirstChunk,
+            isLastChunk,
+          }),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(`Erreur chunk ${i + 1}: ${error.error}`);
+        }
+
+        const result = await response.json();
+
+        // Mettre à jour la progression
+        setChunkedProgress({
+          chunkIndex: result.progress.chunkIndex,
+          totalChunks: result.progress.totalChunks,
+          processedRows: result.progress.processedRows,
+          percentage: result.progress.percentage,
+        });
+
+        // Mettre à jour les stats
+        setChunkedStats(result.stats);
+
+        // Afficher les erreurs importantes
+        if (result.errors.length > 0) {
+          result.errors.slice(0, 2).forEach((error: string) => {
+            toast.warning(`Chunk ${i + 1}: ${error}`);
+          });
+        }
+
+        // Si c'est le dernier chunk
+        if (isLastChunk && result.finalStats) {
+          setChunkedStats(result.finalStats);
+          toast.success(
+            `Import terminé! ${result.finalStats.valuesCreated} valeurs importées`
+          );
+        }
+
+        // Pause entre chunks
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      } catch (error) {
+        console.error(`Erreur chunk ${i + 1}:`, error);
+        toast.error(`Erreur chunk ${i + 1}: ${error}`);
+        throw error;
+      }
+    }
+  };
+
   const generatePreview = async (file: File) => {
-    setIsGeneratingPreview(true);
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -167,13 +334,7 @@ export default function ImportPage() {
       toast.error("Erreur lors de l'analyse du fichier");
       setPreviewData(null);
     } finally {
-      setIsGeneratingPreview(false);
-    }
-  };
-
-  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      handleFileSelect(e.target.files[0]);
+      // Generate preview completed
     }
   };
 
@@ -243,8 +404,13 @@ export default function ImportPage() {
     setImportResult(null);
     setPreviewData(null);
     setProgress(0);
+    setChunkedProgress(null);
+    setChunkedStats(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
+    }
+    if (chunkedFileInputRef.current) {
+      chunkedFileInputRef.current.value = "";
     }
   };
 
@@ -305,7 +471,7 @@ export default function ImportPage() {
                 Guide d&apos;utilisation
               </CardTitle>
               <CardDescription>
-                Tout ce que vous devez savoir pour réussir votre import
+                Choisissez la méthode d&apos;import adaptée à votre fichier
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -315,397 +481,331 @@ export default function ImportPage() {
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Zone d'upload */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Instructions */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Info className="h-5 w-5" />
-                Format requis
-              </CardTitle>
-              <CardDescription>
-                Votre fichier Excel doit contenir deux feuilles spécifiques
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="p-4 border rounded-lg">
-                  <h4 className="font-medium mb-2">
-                    Feuille &quot;Mandants&quot;
-                  </h4>
-                  <ul className="text-sm text-muted-foreground space-y-1">
-                    <li>
-                      • <strong>Id</strong> : Identifiant unique
-                    </li>
-                    <li>
-                      • <strong>Nom</strong> : Nom du mandat
-                    </li>
-                    <li>
-                      • <strong>Catégorie</strong> : Hébergement ou Restauration
-                    </li>
-                    <li>
-                      • <strong>Monnaie</strong> : CHF, EUR (optionnel)
-                    </li>
-                  </ul>
-                </div>
-                <div className="p-4 border rounded-lg">
-                  <h4 className="font-medium mb-2">
-                    Feuille &quot;DayValues&quot;
-                  </h4>
-                  <ul className="text-sm text-muted-foreground space-y-1">
-                    <li>
-                      • <strong>Date</strong> : Format MM/DD/YY
-                    </li>
-                    <li>
-                      • <strong>Valeur</strong> : Montant numérique
-                    </li>
-                    <li>
-                      • <strong>MandantId</strong> : Référence au mandat
-                    </li>
-                    <li>
-                      • <strong>Mandant</strong> : Nom du mandat
-                    </li>
-                  </ul>
-                </div>
-              </div>
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Import classique */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-blue-600" />
+              Import classique
+            </CardTitle>
+            <CardDescription>
+              Pour les fichiers de taille normale (moins de 5,000 lignes)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="text-sm text-muted-foreground space-y-1">
+              <p>✅ Rapide et simple</p>
+              <p>✅ Prévisualisation incluse</p>
+              <p>⚠️ Limite: 5,000 lignes</p>
+              <p>⚠️ Timeout possible sur gros fichiers</p>
+            </div>
 
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={downloadTemplate}>
-                  <Download className="mr-2 h-4 w-4" />
-                  Télécharger template
+            {!selectedFile ? (
+              <div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={(e) => {
+                    if (e.target.files?.[0]) {
+                      handleFileSelect(e.target.files[0]);
+                    }
+                  }}
+                  className="hidden"
+                />
+                <Button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full"
+                  variant="outline"
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  Sélectionner fichier
                 </Button>
-                <span className="text-sm text-muted-foreground">
-                  Utilisez ce modèle pour structurer vos données
-                </span>
               </div>
-            </CardContent>
-          </Card>
+            ) : (
+              <div className="space-y-3">
+                <div className="p-3 border rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <FileSpreadsheet className="h-4 w-4 text-green-600" />
+                    <span className="text-sm font-medium">
+                      {selectedFile.name}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                  </p>
+                </div>
 
-          {/* Zone de upload */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Sélectionner le fichier</CardTitle>
-              <CardDescription>
-                Glissez-déposez votre fichier Excel ou cliquez pour le
-                sélectionner
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div
-                className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                  dragActive
-                    ? "border-primary bg-primary/5"
-                    : "border-muted-foreground/25 hover:border-muted-foreground/50"
-                }`}
-                onDragEnter={handleDrag}
-                onDragLeave={handleDrag}
-                onDragOver={handleDrag}
-                onDrop={handleDrop}
-              >
-                {selectedFile ? (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-center">
-                      <div className="p-4 bg-green-100 rounded-full">
-                        <FileSpreadsheet className="h-8 w-8 text-green-600" />
-                      </div>
+                {previewData && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span>Aperçu:</span>
+                      <span>
+                        {previewData.dayValues?.total || 0} valeurs détectées
+                      </span>
                     </div>
-                    <div>
-                      <p className="font-medium">{selectedFile.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                      </p>
-                    </div>
-                    <div className="flex items-center justify-center gap-2">
-                      <Button
-                        onClick={handleImport}
-                        disabled={
-                          isUploading ||
-                          isGeneratingPreview ||
-                          !!(previewData && previewData.errors.length > 0)
-                        }
-                      >
-                        {isUploading ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Import en cours...
-                          </>
-                        ) : (
-                          <>
-                            <Upload className="mr-2 h-4 w-4" />
-                            Lancer l&apos;import
-                          </>
-                        )}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={handleReset}
-                        disabled={isUploading || isGeneratingPreview}
-                      >
-                        Changer de fichier
-                      </Button>
-                    </div>
-                    {isGeneratingPreview && (
-                      <div className="flex items-center justify-center text-sm text-muted-foreground">
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Analyse du fichier en cours...
-                      </div>
+
+                    {previewData.errors?.length > 0 ? (
+                      <Badge variant="destructive" className="text-xs">
+                        {previewData.errors.length} erreur(s) détectée(s)
+                      </Badge>
+                    ) : (
+                      <Badge variant="default" className="text-xs">
+                        Prêt pour l&apos;import
+                      </Badge>
                     )}
                   </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-center">
-                      <div className="p-4 bg-muted rounded-full">
-                        <Upload className="h-8 w-8 text-muted-foreground" />
+                )}
+
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleImport}
+                    disabled={
+                      isUploading ||
+                      !!(
+                        previewData?.errors?.length &&
+                        previewData.errors.length > 0
+                      )
+                    }
+                    className="flex-1"
+                  >
+                    {isUploading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Import...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="mr-2 h-4 w-4" />
+                        Importer
+                      </>
+                    )}
+                  </Button>
+                  <Button onClick={handleReset} variant="outline">
+                    Reset
+                  </Button>
+                </div>
+
+                {isUploading && progress > 0 && (
+                  <div className="space-y-2">
+                    <Progress value={progress} className="h-2" />
+                    <p className="text-xs text-center text-muted-foreground">
+                      {progress}%
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Import par chunks - NOUVEAU */}
+        <Card className="border-orange-200 bg-orange-50/30">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Zap className="h-5 w-5 text-orange-600" />
+              Import par chunks
+              <Badge variant="secondary" className="text-xs">
+                Recommandé
+              </Badge>
+            </CardTitle>
+            <CardDescription>
+              Pour les gros fichiers (5,000+ lignes) - Évite les timeouts
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="text-sm text-muted-foreground space-y-1">
+              <p>🚀 Supporte les gros fichiers</p>
+              <p>📊 Progression en temps réel</p>
+              <p>🔄 Récupération en cas d&apos;erreur</p>
+              <p>⚡ Traitement optimisé</p>
+            </div>
+
+            {!chunkedProgress ? (
+              <div>
+                <input
+                  ref={chunkedFileInputRef}
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={(e) => {
+                    if (e.target.files?.[0]) {
+                      handleChunkedImport(e.target.files[0]);
+                    }
+                  }}
+                  className="hidden"
+                />
+                <Button
+                  onClick={() => chunkedFileInputRef.current?.click()}
+                  className="w-full bg-orange-600 hover:bg-orange-700"
+                  disabled={isUploading}
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Traitement...
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="mr-2 h-4 w-4" />
+                      Import par chunks
+                    </>
+                  )}
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium">
+                      Chunk {chunkedProgress.chunkIndex}/
+                      {chunkedProgress.totalChunks}
+                    </span>
+                    <span className="text-sm text-muted-foreground">
+                      {chunkedProgress.percentage}%
+                    </span>
+                  </div>
+                  <Progress
+                    value={chunkedProgress.percentage}
+                    className="h-3"
+                  />
+                </div>
+
+                {chunkedStats && (
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <span className="font-medium text-green-600">
+                        Créées:
+                      </span>
+                      <div>{chunkedStats.valuesCreated}</div>
+                    </div>
+                    <div>
+                      <span className="font-medium text-blue-600">
+                        Mises à jour:
+                      </span>
+                      <div>{chunkedStats.valuesSkipped}</div>
+                    </div>
+                    <div>
+                      <span className="font-medium text-purple-600">
+                        Mandats:
+                      </span>
+                      <div>
+                        {chunkedStats.mandatesCreated +
+                          chunkedStats.mandatesUpdated}
                       </div>
                     </div>
                     <div>
-                      <p className="text-lg font-medium">
-                        Glissez votre fichier Excel ici
-                      </p>
-                      <p className="text-muted-foreground">
-                        ou cliquez pour le sélectionner
-                      </p>
+                      <span className="font-medium text-red-600">Erreurs:</span>
+                      <div>{chunkedStats.errors.length}</div>
                     </div>
-                    <Button
-                      variant="outline"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      Sélectionner un fichier
-                    </Button>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept=".xlsx,.xls"
-                      onChange={handleFileInput}
-                      className="hidden"
-                    />
+                  </div>
+                )}
+
+                {chunkedProgress.percentage === 100 && (
+                  <div className="flex items-center text-green-600">
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    <span className="text-sm font-medium">Import terminé!</span>
                   </div>
                 )}
               </div>
-
-              {/* Progress bar */}
-              {isUploading && (
-                <div className="mt-4 space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span>Import en cours...</span>
-                    <span>{progress}%</span>
-                  </div>
-                  <Progress value={progress} className="h-2" />
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Résultats et Prévisualisation */}
-        <div className="space-y-6">
-          {/* Prévisualisation */}
-          {previewData && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Info className="h-5 w-5 text-blue-600" />
-                  Prévisualisation
-                </CardTitle>
-                <CardDescription>
-                  Aperçu des données qui seront importées
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Résumé */}
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="font-medium">Mandats:</span>
-                    <div className="text-muted-foreground">
-                      {previewData.mandates.length} trouvés
-                    </div>
-                  </div>
-                  <div>
-                    <span className="font-medium">Valeurs:</span>
-                    <div className="text-muted-foreground">
-                      {previewData.dayValues.total} entrées
-                    </div>
-                  </div>
-                </div>
-
-                {/* Période */}
-                {previewData.dayValues.dateRange.start && (
-                  <div className="text-sm">
-                    <span className="font-medium">Période:</span>
-                    <div className="text-muted-foreground">
-                      Du {previewData.dayValues.dateRange.start} au{" "}
-                      {previewData.dayValues.dateRange.end}
-                    </div>
-                  </div>
-                )}
-
-                {/* Mandats avec erreurs */}
-                {previewData.mandates.some((m) => m.status === "error") && (
-                  <div className="space-y-2">
-                    <h5 className="text-sm font-medium text-red-600">
-                      Mandats avec erreurs:
-                    </h5>
-                    <div className="max-h-32 overflow-y-auto space-y-1">
-                      {previewData.mandates
-                        .filter((m) => m.status === "error")
-                        .slice(0, 3)
-                        .map((mandate, index) => (
-                          <div
-                            key={index}
-                            className="text-xs p-2 bg-red-50 rounded border-l-2 border-red-200"
-                          >
-                            <div className="font-medium">
-                              {mandate.name || `ID: ${mandate.id}`}
-                            </div>
-                            <div className="text-red-600">{mandate.error}</div>
-                          </div>
-                        ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Erreurs générales */}
-                {previewData.errors.length > 0 && (
-                  <div className="space-y-2">
-                    <h5 className="text-sm font-medium text-red-600">
-                      Erreurs détectées:
-                    </h5>
-                    <div className="max-h-24 overflow-y-auto space-y-1">
-                      {previewData.errors.slice(0, 3).map((error, index) => (
-                        <p
-                          key={index}
-                          className="text-xs text-red-600 p-2 bg-red-50 rounded"
-                        >
-                          {error}
-                        </p>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Statut global */}
-                <div className="pt-2 border-t">
-                  {previewData.errors.length > 0 ? (
-                    <Badge variant="destructive">
-                      Import impossible - Corrigez les erreurs
-                    </Badge>
-                  ) : (
-                    <Badge variant="default">Prêt pour l&apos;import</Badge>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Résultats d'import */}
-          {importResult && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  {importResult.success ? (
-                    <CheckCircle className="h-5 w-5 text-green-600" />
-                  ) : (
-                    <AlertCircle className="h-5 w-5 text-red-600" />
-                  )}
-                  Résultat de l&apos;import
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Mandats créés</span>
-                    <Badge variant="default">
-                      {importResult.stats.mandatesCreated}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Mandats mis à jour</span>
-                    <Badge variant="secondary">
-                      {importResult.stats.mandatesUpdated}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Valeurs créées</span>
-                    <Badge variant="default">
-                      {importResult.stats.valuesCreated}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Valeurs existantes</span>
-                    <Badge variant="outline">
-                      {importResult.stats.valuesSkipped}
-                    </Badge>
-                  </div>
-                </div>
-
-                {importResult.stats.errors.length > 0 && (
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-medium text-red-600">
-                      Erreurs ({importResult.stats.errors.length})
-                    </h4>
-                    <div className="max-h-32 overflow-y-auto space-y-1">
-                      {importResult.stats.errors
-                        .slice(0, 5)
-                        .map((error, index) => (
-                          <p
-                            key={index}
-                            className="text-xs text-red-600 p-2 bg-red-50 rounded"
-                          >
-                            {error}
-                          </p>
-                        ))}
-                      {importResult.stats.errors.length > 5 && (
-                        <p className="text-xs text-muted-foreground">
-                          ... et {importResult.stats.errors.length - 5} autres
-                          erreurs
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                <div className="pt-4 border-t">
-                  <Button
-                    onClick={() => router.push("/dashboard")}
-                    className="w-full"
-                  >
-                    Retour au dashboard
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Aide */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">💡 Conseils</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-sm text-muted-foreground space-y-2">
-                <p>
-                  • <strong>Sauvegarde :</strong> Exportez vos données actuelles
-                  avant l&apos;import
-                </p>
-                <p>
-                  • <strong>Doublons :</strong> Les valeurs existantes seront
-                  mises à jour
-                </p>
-                <p>
-                  • <strong>Formats :</strong> Utilisez le format de date
-                  MM/DD/YY
-                </p>
-                <p>
-                  • <strong>Erreurs :</strong> Vérifiez les logs en cas de
-                  problème
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Résultats */}
+      {(importResult || chunkedStats) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              Résultats de l&apos;import
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {/* Affichage des résultats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-600">
+                  {importResult?.stats.valuesCreated ||
+                    chunkedStats?.valuesCreated ||
+                    0}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Valeurs créées
+                </div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600">
+                  {importResult?.stats.mandatesCreated ||
+                    chunkedStats?.mandatesCreated ||
+                    0}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Mandats créés
+                </div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-purple-600">
+                  {importResult?.stats.mandatesUpdated ||
+                    chunkedStats?.mandatesUpdated ||
+                    0}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Mandats mis à jour
+                </div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-red-600">
+                  {importResult?.stats.errors.length ||
+                    chunkedStats?.errors.length ||
+                    0}
+                </div>
+                <div className="text-sm text-muted-foreground">Erreurs</div>
+              </div>
+            </div>
+
+            <div className="mt-6 text-center">
+              <Button onClick={() => router.push("/dashboard")}>
+                Retour au dashboard
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Instructions existantes */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Info className="h-5 w-5" />
+            Instructions
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="text-sm space-y-2">
+            <p>
+              <strong>🔄 Import par chunks:</strong> Utilisez cette méthode pour
+              votre fichier de 11,913 lignes
+            </p>
+            <p>
+              <strong>📊 Progression:</strong> Suivez l&apos;avancement en temps
+              réel
+            </p>
+            <p>
+              <strong>🔒 Fiabilité:</strong> En cas d&apos;erreur, les données
+              déjà traitées sont conservées
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={downloadTemplate}>
+              <Download className="mr-2 h-4 w-4" />
+              Télécharger template
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
