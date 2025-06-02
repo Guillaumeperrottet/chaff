@@ -167,23 +167,11 @@ export async function DELETE(
 
     // Suppression en cascade dans une transaction
     await prisma.$transaction(async (tx) => {
-      // 1. Supprimer les commentaires
-      await tx.comment.deleteMany({ where: { userId } });
-
       // 2. Supprimer les notifications
       await tx.notification.deleteMany({ where: { userId } });
 
       // 3. Supprimer les tokens d'appareil
       await tx.deviceToken.deleteMany({ where: { userId } });
-
-      // 4. Supprimer les accès aux objets
-      await tx.objectAccess.deleteMany({ where: { userId } });
-
-      // 5. Mettre à null les références dans les tâches assignées
-      await tx.task.updateMany({
-        where: { assignedToId: userId },
-        data: { assignedToId: null },
-      });
 
       // 6. Supprimer les associations avec les organisations
       await tx.organizationUser.deleteMany({ where: { userId } });
