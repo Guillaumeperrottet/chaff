@@ -1,4 +1,4 @@
-// next.config.ts - Optimized for performance
+// next.config.ts - Configuration pour Chaff.ch
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
@@ -6,18 +6,15 @@ const nextConfig: NextConfig = {
   images: {
     domains: ["res.cloudinary.com"],
     formats: ["image/avif", "image/webp"],
-    minimumCacheTTL: 86400, // 1 day cache
-    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840], // Responsive image sizes
-    imageSizes: [16, 32, 64, 96, 128, 256, 384], // Image sizes for next/image
+    minimumCacheTTL: 86400,
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    imageSizes: [16, 32, 64, 96, 128, 256, 384],
   },
 
-  // Server action size increase when needed
   experimental: {
     serverActions: {
-      bodySizeLimit: "20mb", // Reduced from 10mb to improve performance
+      bodySizeLimit: "20mb",
     },
-    // Enable optimizations
-    optimizeCss: false, // Enable CSS optimization
     optimizePackageImports: [
       "lucide-react",
       "@radix-ui/react-dialog",
@@ -27,10 +24,8 @@ const nextConfig: NextConfig = {
     ],
   },
 
-  // Improved caching strategy
   async headers() {
     return [
-      // API routes
       {
         source: "/api/:path*",
         has: [{ type: "header", key: "referer", value: "(?!.*stripe.com).*" }],
@@ -48,7 +43,6 @@ const nextConfig: NextConfig = {
           },
         ],
       },
-      // Static assets with long cache
       {
         source: "/_next/static/:path*",
         headers: [
@@ -58,17 +52,6 @@ const nextConfig: NextConfig = {
           },
         ],
       },
-      // Images with cache
-      {
-        source: "/images/:path*",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "public, max-age=604800, stale-while-revalidate=86400",
-          },
-        ],
-      },
-      // Service worker allowed for PWA
       {
         source: "/(.*)",
         headers: [{ key: "Service-Worker-Allowed", value: "/" }],
@@ -76,23 +59,15 @@ const nextConfig: NextConfig = {
     ];
   },
 
-  // Generate optimized and compressed output
-  swcMinify: true, // Use SWC minification instead of Terser for better performance
+  swcMinify: true,
 
-  // PWA configuration
-  // Note: Should be added using next-pwa in your actual implementation
-
-  // Debug only in development
   logging:
     process.env.NODE_ENV === "development"
       ? { fetches: { fullUrl: true } }
       : undefined,
 
-  // Configure webpack for additional optimizations
   webpack: (config, { isServer }) => {
-    // Only run these optimizations on client
     if (!isServer) {
-      // Split chunks for better caching
       config.optimization.splitChunks = {
         chunks: "all",
         maxInitialRequests: 25,
@@ -103,7 +78,6 @@ const nextConfig: NextConfig = {
             name: "vendors",
             chunks: "all",
           },
-          // Separate large dependencies into their own chunks
           reactVendors: {
             test: /[\\/]node_modules[\\/](react|react-dom)[\\/]/,
             name: "react-vendors",

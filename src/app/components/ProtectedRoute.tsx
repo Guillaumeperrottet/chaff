@@ -6,55 +6,52 @@ import { useEffect } from "react";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  fallback?: React.ReactNode;
+  redirectTo?: string;
+  requireEmailVerification?: boolean;
 }
 
 export default function ProtectedRoute({
   children,
-  fallback,
+  redirectTo = "/",
+  requireEmailVerification = true,
 }: ProtectedRouteProps) {
   const { data: session, isPending } = useSession();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isPending && !session) {
-      router.push("/auth/sign-in");
-    }
-  }, [session, isPending, router]);
+    // Attendre que la session soit chargée
+    if (isPending) return;
 
-  // Pendant le chargement
+    // Si pas d'utilisateur connecté, rediriger vers landing
+    if (!session?.user) {
+      router.push(redirectTo);
+      return;
+    }
+
+    // Si email non vérifié et vérification requise
+    if (requireEmailVerification && !session.user.emailVerified) {
+      router.push("/auth/email-verification-required");
+      return;
+    }
+  }, [session, isPending, router, redirectTo, requireEmailVerification]);
+
+  // Afficher un loader pendant la vérification
   if (isPending) {
     return (
-      fallback || (
-        <div className="px-4 sm:px-6 lg:px-8">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
-            <div className="h-4 bg-gray-200 rounded w-1/2 mb-8"></div>
-            <div className="space-y-4">
-              <div className="h-4 bg-gray-200 rounded"></div>
-              <div className="h-4 bg-gray-200 rounded"></div>
-              <div className="h-4 bg-gray-200 rounded"></div>
-            </div>
-          </div>
-        </div>
-      )
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
     );
   }
 
-  // Pas de session - redirection en cours
-  if (!session) {
-    return (
-      fallback || (
-        <div className="px-4 sm:px-6 lg:px-8">
-          <div className="text-center py-12">
-            <div className="animate-spin h-8 w-8 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-gray-600">Redirection vers la connexion...</p>
-          </div>
-        </div>
-      )
-    );
+  // Si pas d'utilisateur ou email non vérifié, ne rien afficher
+  // (la redirection est en cours)
+  if (
+    !session?.user ||
+    (requireEmailVerification && !session.user.emailVerified)
+  ) {
+    return null;
   }
 
-  // Session valide - afficher le contenu
   return <>{children}</>;
 }

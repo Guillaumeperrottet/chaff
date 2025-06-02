@@ -1,404 +1,392 @@
-import Link from "next/link";
-import { Plus, TrendingUp, Calendar, Building2 } from "lucide-react";
-import ProtectedRoute from "@/app/components/ProtectedRoute";
+"use client";
 
-// Types temporaires (remplacer par les vrais types Prisma plus tard)
-interface Mandate {
-  id: string;
-  name: string;
-  group: "HEBERGEMENT" | "RESTAURATION";
-  lastEntry?: string;
-}
+import { useState, useEffect } from "react";
+import { useSession } from "@/hooks/useSession";
+import { useRouter } from "next/navigation";
+import { Button } from "@/app/components/ui/button";
+import { Input } from "@/app/components/ui/input";
+import { Label } from "@/app/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/app/components/ui/card";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/app/components/ui/tabs";
+import { authClient } from "@/lib/auth-client";
+import { ChevronRight, Shield, Users, BarChart3, Zap } from "lucide-react";
+import { toast } from "sonner";
 
-// Données simulées (remplacer par de vraies requêtes Prisma)
-const mockMandates: Mandate[] = [
-  { id: "1", name: "Camping Lac", group: "HEBERGEMENT", lastEntry: "28.05.25" },
-  {
-    id: "2",
-    name: "Camping Pont",
-    group: "HEBERGEMENT",
-    lastEntry: "28.05.25",
-  },
-  {
-    id: "3",
-    name: "Camping Sapins",
-    group: "HEBERGEMENT",
-    lastEntry: "28.05.25",
-  },
-  { id: "4", name: "Hotel Alpha", group: "HEBERGEMENT", lastEntry: "01.01.01" },
-  {
-    id: "5",
-    name: "Lodges de Camargue",
-    group: "HEBERGEMENT",
-    lastEntry: "28.05.25",
-  },
-  {
-    id: "6",
-    name: "Popliving Riaz",
-    group: "HEBERGEMENT",
-    lastEntry: "28.05.25",
-  },
-  { id: "7", name: "DP-Aigle", group: "RESTAURATION", lastEntry: "28.05.25" },
-  { id: "8", name: "DP-Bulle", group: "RESTAURATION", lastEntry: "28.05.25" },
-  { id: "9", name: "DP-Sierre", group: "RESTAURATION", lastEntry: "28.05.25" },
-  { id: "10", name: "DP-Susten", group: "RESTAURATION", lastEntry: "28.05.25" },
-  {
-    id: "11",
-    name: "DP-Yverdon",
-    group: "RESTAURATION",
-    lastEntry: "28.05.25",
-  },
-];
+export default function LandingPage() {
+  const { data: session, isPending } = useSession();
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
 
-const mockDailyData = {
-  "jeu. 22.05.25": {
-    "Camping Lac": 1684.54,
-    "Camping Pont": 291.69,
-    "Camping Sapins": 763.29,
-    "Hotel Alpha": 0.0,
-    "Lodges de Camargue": 2175.08,
-    "Popliving Riaz": 369.69,
-    "DP-Aigle": 1314.9,
-    "DP-Bulle": 3626.4,
-    "DP-Sierre": 1718.9,
-    "DP-Susten": 1890.5,
-    "DP-Yverdon": 1242.6,
-  },
-  "ven. 23.05.25": {
-    "Camping Lac": 2372.67,
-    "Camping Pont": 291.69,
-    "Camping Sapins": 945.29,
-    "Hotel Alpha": 0.0,
-    "Lodges de Camargue": 2382.02,
-    "Popliving Riaz": 369.69,
-    "DP-Aigle": 1541.25,
-    "DP-Bulle": 3693.4,
-    "DP-Sierre": 2250.2,
-    "DP-Susten": 2170.45,
-    "DP-Yverdon": 1766.9,
-  },
-  "mer. 28.05.25": {
-    "Camping Lac": 3457.38,
-    "Camping Pont": 291.69,
-    "Camping Sapins": 1559.99,
-    "Hotel Alpha": 0.0,
-    "Lodges de Camargue": 3998.08,
-    "Popliving Riaz": 369.69,
-    "DP-Aigle": 1721.6,
-    "DP-Bulle": 3810.0,
-    "DP-Sierre": 2151.8,
-    "DP-Susten": 2487.8,
-    "DP-Yverdon": 1553.4,
-  },
-};
+  // Redirection si déjà connecté
+  useEffect(() => {
+    if (session?.user && !isPending) {
+      router.push("/dashboard");
+    }
+  }, [session, isPending, router]);
 
-const dates = Object.keys(mockDailyData);
+  // Form states
+  const [signInData, setSignInData] = useState({ email: "", password: "" });
+  const [signUpData, setSignUpData] = useState({
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
 
-function calculateTotal(data: Record<string, number>): number {
-  return Object.values(data).reduce((sum, value) => sum + value, 0);
-}
+  const handleSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
 
-function calculateDailyTotals() {
-  return dates.map((date) => ({
-    date,
-    total: calculateTotal(mockDailyData[date as keyof typeof mockDailyData]),
-  }));
-}
+    try {
+      const result = await authClient.signIn.email({
+        email: signInData.email,
+        password: signInData.password,
+      });
 
-export default function Dashboard() {
-  const dailyTotals = calculateDailyTotals();
-  const grandTotal = dailyTotals.reduce((sum, day) => sum + day.total, 0);
+      if (result.error) {
+        toast.error("Erreur de connexion", {
+          description: "Email ou mot de passe incorrect",
+        });
+      } else {
+        toast.success("Connexion réussie");
+        router.push("/dashboard");
+      }
+    } catch {
+      toast.error("Erreur", {
+        description: "Une erreur est survenue lors de la connexion",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    if (signUpData.password !== signUpData.confirmPassword) {
+      toast.error("Erreur", {
+        description: "Les mots de passe ne correspondent pas",
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const result = await authClient.signUp.email({
+        email: signUpData.email,
+        password: signUpData.password,
+        name: signUpData.name,
+      });
+
+      if (result.error) {
+        toast.error("Erreur d'inscription", {
+          description: "Cet email est peut-être déjà utilisé",
+        });
+      } else {
+        toast.success("Inscription réussie", {
+          description: "Vérifiez votre email pour activer votre compte",
+        });
+      }
+    } catch {
+      toast.error("Erreur", {
+        description: "Une erreur est survenue lors de l'inscription",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isPending) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
-    <ProtectedRoute>
-      <div className="px-4 sm:px-6 lg:px-8">
-        {/* En-tête */}
-        <div className="sm:flex sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              Tableau de bord
-            </h1>
-            <p className="mt-2 text-sm text-gray-700">
-              Vue d&apos;ensemble des chiffres d&apos;affaires par mandat et par
-              jour
-            </p>
-          </div>
-          <div className="mt-4 sm:mt-0">
-            <Link href="/valeurs/nouvelle" className="btn-primary">
-              <Plus className="h-4 w-4 inline mr-2" />
-              Nouvelle valeur
-            </Link>
-          </div>
-        </div>
-
-        {/* Statistiques rapides */}
-        <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <TrendingUp className="h-6 w-6 text-green-600" />
-                </div>
-                <div className="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">
-                      Total général
-                    </dt>
-                    <dd className="text-lg font-medium text-gray-900">
-                      {grandTotal.toLocaleString("fr-CH", {
-                        style: "currency",
-                        currency: "CHF",
-                      })}
-                    </dd>
-                  </dl>
-                </div>
-              </div>
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
+      {/* Navigation */}
+      <nav className="border-b bg-card/80 backdrop-blur-md border-border">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-6">
+            <div className="flex items-center">
+              <div className="text-2xl font-bold text-primary">Chaff.ch</div>
             </div>
-          </div>
-
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <Calendar className="h-6 w-6 text-blue-600" />
-                </div>
-                <div className="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">
-                      Dernière période
-                    </dt>
-                    <dd className="text-lg font-medium text-gray-900">
-                      {dailyTotals[
-                        dailyTotals.length - 1
-                      ]?.total.toLocaleString("fr-CH", {
-                        style: "currency",
-                        currency: "CHF",
-                      })}
-                    </dd>
-                  </dl>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <Building2 className="h-6 w-6 text-purple-600" />
-                </div>
-                <div className="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">
-                      Mandats actifs
-                    </dt>
-                    <dd className="text-lg font-medium text-gray-900">
-                      {
-                        mockMandates.filter((m) => m.lastEntry !== "01.01.01")
-                          .length
-                      }
-                    </dd>
-                  </dl>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <TrendingUp className="h-6 w-6 text-orange-600" />
-                </div>
-                <div className="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">
-                      Moyenne journalière
-                    </dt>
-                    <dd className="text-lg font-medium text-gray-900">
-                      {(grandTotal / dates.length).toLocaleString("fr-CH", {
-                        style: "currency",
-                        currency: "CHF",
-                      })}
-                    </dd>
-                  </dl>
-                </div>
-              </div>
+            <div className="hidden md:flex items-center space-x-8">
+              <a
+                href="#features"
+                className="text-muted-foreground hover:text-foreground"
+              >
+                Fonctionnalités
+              </a>
+              <a
+                href="#pricing"
+                className="text-muted-foreground hover:text-foreground"
+              >
+                Tarifs
+              </a>
+              <a
+                href="#contact"
+                className="text-muted-foreground hover:text-foreground"
+              >
+                Contact
+              </a>
             </div>
           </div>
         </div>
+      </nav>
 
-        {/* Tableau principal */}
-        <div className="mt-8 bg-white shadow overflow-hidden sm:rounded-md">
-          <div className="px-4 py-5 sm:px-6">
-            <h3 className="text-lg leading-6 font-medium text-gray-900">
-              Chiffres d&apos;affaires par mandat
-            </h3>
-            <p className="mt-1 max-w-2xl text-sm text-gray-500">
-              Détail des revenus journaliers pour chaque établissement
-            </p>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="grid lg:grid-cols-2 gap-12 items-center">
+          {/* Hero Section */}
+          <div className="space-y-8">
+            <div className="space-y-4">
+              <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
+                Gérez vos données avec{" "}
+                <span className="text-primary">Chaff.ch</span>
+              </h1>
+              <p className="text-xl text-muted-foreground max-w-lg">
+                La plateforme moderne qui simplifie la gestion de vos données et
+                optimise votre productivité.
+              </p>
+            </div>
+
+            {/* Features Grid */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Shield className="h-5 w-5 text-primary" />
+                </div>
+                <span className="text-sm font-medium">Sécurisé</span>
+              </div>
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Users className="h-5 w-5 text-primary" />
+                </div>
+                <span className="text-sm font-medium">Collaboratif</span>
+              </div>
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <BarChart3 className="h-5 w-5 text-primary" />
+                </div>
+                <span className="text-sm font-medium">Analytics</span>
+              </div>
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Zap className="h-5 w-5 text-primary" />
+                </div>
+                <span className="text-sm font-medium">Performant</span>
+              </div>
+            </div>
+
+            <Button size="lg" className="group">
+              Découvrir la démo
+              <ChevronRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+            </Button>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="table-header">Mandat</th>
-                  <th className="table-header">Dernière saisie</th>
-                  <th className="table-header">Top</th>
-                  {dates.map((date) => (
-                    <th key={date} className="table-header text-center">
-                      {date}
-                    </th>
-                  ))}
-                  <th className="table-header">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {/* Hébergement */}
-                <tr className="bg-gray-50">
-                  <td
-                    colSpan={dates.length + 4}
-                    className="px-6 py-3 text-left text-sm font-semibold text-gray-900 bg-gray-100"
-                  >
-                    Hébergement
-                  </td>
-                </tr>
-                {mockMandates
-                  .filter((mandate) => mandate.group === "HEBERGEMENT")
-                  .map((mandate) => (
-                    <tr key={mandate.id} className="hover:bg-gray-50">
-                      <td className="table-cell font-medium">{mandate.name}</td>
-                      <td className="table-cell">{mandate.lastEntry}</td>
-                      <td className="table-cell">
-                        {/* Placeholder pour le "Top" - pourrait être le max ou une formule */}
-                        5&apos;311.94 / 24.07.22
-                      </td>
-                      {dates.map((date) => (
-                        <td key={date} className="table-cell text-right">
-                          {(
-                            mockDailyData[
-                              date as keyof typeof mockDailyData
-                            ] as Record<string, number>
-                          )[mandate.name]?.toLocaleString("fr-CH") || "0.00"}
-                        </td>
-                      ))}
-                      <td className="table-cell">
-                        <Link
-                          href={`/mandats/${mandate.id}`}
-                          className="text-blue-600 hover:text-blue-900"
-                        >
-                          CA Add
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
+          {/* Auth Forms */}
+          <div className="lg:max-w-md mx-auto w-full">
+            <Card>
+              <CardHeader>
+                <CardTitle>Commencer maintenant</CardTitle>
+                <CardDescription>
+                  Créez votre compte ou connectez-vous pour accéder à votre
+                  dashboard
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="signin" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="signin">Connexion</TabsTrigger>
+                    <TabsTrigger value="signup">Inscription</TabsTrigger>
+                  </TabsList>
 
-                {/* Sous-total hébergement */}
-                <tr className="bg-blue-50 font-medium">
-                  <td className="table-cell">Hébergement</td>
-                  <td className="table-cell"></td>
-                  <td className="table-cell"></td>
-                  {dates.map((date) => (
-                    <td key={date} className="table-cell text-right">
-                      {mockMandates
-                        .filter((m) => m.group === "HEBERGEMENT")
-                        .reduce(
-                          (sum, m) =>
-                            sum +
-                            ((
-                              mockDailyData[
-                                date as keyof typeof mockDailyData
-                              ] as Record<string, number>
-                            )[m.name] || 0),
-                          0
-                        )
-                        .toLocaleString("fr-CH")}
-                    </td>
-                  ))}
-                  <td className="table-cell">CA</td>
-                </tr>
+                  <TabsContent value="signin" className="space-y-4">
+                    <form onSubmit={handleSignIn} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="signin-email">Email</Label>
+                        <Input
+                          id="signin-email"
+                          type="email"
+                          placeholder="votre@email.com"
+                          value={signInData.email}
+                          onChange={(e) =>
+                            setSignInData({
+                              ...signInData,
+                              email: e.target.value,
+                            })
+                          }
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="signin-password">Mot de passe</Label>
+                        <Input
+                          id="signin-password"
+                          type="password"
+                          value={signInData.password}
+                          onChange={(e) =>
+                            setSignInData({
+                              ...signInData,
+                              password: e.target.value,
+                            })
+                          }
+                          required
+                        />
+                      </div>
+                      <Button
+                        type="submit"
+                        className="w-full"
+                        disabled={isLoading}
+                      >
+                        {isLoading ? "Connexion..." : "Se connecter"}
+                      </Button>
+                    </form>
+                  </TabsContent>
 
-                {/* Restauration */}
-                <tr className="bg-gray-50">
-                  <td
-                    colSpan={dates.length + 4}
-                    className="px-6 py-3 text-left text-sm font-semibold text-gray-900 bg-gray-100"
-                  >
-                    Restauration
-                  </td>
-                </tr>
-                {mockMandates
-                  .filter((mandate) => mandate.group === "RESTAURATION")
-                  .map((mandate) => (
-                    <tr key={mandate.id} className="hover:bg-gray-50">
-                      <td className="table-cell font-medium">{mandate.name}</td>
-                      <td className="table-cell">{mandate.lastEntry}</td>
-                      <td className="table-cell">4&apos;313.30 / 15.05.25</td>
-                      {dates.map((date) => (
-                        <td key={date} className="table-cell text-right">
-                          {(
-                            mockDailyData[
-                              date as keyof typeof mockDailyData
-                            ] as Record<string, number>
-                          )[mandate.name]?.toLocaleString("fr-CH") || "0.00"}
-                        </td>
-                      ))}
-                      <td className="table-cell">
-                        <Link
-                          href={`/mandats/${mandate.id}`}
-                          className="text-blue-600 hover:text-blue-900"
-                        >
-                          CA Add
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
-
-                {/* Sous-total restauration */}
-                <tr className="bg-green-50 font-medium">
-                  <td className="table-cell">Restauration</td>
-                  <td className="table-cell"></td>
-                  <td className="table-cell"></td>
-                  {dates.map((date) => (
-                    <td key={date} className="table-cell text-right">
-                      {mockMandates
-                        .filter((m) => m.group === "RESTAURATION")
-                        .reduce(
-                          (sum, m) =>
-                            sum +
-                            ((
-                              mockDailyData[
-                                date as keyof typeof mockDailyData
-                              ] as Record<string, number>
-                            )[m.name] || 0),
-                          0
-                        )
-                        .toLocaleString("fr-CH")}
-                    </td>
-                  ))}
-                  <td className="table-cell">CA</td>
-                </tr>
-
-                {/* Total général */}
-                <tr className="bg-gray-100 font-bold">
-                  <td className="table-cell">Total</td>
-                  <td className="table-cell"></td>
-                  <td className="table-cell"></td>
-                  {dates.map((date) => (
-                    <td key={date} className="table-cell text-right">
-                      {calculateTotal(
-                        mockDailyData[date as keyof typeof mockDailyData]
-                      ).toLocaleString("fr-CH")}
-                    </td>
-                  ))}
-                  <td className="table-cell">CA</td>
-                </tr>
-              </tbody>
-            </table>
+                  <TabsContent value="signup" className="space-y-4">
+                    <form onSubmit={handleSignUp} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="signup-name">Nom complet</Label>
+                        <Input
+                          id="signup-name"
+                          type="text"
+                          placeholder="Jean Dupont"
+                          value={signUpData.name}
+                          onChange={(e) =>
+                            setSignUpData({
+                              ...signUpData,
+                              name: e.target.value,
+                            })
+                          }
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="signup-email">Email</Label>
+                        <Input
+                          id="signup-email"
+                          type="email"
+                          placeholder="votre@email.com"
+                          value={signUpData.email}
+                          onChange={(e) =>
+                            setSignUpData({
+                              ...signUpData,
+                              email: e.target.value,
+                            })
+                          }
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="signup-password">Mot de passe</Label>
+                        <Input
+                          id="signup-password"
+                          type="password"
+                          value={signUpData.password}
+                          onChange={(e) =>
+                            setSignUpData({
+                              ...signUpData,
+                              password: e.target.value,
+                            })
+                          }
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="signup-confirm">
+                          Confirmer le mot de passe
+                        </Label>
+                        <Input
+                          id="signup-confirm"
+                          type="password"
+                          value={signUpData.confirmPassword}
+                          onChange={(e) =>
+                            setSignUpData({
+                              ...signUpData,
+                              confirmPassword: e.target.value,
+                            })
+                          }
+                          required
+                        />
+                      </div>
+                      <Button
+                        type="submit"
+                        className="w-full"
+                        disabled={isLoading}
+                      >
+                        {isLoading ? "Inscription..." : "S'inscrire"}
+                      </Button>
+                    </form>
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
-    </ProtectedRoute>
+
+      {/* Features Section */}
+      <section id="features" className="py-20 bg-card border-t">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center space-y-4 mb-16">
+            <h2 className="text-3xl font-bold">Fonctionnalités principales</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Découvrez les outils qui vous aideront à gérer vos données
+              efficacement
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            <Card>
+              <CardHeader>
+                <Shield className="h-10 w-10 text-primary mb-4" />
+                <CardTitle>Sécurité avancée</CardTitle>
+                <CardDescription>
+                  Vos données sont protégées par les dernières technologies de
+                  sécurité
+                </CardDescription>
+              </CardHeader>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <Users className="h-10 w-10 text-primary mb-4" />
+                <CardTitle>Collaboration</CardTitle>
+                <CardDescription>
+                  Travaillez en équipe avec des outils de partage et de gestion
+                  des droits
+                </CardDescription>
+              </CardHeader>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <BarChart3 className="h-10 w-10 text-primary mb-4" />
+                <CardTitle>Analytics</CardTitle>
+                <CardDescription>
+                  Obtenez des insights précieux grâce à nos outils
+                  d&apos;analyse intégrés
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          </div>
+        </div>
+      </section>
+    </div>
   );
 }

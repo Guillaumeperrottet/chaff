@@ -1,56 +1,52 @@
-// src/lib/metadata.ts
+// src/lib/metadata.ts - Métadonnées pour Chaff.ch
 import { Metadata } from "next";
 
-const siteUrl = "https://plannikeeper.ch";
+const siteUrl = "https://chaff.ch";
 
 export const defaultMetadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "PlanniKeeper - Gestion Immobilière Simplifiée",
-    template: "%s | PlanniKeeper",
+    default: "Chaff.ch - Plateforme de Gestion",
+    template: "%s | Chaff.ch",
   },
   description:
-    "PlanniKeeper est la solution tout-en-un pour la gestion de vos projets immobiliers. Organisez vos propriétés, planifiez vos tâches et maximisez votre efficacité.",
+    "Chaff.ch est votre plateforme de gestion moderne et intuitive. Organisez, planifiez et gérez vos données efficacement.",
   keywords: [
-    "plannikeeper",
-    "planikeeper",
-    "plankeeper",
-    "planikeeper",
-    "gestion immobilière",
-    "logiciel immobilier",
-    "gestion de biens",
-    "gestion de propriétés",
-    "agence immobilière",
-    "gestion locative",
-    "syndic de copropriété",
-    "maintenance immobilière",
-    "planning immobilier",
-    "organisation immobilière",
+    "chaff",
+    "chaff.ch",
+    "gestion",
+    "plateforme",
+    "dashboard",
+    "organisation",
+    "données",
+    "management",
+    "suisse",
+    "switzerland",
   ],
-  authors: [{ name: "PlanniKeeper" }],
-  creator: "PlanniKeeper",
-  publisher: "PlanniKeeper",
+  authors: [{ name: "Chaff.ch" }],
+  creator: "Chaff.ch",
+  publisher: "Chaff.ch",
   openGraph: {
     type: "website",
-    locale: "fr_FR",
+    locale: "fr_CH",
     url: siteUrl,
-    siteName: "PlanniKeeper",
-    title: "PlanniKeeper - Gestion Immobilière Simplifiée",
+    siteName: "Chaff.ch",
+    title: "Chaff.ch - Plateforme de Gestion",
     description:
-      "Simplifiez la gestion de vos projets immobiliers avec notre solution tout-en-un.",
+      "Votre plateforme de gestion moderne et intuitive pour organiser vos données efficacement.",
     images: [
       {
         url: `${siteUrl}/logo.png`,
         width: 1200,
         height: 630,
-        alt: "PlanniKeeper - Gestion Immobilière",
+        alt: "Chaff.ch - Plateforme de Gestion",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "PlanniKeeper - Gestion Immobilière Simplifiée",
-    description: "Simplifiez la gestion de vos projets immobiliers",
+    title: "Chaff.ch - Plateforme de Gestion",
+    description: "Votre plateforme de gestion moderne et intuitive",
     images: [`${siteUrl}/logo.png`],
   },
   robots: {
