@@ -10,6 +10,5 @@ export const authClient = createAuthClient({
       ? `${window.location.origin}/api/auth`
       : isDev
         ? "http://localhost:3000/api/auth"
-        : process.env.BETTER_AUTH_URL ||
-          "https://plannikeeper-next.vercel.app/api/auth",
+        : process.env.BETTER_AUTH_URL || "https://chaff.vercel.app/api/auth",
 });
