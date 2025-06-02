@@ -107,31 +107,6 @@ export async function POST(req: NextRequest) {
 
       console.log("✅ Association OrganizationUser créée:", invitation.role);
 
-      // Créer les accès par défaut aux objets existants
-      const objects = await tx.objet.findMany({
-        where: { organizationId: invitation.organizationId },
-        select: { id: true, nom: true },
-      });
-
-      if (objects.length > 0) {
-        const accessLevel = invitation.role === "admin" ? "admin" : "read";
-
-        const accessPromises = objects.map((object) =>
-          tx.objectAccess.create({
-            data: {
-              userId: user.id,
-              objectId: object.id,
-              accessLevel,
-            },
-          })
-        );
-
-        await Promise.all(accessPromises);
-        console.log(
-          `✅ Accès ${accessLevel} créés pour ${objects.length} objets`
-        );
-      }
-
       // Marquer l'invitation comme utilisée
       await tx.invitationCode.update({
         where: { id: invitation.id },
