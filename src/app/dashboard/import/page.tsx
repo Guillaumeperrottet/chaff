@@ -278,7 +278,7 @@ export default function ImportPage() {
       );
 
       // Déterminer la taille de chunk optimale
-      const CHUNK_SIZE = 1000;
+      const CHUNK_SIZE = 100;
       const totalData = mandantsData.length + dayValuesData.length;
       const chunks = Math.ceil(totalData / CHUNK_SIZE);
 
