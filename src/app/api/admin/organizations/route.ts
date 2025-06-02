@@ -22,9 +22,6 @@ export async function GET() {
         users: {
           select: { id: true },
         },
-        Objet: {
-          select: { id: true },
-        },
         subscription: {
           include: {
             plan: {
@@ -47,7 +44,6 @@ export async function GET() {
       createdAt: org.createdAt,
       updatedAt: org.updatedAt,
       userCount: org.users.length,
-      objectCount: org.Objet.length,
       subscription: org.subscription
         ? {
             id: org.subscription.id,
