@@ -1,8 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import { getUser } from "@/lib/auth-session";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { UsersTable } from "@/app/profile/edit/users-table";
-import { Users } from "lucide-react";
+import { Button } from "@/app/components/ui/button";
+import { BackButton } from "@/app/components/ui/BackButton";
+import { PlusCircle, Users } from "lucide-react";
 
 export default async function ProfileEditPage() {
   const user = await getUser();
@@ -35,6 +38,12 @@ export default async function ProfileEditPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
       <div className="mb-8">
+        <BackButton
+          href="/profile"
+          label="Retour au profil"
+          loadingMessage="Retour au profil..."
+        />
+
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-[color:var(--foreground)]">
@@ -44,6 +53,18 @@ export default async function ProfileEditPage() {
               {organization?.name || "Organisation"} - {orgUsers.length} membre
               {orgUsers.length > 1 ? "s" : ""}
             </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button
+              asChild
+              className="bg-[color:var(--primary)] text-[color:var(--primary-foreground)] hover:bg-[color:var(--primary)]/90"
+            >
+              <Link href="/profile/invitations">
+                <PlusCircle size={16} className="mr-2" />
+                Inviter des membres
+              </Link>
+            </Button>
           </div>
         </div>
       </div>
