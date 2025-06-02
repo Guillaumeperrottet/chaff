@@ -115,20 +115,6 @@ function generateCSVReport(
   lines.push(`# Généré le: ${formatDateTime(new Date())}`);
   lines.push("");
 
-  // Résumé exécutif
-  const totalRevenue = dayValues.reduce((sum, dv) => sum + dv.value, 0);
-  const uniqueMandates = new Set(dayValues.map((dv) => dv.mandateId)).size;
-
-  lines.push("## RÉSUMÉ EXÉCUTIF");
-  lines.push("Métrique,Valeur");
-  lines.push(`Revenue Total,${formatCurrency(totalRevenue)}`);
-  lines.push(`Nombre de Saisies,${dayValues.length}`);
-  lines.push(`Mandats Actifs,${uniqueMandates}`);
-  lines.push(
-    `Moyenne par Saisie,${formatCurrency(dayValues.length > 0 ? totalRevenue / dayValues.length : 0)}`
-  );
-  lines.push("");
-
   // Performance par mandat
   lines.push("## PERFORMANCE PAR MANDAT");
   lines.push(
@@ -137,41 +123,19 @@ function generateCSVReport(
 
   mandateStats.forEach((mandate) => {
     const mandateRevenue = mandate.dayValues.reduce(
-      (
-        sum: number,
-        dv: {
-          id: string;
-          date: Date;
-          value: number;
-          mandateId: string;
-          createdAt: Date;
-        }
-      ) => sum + dv.value,
+      (sum, dv) => sum + dv.value,
       0
     );
     const mandateValueCount = mandate.dayValues.length;
     const averagePerValue =
       mandateValueCount > 0 ? mandateRevenue / mandateValueCount : 0;
+
+    // 🔧 CORRECTION: Prendre la date MAX (date de la valeur, pas createdAt)
     const lastEntry =
       mandate.dayValues.length > 0
-        ? mandate.dayValues.reduce(
-            (
-              latest: {
-                id: string;
-                date: Date;
-                value: number;
-                mandateId: string;
-                createdAt: Date;
-              },
-              dv: {
-                id: string;
-                date: Date;
-                value: number;
-                mandateId: string;
-                createdAt: Date;
-              }
-            ) => (dv.date > latest.date ? dv : latest)
-          ).date
+        ? mandate.dayValues.reduce((latest, dv) =>
+            dv.date > latest.date ? dv : latest
+          ).date // ✅ Utiliser la date de la valeur
         : null;
 
     lines.push(
@@ -195,11 +159,11 @@ function generateCSVReport(
   dayValues.forEach((dv) => {
     lines.push(
       [
-        formatDate(dv.date),
+        formatDate(dv.date), // ✅ Date de la valeur CA
         `"${dv.mandate.name}"`,
         dv.mandate.group === "HEBERGEMENT" ? "Hébergement" : "Restauration",
         formatCurrency(dv.value),
-        formatDateTime(dv.createdAt),
+        formatDateTime(dv.createdAt), // Date de création en DB (pour information)
       ].join(",")
     );
   });
@@ -243,14 +207,9 @@ function generateCSVReport(
     ].join(",")
   );
 
-  // Créer le contenu CSV
   const csvContent = lines.join("\n");
-
-  // Ajouter BOM UTF-8 pour Excel
   const bom = "\uFEFF";
   const finalContent = bom + csvContent;
-
-  // Nom du fichier
   const filename = `analytics_chaff_${startDate.toISOString().split("T")[0]}_${endDate.toISOString().split("T")[0]}.csv`;
 
   return new NextResponse(finalContent, {
@@ -276,15 +235,13 @@ function generateJSONReport(
 
   const report = {
     metadata: {
+      start: startDate.toISOString(),
       end: endDate.toISOString(),
-      metadata: {
-        start: startDate.toISOString(),
-        end: endDate.toISOString(),
-        days: Math.ceil(
-          (endDate.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000)
-        ),
-        format: "json",
-      },
+      days: Math.ceil(
+        (endDate.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000)
+      ),
+      format: "json",
+      totalRevenue,
       totalValues: dayValues.length,
       uniqueMandates,
       averagePerValue:
@@ -292,19 +249,18 @@ function generateJSONReport(
     },
     mandatePerformance: mandateStats.map((mandate) => {
       const mandateRevenue = mandate.dayValues.reduce(
-        (
-          sum: number,
-          dv: {
-            id: string;
-            date: Date;
-            value: number;
-            mandateId: string;
-            createdAt: Date;
-          }
-        ) => sum + dv.value,
+        (sum, dv) => sum + dv.value,
         0
       );
       const mandateValueCount = mandate.dayValues.length;
+
+      // 🔧 CORRECTION: Dernière saisie basée sur la date de la valeur
+      const lastEntry =
+        mandate.dayValues.length > 0
+          ? mandate.dayValues.reduce((latest, dv) =>
+              dv.date > latest.date ? dv : latest
+            ).date // ✅ Date de la valeur
+          : null;
 
       return {
         id: mandate.id,
@@ -314,12 +270,7 @@ function generateJSONReport(
         valueCount: mandateValueCount,
         averagePerValue:
           mandateValueCount > 0 ? mandateRevenue / mandateValueCount : 0,
-        lastEntry:
-          mandate.dayValues.length > 0
-            ? mandate.dayValues.reduce((latest, dv) =>
-                dv.date > latest.date ? dv : latest
-              ).date
-            : null,
+        lastEntry, // ✅ Date correcte
       };
     }),
     groupAnalysis: {
@@ -338,14 +289,14 @@ function generateJSONReport(
     },
     detailedValues: dayValues.map((dv) => ({
       id: dv.id,
-      date: dv.date,
+      date: dv.date, // ✅ Date de la valeur CA
       value: dv.value,
       mandate: {
         id: dv.mandate.id,
         name: dv.mandate.name,
         group: dv.mandate.group,
       },
-      createdAt: dv.createdAt,
+      createdAt: dv.createdAt, // Date de création en DB
     })),
   };
 

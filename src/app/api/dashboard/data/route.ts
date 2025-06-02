@@ -13,7 +13,6 @@ interface DashboardData {
   category: string;
   status: string;
   totalRevenue: number;
-  daysSinceLastEntry: number | null;
 }
 
 interface ColumnLabel {
@@ -23,7 +22,6 @@ interface ColumnLabel {
 
 export async function GET(request: NextRequest) {
   try {
-    // Vérifier l'authentification
     const session = await auth.api.getSession({
       headers: await headers(),
     });
@@ -36,7 +34,6 @@ export async function GET(request: NextRequest) {
     const includeInactive = searchParams.get("includeInactive") === "true";
     const days = parseInt(searchParams.get("days") || "7");
 
-    // Récupérer tous les mandats avec leurs valeurs récentes
     const mandates = await prisma.mandate.findMany({
       where: includeInactive ? {} : { active: true },
       include: {
@@ -47,7 +44,7 @@ export async function GET(request: NextRequest) {
       orderBy: [{ group: "asc" }, { name: "asc" }],
     });
 
-    // Générer les colonnes de dates (derniers X jours)
+    // Générer les colonnes de dates
     const dateColumns: string[] = [];
     const columnLabels: ColumnLabel[] = [];
     const today = new Date();
@@ -68,16 +65,15 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Transformer les données pour le frontend
     const dashboardData: DashboardData[] = await Promise.all(
       mandates.map(async (mandate) => {
-        // 🔧 CORRECTION PRINCIPALE: Récupérer la VRAIE dernière saisie par DATE
+        // Récupérer la dernière saisie par DATE (pas createdAt)
         const lastDayValue = await prisma.dayValue.findFirst({
           where: { mandateId: mandate.id },
-          orderBy: { date: "desc" }, // ✅ Trier par date de la valeur (pas createdAt)
+          orderBy: { date: "desc" },
         });
 
-        // Récupérer les valeurs pour les X derniers jours pour l'affichage
+        // Récupérer les valeurs pour les colonnes
         const recentValues = await prisma.dayValue.findMany({
           where: {
             mandateId: mandate.id,
@@ -89,42 +85,25 @@ export async function GET(request: NextRequest) {
           orderBy: { date: "asc" },
         });
 
-        // Créer un map des valeurs par date
         const valuesByDate = new Map<string, number>();
         recentValues.forEach((value) => {
           const dateKey = value.date.toISOString().split("T")[0];
           valuesByDate.set(dateKey, value.value);
         });
 
-        // Construire l'objet values pour les colonnes
         const values: Record<string, string> = {};
         dateColumns.forEach((dateKey) => {
           const value = valuesByDate.get(dateKey);
           values[dateKey] = value ? formatCurrency(value) : "0.00";
         });
 
-        // 🔧 CORRECTION: Calculer correctement les jours depuis la dernière saisie
-        let daysSinceLastEntry: number | null = null;
+        // Juste la date, sans calcul des jours
         let lastEntryFormatted: string | null = null;
         let lastEntryDate: Date | null = null;
 
         if (lastDayValue) {
-          lastEntryDate = lastDayValue.date; // ✅ Utiliser la date de la valeur
-          lastEntryFormatted = formatDateWithDetails(lastDayValue.date);
-
-          // Calculer les jours écoulés depuis la DATE de la valeur (pas createdAt)
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-
-          const lastEntryDateNormalized = new Date(lastDayValue.date);
-          lastEntryDateNormalized.setHours(0, 0, 0, 0);
-
-          const timeDiff = today.getTime() - lastEntryDateNormalized.getTime();
-          daysSinceLastEntry = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
-
-          console.log(
-            `${mandate.name}: Dernière saisie le ${lastDayValue.date.toISOString().split("T")[0]}, il y a ${daysSinceLastEntry} jours`
-          );
+          lastEntryDate = lastDayValue.date;
+          lastEntryFormatted = formatDateSimple(lastDayValue.date);
         }
 
         // Calculer la performance (record)
@@ -140,21 +119,15 @@ export async function GET(request: NextRequest) {
 
         const performance =
           maxValue > 0
-            ? `${formatCurrency(maxValue)} (${formatDate(maxValueDate || new Date())})`
+            ? `${formatCurrency(maxValue)} / ${formatDate(maxValueDate || new Date())}`
             : "Aucune donnée";
 
-        // 🔧 CORRECTION: Déterminer le statut basé sur la vraie dernière saisie
+        // 🔧 SIMPLIFIÉ: Statut basé uniquement sur l'existence de valeurs
         let status = "active";
         if (!mandate.active) {
           status = "inactive";
         } else if (!lastDayValue) {
           status = "new";
-        } else if (daysSinceLastEntry !== null) {
-          if (daysSinceLastEntry > 30) {
-            status = "critical"; // Plus de 30 jours
-          } else if (daysSinceLastEntry > 7) {
-            status = "warning"; // Plus de 7 jours
-          }
         }
 
         return {
@@ -168,7 +141,6 @@ export async function GET(request: NextRequest) {
             mandate.group === "HEBERGEMENT" ? "Hébergement" : "Restauration",
           status,
           totalRevenue: mandate.totalRevenue,
-          daysSinceLastEntry,
         };
       })
     );
@@ -181,7 +153,7 @@ export async function GET(request: NextRequest) {
       return b.lastEntryDate.getTime() - a.lastEntryDate.getTime();
     });
 
-    // Calculer les totaux pour le footer
+    // Calculer les totaux (code existant...)
     const totals = {
       totalRevenue: dashboardData.reduce(
         (sum, item) => sum + item.totalRevenue,
@@ -190,10 +162,6 @@ export async function GET(request: NextRequest) {
       totalMandates: dashboardData.length,
       activeMandates: dashboardData.filter((item) => item.status === "active")
         .length,
-      outdatedMandates: dashboardData.filter(
-        (item) =>
-          item.daysSinceLastEntry !== null && item.daysSinceLastEntry > 7
-      ).length,
       dailyTotals: {} as Record<string, number>,
       subtotalsByCategory: {
         hebergement: {} as Record<string, number>,
@@ -201,7 +169,7 @@ export async function GET(request: NextRequest) {
       },
     };
 
-    // Calculer les totaux par jour et les sous-totaux par catégorie
+    // Calculer les totaux par jour
     dateColumns.forEach((dateKey) => {
       totals.dailyTotals[dateKey] = 0;
       totals.subtotalsByCategory.hebergement[dateKey] = 0;
@@ -246,7 +214,15 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// 🔧 NOUVELLES FONCTIONS: Formatage amélioré des dates
+//Formatage simple de la date
+function formatDateSimple(date: Date): string {
+  return date.toLocaleDateString("fr-CH", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
+
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat("fr-CH", {
     minimumFractionDigits: 2,
@@ -268,40 +244,4 @@ function formatDateShort(date: Date): string {
     month: "2-digit",
     year: "2-digit",
   });
-}
-
-function formatDateWithDetails(date: Date): string {
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-
-  const entryDate = new Date(date);
-  entryDate.setHours(0, 0, 0, 0);
-
-  const timeDiff = now.getTime() - entryDate.getTime();
-  const daysDiff = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
-
-  const formattedDate = date.toLocaleDateString("fr-CH", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
-
-  if (daysDiff === 0) {
-    return `Aujourd'hui (${formattedDate})`;
-  } else if (daysDiff === 1) {
-    return `Hier (${formattedDate})`;
-  } else if (daysDiff <= 7) {
-    return `Il y a ${daysDiff} jours (${formattedDate})`;
-  } else if (daysDiff <= 30) {
-    return `Il y a ${daysDiff} jours (${formattedDate})`;
-  } else {
-    const weeksDiff = Math.floor(daysDiff / 7);
-    const monthsDiff = Math.floor(daysDiff / 30);
-
-    if (monthsDiff >= 1) {
-      return `Il y a ${monthsDiff} mois (${formattedDate})`;
-    } else {
-      return `Il y a ${weeksDiff} semaines (${formattedDate})`;
-    }
-  }
 }
