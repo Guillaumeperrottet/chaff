@@ -1,110 +1,94 @@
-import { Toaster } from "sonner";
-import Navbar from "./components/Navbar";
-import { getUser } from "../lib/auth-session";
 import "./globals.css";
-import { prisma } from "@/lib/prisma";
-import { NotificationProvider } from "./components/notification-provider";
-import { Analytics } from "@vercel/analytics/react";
-import { SpeedInsights } from "@vercel/speed-insights/next";
-import Script from "next/script";
-import { LoadingSystemProvider } from "./components/LoadingSystem";
-import { SessionManager } from "./components/SessionManager";
-import { InactivityManager } from "./components/InactivityManager";
+import { Inter } from "next/font/google";
+import Link from "next/link";
+import { BarChart3, Building2, Plus, Home } from "lucide-react";
+
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-  title: {
-    default: "PlanniKeeper - Gestion Immobilière Simplifiée",
-    template: "%s | PlanniKeeper",
-  },
-  description:
-    "PlanniKeeper est la solution tout-en-un pour la gestion de vos projets immobiliers. Organisez vos propriétés, planifiez vos tâches et maximisez votre efficacité.",
-  keywords:
-    "plannikeeper, planikeeper, gestion immobilière, logiciel immobilier, gestion de biens, gestion de propriétés",
-  openGraph: {
-    title: "PlanniKeeper - Gestion Immobilière Simplifiée",
-    description: "Simplifiez la gestion de vos projets immobiliers",
-    url: "https://plannikeeper.ch",
-    siteName: "PlanniKeeper",
-    images: [
-      {
-        url: "https://plannikeeper.ch/images/logo.png",
-        width: 1200,
-        height: 630,
-        alt: "PlanniKeeper Dashboard",
-      },
-    ],
-  },
+  title: "Gestion CA - Campus",
+  description: "Application de gestion des chiffres d'affaires",
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const user = await getUser();
-
-  // Récupérer des informations supplémentaires comme le rôle si l'utilisateur est connecté
-  let userWithRole = user;
-
-  if (user) {
-    // Obtenir le rôle de l'utilisateur
-    const orgUser = await prisma.organizationUser.findFirst({
-      where: { userId: user.id },
-      select: { role: true },
-    });
-
-    // Ajouter le rôle aux informations de l'utilisateur
-    userWithRole = {
-      ...user,
-      isAdmin: orgUser?.role === "admin",
-      role: orgUser?.role,
-    } as typeof user & { isAdmin: boolean; role?: string };
-  }
-
   return (
-    <html lang="fr" data-user-id={user?.id || ""}>
-      <head>
-        <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#d9840d" />
-        <meta name="robots" content="index, follow" />
-        <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+    <html lang="fr">
+      <body className={inter.className}>
+        <div className="min-h-screen bg-gray-50">
+          {/* Navigation */}
+          <nav className="bg-white shadow-sm border-b">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex justify-between h-16">
+                <div className="flex items-center">
+                  <Link href="/" className="flex items-center space-x-2">
+                    <BarChart3 className="h-8 w-8 text-blue-600" />
+                    <span className="text-xl font-bold text-gray-900">
+                      Campus
+                    </span>
+                  </Link>
+                </div>
 
-        {/* Favicon et icônes */}
-        <link rel="icon" href="/icons/favicon.ico" />
-        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
-        {/* Google tag (gtag.js) */}
-        <Script
-          src="https://www.googletagmanager.com/gtag/js?id=G-291XG7LXT7"
-          strategy="afterInteractive"
-        />
-        <Script id="gtag-init" strategy="afterInteractive">
-          {`
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-291XG7LXT7');
-  `}
-        </Script>
-        <Analytics />
-        <SpeedInsights />
-        {/* ServiceWorkerRegistration retiré pour désactiver le cache */}
-      </head>
-      <body className="bg-background" suppressHydrationWarning>
-        {/* Wrapper pour les indicateurs de navigation et de chargement */}
-        <LoadingSystemProvider>
-          {userWithRole ? (
-            <NotificationProvider userId={userWithRole.id}>
-              {/* Gestionnaires de session pour déconnexion après fermeture et inactivité */}
-              <SessionManager />
-              <InactivityManager />
-              <Navbar user={userWithRole} />
-              <div className="pb-16 md:pb-14">{children}</div>
-            </NotificationProvider>
-          ) : (
-            <>{children}</>
-          )}
-          <Toaster position="top-center" richColors />
-        </LoadingSystemProvider>
+                <div className="flex items-center space-x-4">
+                  <Link
+                    href="/"
+                    className="flex items-center space-x-1 px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+                  >
+                    <Home className="h-4 w-4" />
+                    <span>Tableau de bord</span>
+                  </Link>
+
+                  <Link
+                    href="/valeurs"
+                    className="flex items-center space-x-1 px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+                  >
+                    <BarChart3 className="h-4 w-4" />
+                    <span>Valeurs journalières</span>
+                  </Link>
+
+                  <Link
+                    href="/mandats"
+                    className="flex items-center space-x-1 px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+                  >
+                    <Building2 className="h-4 w-4" />
+                    <span>Mandats</span>
+                  </Link>
+
+                  <Link
+                    href="/valeurs/nouvelle"
+                    className="flex items-center space-x-1 bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span>Nouvelle valeur</span>
+                  </Link>
+                </div>
+
+                <div className="flex items-center">
+                  <span className="text-sm text-gray-500">
+                    Bonjour perrottet@soge-sa.ch!
+                  </span>
+                </div>
+              </div>
+            </div>
+          </nav>
+
+          {/* Contenu principal */}
+          <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+            {children}
+          </main>
+
+          {/* Footer */}
+          <footer className="bg-white border-t mt-auto">
+            <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
+              <div className="text-center text-sm text-gray-500">
+                © 2025 - Campus - Version 2025-02-12
+              </div>
+            </div>
+          </footer>
+        </div>
       </body>
     </html>
   );
