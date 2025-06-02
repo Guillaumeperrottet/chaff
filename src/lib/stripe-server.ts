@@ -20,7 +20,7 @@ if (!stripeSecretKey) {
 // Initialisation Stripe conditionnelle
 export const stripe = stripeSecretKey
   ? new Stripe(stripeSecretKey, {
-      apiVersion: "2025-04-30.basil",
+      apiVersion: "2025-05-28.basil",
       appInfo: {
         name: "PlanniKeeper",
         version: "1.0.0",
