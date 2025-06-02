@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
         // 🔧 CORRECTION PRINCIPALE: Récupérer la VRAIE dernière saisie par DATE
         const lastDayValue = await prisma.dayValue.findFirst({
           where: { mandateId: mandate.id },
-          orderBy: { date: "desc" }, // Trier par date de la valeur (pas createdAt)
+          orderBy: { date: "desc" }, // ✅ Trier par date de la valeur (pas createdAt)
         });
 
         // Récupérer les valeurs pour les X derniers jours pour l'affichage
@@ -109,20 +109,19 @@ export async function GET(request: NextRequest) {
         let lastEntryDate: Date | null = null;
 
         if (lastDayValue) {
-          lastEntryDate = lastDayValue.date;
+          lastEntryDate = lastDayValue.date; // ✅ Utiliser la date de la valeur
           lastEntryFormatted = formatDateWithDetails(lastDayValue.date);
 
-          // Calculer les jours écoulés depuis la DATE de la saisie (pas createdAt)
+          // Calculer les jours écoulés depuis la DATE de la valeur (pas createdAt)
           const today = new Date();
-          today.setHours(0, 0, 0, 0); // Normaliser à minuit
+          today.setHours(0, 0, 0, 0);
 
           const lastEntryDateNormalized = new Date(lastDayValue.date);
-          lastEntryDateNormalized.setHours(0, 0, 0, 0); // Normaliser à minuit
+          lastEntryDateNormalized.setHours(0, 0, 0, 0);
 
           const timeDiff = today.getTime() - lastEntryDateNormalized.getTime();
           daysSinceLastEntry = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
 
-          // 🔧 DÉBOGAGE: Log pour vérifier
           console.log(
             `${mandate.name}: Dernière saisie le ${lastDayValue.date.toISOString().split("T")[0]}, il y a ${daysSinceLastEntry} jours`
           );
@@ -271,13 +270,12 @@ function formatDateShort(date: Date): string {
   });
 }
 
-// 🔧 FONCTION CORRIGÉE: Formatage détaillé de la dernière saisie
 function formatDateWithDetails(date: Date): string {
   const now = new Date();
-  now.setHours(0, 0, 0, 0); // Normaliser à minuit
+  now.setHours(0, 0, 0, 0);
 
   const entryDate = new Date(date);
-  entryDate.setHours(0, 0, 0, 0); // Normaliser à minuit
+  entryDate.setHours(0, 0, 0, 0);
 
   const timeDiff = now.getTime() - entryDate.getTime();
   const daysDiff = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
