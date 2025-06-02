@@ -1,5 +1,7 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   Card,
   CardContent,
@@ -36,6 +38,7 @@ import {
   Eye,
   Edit,
   Trash2,
+  Loader2,
 } from "lucide-react";
 import { Input } from "@/app/components/ui/input";
 import {
@@ -45,107 +48,187 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/app/components/ui/select";
+import { toast } from "sonner";
 
-// Données simulées pour reproduire l'interface
-const campusData = [
-  {
-    id: 1,
-    name: "Camping Lac",
-    lastEntry: "01.06.25",
-    performance: "5'311.94 / 24.07.22",
-    values: {
-      "26.05": "1'942.58",
-      "27.05": "2'210.58",
-      "28.05": "3'461.38",
-      "29.05": "4'529.88",
-      "30.05": "4'774.78",
-      "31.05": "4'797.08",
-      "01.06": "2'453.90",
-    },
-    category: "Hébergement",
-    status: "active",
-  },
-  {
-    id: 2,
-    name: "Camping Pont",
-    lastEntry: "01.06.25",
-    performance: "473.53 / 07.11.22",
-    values: {
-      "26.05": "291.69",
-      "27.05": "291.69",
-      "28.05": "291.69",
-      "29.05": "291.69",
-      "30.05": "291.69",
-      "31.05": "291.69",
-      "01.06": "291.69",
-    },
-    category: "Hébergement",
-    status: "active",
-  },
-  {
-    id: 3,
-    name: "Camping Sapins",
-    lastEntry: "01.06.25",
-    performance: "4'052.29 / 01.06.24",
-    values: {
-      "26.05": "1'206.29",
-      "27.05": "1'240.09",
-      "28.05": "1'516.79",
-      "29.05": "2'236.39",
-      "30.05": "2'359.99",
-      "31.05": "2'195.81",
-      "01.06": "1'217.65",
-    },
-    category: "Hébergement",
-    status: "active",
-  },
-  {
-    id: 4,
-    name: "Hôtel Alpha",
-    lastEntry: "01.06.25",
-    performance: "3'039.60 / 01.06.25",
-    values: {
-      "26.05": "0.00",
-      "27.05": "0.00",
-      "28.05": "0.00",
-      "29.05": "0.00",
-      "30.05": "0.00",
-      "31.05": "0.00",
-      "01.06": "3'039.60",
-    },
-    category: "Hébergement",
-    status: "new",
-  },
-  {
-    id: 5,
-    name: "Lodges de Camargue",
-    lastEntry: "01.06.25",
-    performance: "5'174.22 / 18.08.23",
-    values: {
-      "26.05": "2'492.32",
-      "27.05": "3'153.76",
-      "28.05": "3'998.08",
-      "29.05": "4'361.02",
-      "30.05": "4'107.02",
-      "31.05": "4'429.34",
-      "01.06": "1'282.54",
-    },
-    category: "Hébergement",
-    status: "active",
-  },
-];
+interface DashboardData {
+  id: string;
+  name: string;
+  lastEntry: string | null;
+  performance: string;
+  values: Record<string, string>;
+  category: string;
+  status: string;
+  totalRevenue: number;
+}
 
-const dateColumns = [
-  { key: "26.05", label: "lun. 26.05.25" },
-  { key: "27.05", label: "mar. 27.05.25" },
-  { key: "28.05", label: "mer. 28.05.25" },
-  { key: "29.05", label: "jeu. 29.05.25" },
-  { key: "30.05", label: "ven. 30.05.25" },
-  { key: "31.05", label: "sam. 31.05.25" },
-  { key: "01.06", label: "dim. 01.06.25" },
-];
+interface ColumnLabel {
+  key: string;
+  label: string;
+}
+
+interface DashboardResponse {
+  data: DashboardData[];
+  totals: {
+    totalRevenue: number;
+    totalMandates: number;
+    activeMandates: number;
+    dailyTotals: Record<string, number>;
+  };
+  columnLabels: ColumnLabel[];
+  meta: {
+    dateRange: {
+      start: string;
+      end: string;
+    };
+    generatedAt: string;
+  };
+}
 
 export default function DashboardPage() {
+  const router = useRouter();
+  const [dashboardData, setDashboardData] = useState<DashboardResponse | null>(
+    null
+  );
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  // Charger les données du dashboard
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch("/api/dashboard/data");
+
+      if (!response.ok) {
+        throw new Error("Erreur lors du chargement des données");
+      }
+
+      const data = await response.json();
+      setDashboardData(data);
+    } catch (error) {
+      console.error("Erreur:", error);
+      toast.error("Erreur lors du chargement des données du dashboard");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Filtrer les données
+  const filteredData =
+    dashboardData?.data.filter((item) => {
+      const matchesSearch = item.name
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+      const matchesCategory =
+        categoryFilter === "all" ||
+        (categoryFilter === "hebergement" && item.category === "Hébergement") ||
+        (categoryFilter === "restauration" && item.category === "Restauration");
+      const matchesStatus =
+        statusFilter === "all" || item.status === statusFilter;
+
+      return matchesSearch && matchesCategory && matchesStatus;
+    }) || [];
+
+  const handleExport = async () => {
+    try {
+      const response = await fetch("/api/export/valeurs");
+      if (!response.ok) throw new Error("Erreur lors de l'export");
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `dashboard_export_${new Date().toISOString().split("T")[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast.success("Export téléchargé avec succès");
+    } catch (error) {
+      console.error("Erreur:", error);
+      toast.error("Erreur lors de l'export");
+    }
+  };
+
+  const handleImport = () => {
+    router.push("/dashboard/import");
+  };
+
+  const handleAddValue = () => {
+    router.push("/dashboard/DayValues/Create");
+  };
+
+  const handleViewDetails = (mandateId: string) => {
+    router.push(`/dashboard/Mandates/${mandateId}`);
+  };
+
+  const handleEditMandate = (mandateId: string) => {
+    router.push(`/dashboard/Mandates/${mandateId}/edit`);
+  };
+
+  const handleDeleteMandate = async (
+    mandateId: string,
+    mandateName: string
+  ) => {
+    if (
+      !confirm(
+        `Êtes-vous sûr de vouloir supprimer le mandat "${mandateName}" ?`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/mandats/${mandateId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Erreur lors de la suppression");
+      }
+
+      toast.success("Mandat supprimé avec succès");
+      fetchDashboardData(); // Recharger les données
+    } catch (error) {
+      console.error("Erreur:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Erreur lors de la suppression"
+      );
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!dashboardData) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">
+            Erreur lors du chargement des données
+          </p>
+          <Button onClick={fetchDashboardData} className="mt-4">
+            Réessayer
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header avec titre et actions */}
@@ -165,11 +248,15 @@ export default function DashboardPage() {
             <Filter className="mr-2 h-4 w-4" />
             Filtres
           </Button>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={handleExport}>
             <Download className="mr-2 h-4 w-4" />
             Exporter
           </Button>
-          <Button size="sm">
+          <Button variant="outline" size="sm" onClick={handleImport}>
+            <Upload className="mr-2 h-4 w-4" />
+            Import
+          </Button>
+          <Button size="sm" onClick={handleAddValue}>
             <Plus className="mr-2 h-4 w-4" />
             Ajouter
           </Button>
@@ -183,10 +270,12 @@ export default function DashboardPage() {
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Rechercher un campus..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-8 w-[300px]"
             />
           </div>
-          <Select>
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Catégorie" />
             </SelectTrigger>
@@ -196,7 +285,7 @@ export default function DashboardPage() {
               <SelectItem value="restauration">Restauration</SelectItem>
             </SelectContent>
           </Select>
-          <Select>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[150px]">
               <SelectValue placeholder="Statut" />
             </SelectTrigger>
@@ -205,15 +294,9 @@ export default function DashboardPage() {
               <SelectItem value="active">Actif</SelectItem>
               <SelectItem value="inactive">Inactif</SelectItem>
               <SelectItem value="new">Nouveau</SelectItem>
+              <SelectItem value="warning">Attention</SelectItem>
             </SelectContent>
           </Select>
-        </div>
-
-        <div className="flex items-center space-x-2">
-          <Button variant="outline" size="sm">
-            <Upload className="mr-2 h-4 w-4" />
-            Import
-          </Button>
         </div>
       </div>
 
@@ -228,7 +311,7 @@ export default function DashboardPage() {
               </CardDescription>
             </div>
             <Badge variant="secondary" className="text-xs">
-              {campusData.length} campus
+              {filteredData.length} campus
             </Badge>
           </div>
         </CardHeader>
@@ -242,7 +325,7 @@ export default function DashboardPage() {
                     Dernière saisie
                   </TableHead>
                   <TableHead className="min-w-[150px]">Top</TableHead>
-                  {dateColumns.map((col) => (
+                  {dashboardData.columnLabels.map((col) => (
                     <TableHead
                       key={col.key}
                       className="text-center min-w-[100px]"
@@ -254,7 +337,7 @@ export default function DashboardPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {campusData.map((campus) => (
+                {filteredData.map((campus) => (
                   <TableRow key={campus.id} className="hover:bg-muted/50">
                     <TableCell>
                       <div className="flex items-center space-x-2">
@@ -267,7 +350,9 @@ export default function DashboardPage() {
                                   ? "default"
                                   : campus.status === "new"
                                     ? "secondary"
-                                    : "outline"
+                                    : campus.status === "warning"
+                                      ? "destructive"
+                                      : "outline"
                               }
                               className="text-xs mr-2"
                             >
@@ -278,13 +363,18 @@ export default function DashboardPage() {
                                 Nouveau
                               </Badge>
                             )}
+                            {campus.status === "warning" && (
+                              <Badge variant="destructive" className="text-xs">
+                                ⚠️ Ancien
+                              </Badge>
+                            )}
                           </div>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="text-sm font-medium">
-                        {campus.lastEntry}
+                        {campus.lastEntry || "Jamais"}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -292,10 +382,10 @@ export default function DashboardPage() {
                         {campus.performance}
                       </div>
                     </TableCell>
-                    {dateColumns.map((col) => (
+                    {dashboardData.columnLabels.map((col) => (
                       <TableCell key={col.key} className="text-center">
                         <div className="text-sm font-medium">
-                          {campus.values[col.key as keyof typeof campus.values]}
+                          {campus.values[col.key] || "0.00"}
                         </div>
                       </TableCell>
                     ))}
@@ -308,16 +398,25 @@ export default function DashboardPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleViewDetails(campus.id)}
+                          >
                             <Eye className="mr-2 h-4 w-4" />
                             Voir les détails
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleEditMandate(campus.id)}
+                          >
                             <Edit className="mr-2 h-4 w-4" />
                             Modifier
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-red-600">
+                          <DropdownMenuItem
+                            className="text-red-600"
+                            onClick={() =>
+                              handleDeleteMandate(campus.id, campus.name)
+                            }
+                          >
                             <Trash2 className="mr-2 h-4 w-4" />
                             Supprimer
                           </DropdownMenuItem>
@@ -329,6 +428,26 @@ export default function DashboardPage() {
               </TableBody>
             </Table>
           </div>
+
+          {filteredData.length === 0 && (
+            <div className="text-center py-8">
+              <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold">Aucun campus trouvé</h3>
+              <p className="text-muted-foreground mb-4">
+                {dashboardData.data.length === 0
+                  ? "Commencez par créer votre premier mandat"
+                  : "Essayez de modifier vos filtres de recherche"}
+              </p>
+              {dashboardData.data.length === 0 && (
+                <Button
+                  onClick={() => router.push("/dashboard/Mandates/Create")}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Créer un mandat
+                </Button>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -337,12 +456,18 @@ export default function DashboardPage() {
         <CardContent className="pt-6">
           <div className="flex items-center justify-between">
             <div className="text-sm text-muted-foreground">
-              Affichage de {campusData.length} campus sur {campusData.length} au
-              total
+              Affichage de {filteredData.length} campus sur{" "}
+              {dashboardData.totals.totalMandates} au total
             </div>
             <div className="flex items-center space-x-4 text-sm">
               <div className="font-medium">
-                Total: <span className="text-lg">23&apos;157.82</span>
+                Total:{" "}
+                <span className="text-lg">
+                  {new Intl.NumberFormat("fr-CH", {
+                    style: "currency",
+                    currency: "CHF",
+                  }).format(dashboardData.totals.totalRevenue)}
+                </span>
               </div>
             </div>
           </div>

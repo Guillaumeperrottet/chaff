@@ -9,6 +9,9 @@ import {
   FileDown,
   Building2,
   MapPin,
+  Loader2,
+  Edit,
+  Trash2,
 } from "lucide-react";
 import {
   Card,
@@ -35,6 +38,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/app/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/app/components/ui/dropdown-menu";
 import { toast } from "sonner";
 
 interface DayValue {
@@ -56,6 +65,17 @@ interface Mandate {
   name: string;
   group: "HEBERGEMENT" | "RESTAURATION";
 }
+
+interface ApiResponse {
+  data: DayValue[];
+  pagination: {
+    total: number;
+    limit: number;
+    offset: number;
+    hasMore: boolean;
+  };
+}
+
 export default function ValeursPage() {
   const router = useRouter();
   const [dayValues, setDayValues] = useState<DayValue[]>([]);
@@ -65,6 +85,7 @@ export default function ValeursPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [mandateFilter, setMandateFilter] = useState<string>("all");
   const [dateRange, setDateRange] = useState<string>("30");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([fetchDayValues(), fetchMandates()]).finally(() => {
@@ -81,9 +102,10 @@ export default function ValeursPage() {
       const response = await fetch("/api/valeurs?limit=100");
       if (!response.ok) throw new Error("Erreur lors du chargement");
 
-      const data = await response.json();
+      const data: ApiResponse = await response.json();
       setDayValues(data.data || []);
-    } catch {
+    } catch (error) {
+      console.error("Erreur:", error);
       toast.error("Erreur lors du chargement des valeurs");
     }
   };
@@ -95,7 +117,8 @@ export default function ValeursPage() {
 
       const data = await response.json();
       setMandates(data);
-    } catch {
+    } catch (error) {
+      console.error("Erreur:", error);
       toast.error("Erreur lors du chargement des mandats");
     }
   };
@@ -133,7 +156,40 @@ export default function ValeursPage() {
   };
 
   const handleCreateNew = () => {
-    router.push("/dashboard/valeurs/nouvelle");
+    router.push("/dashboard/DayValues/Create");
+  };
+
+  const handleEdit = (valueId: string) => {
+    router.push(`/dashboard/DayValues/${valueId}/edit`);
+  };
+
+  const handleDelete = async (valueId: string) => {
+    if (!confirm(`Êtes-vous sûr de vouloir supprimer cette valeur ?`)) {
+      return;
+    }
+
+    try {
+      setDeletingId(valueId);
+      const response = await fetch(`/api/valeurs/${valueId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Erreur lors de la suppression");
+      }
+
+      // Retirer la valeur de la liste locale
+      setDayValues((prev) => prev.filter((v) => v.id !== valueId));
+      toast.success("Valeur supprimée avec succès");
+    } catch (error) {
+      console.error("Erreur:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Erreur lors de la suppression"
+      );
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   const handleExport = async () => {
@@ -160,9 +216,11 @@ export default function ValeursPage() {
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
 
       toast.success("Export téléchargé avec succès");
-    } catch {
+    } catch (error) {
+      console.error("Erreur:", error);
       toast.error("Erreur lors de l'export");
     }
   };
@@ -203,15 +261,8 @@ export default function ValeursPage() {
             </p>
           </div>
         </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {[1, 2, 3, 4].map((i) => (
-            <Card key={i} className="animate-pulse">
-              <CardContent className="p-6">
-                <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
-                <div className="h-8 bg-muted rounded w-1/2"></div>
-              </CardContent>
-            </Card>
-          ))}
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin" />
         </div>
       </div>
     );
@@ -408,17 +459,33 @@ export default function ValeursPage() {
                       {formatDate(value.createdAt)}
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          router.push(
-                            `/dashboard/valeurs/${value.id}/modifier`
-                          );
-                        }}
-                      >
-                        Modifier
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            Actions
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                          <DropdownMenuItem
+                            onClick={() => handleEdit(value.id)}
+                          >
+                            <Edit className="mr-2 h-4 w-4" />
+                            Modifier
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleDelete(value.id)}
+                            className="text-red-600"
+                            disabled={deletingId === value.id}
+                          >
+                            {deletingId === value.id ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="mr-2 h-4 w-4" />
+                            )}
+                            Supprimer
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 );

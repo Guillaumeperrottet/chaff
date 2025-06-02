@@ -24,31 +24,22 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/app/components/ui/alert-dialog";
-import { Loader2 } from "lucide-react";
+import { Loader2, Plus, Upload } from "lucide-react";
 
-// Types basés sur ton schema Prisma
+// Types basés sur le schema Prisma
 interface Mandate {
   id: string;
   name: string;
   group: "HEBERGEMENT" | "RESTAURATION";
   active: boolean;
+  totalRevenue: number;
+  lastEntry: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  _count?: {
+    dayValues: number;
+  };
 }
-
-// Données simulées (à remplacer par tes vraies données)
-const mockMandates: Mandate[] = [
-  { id: "1", name: "Camping Lac", group: "HEBERGEMENT", active: true },
-  { id: "2", name: "Camping Pont", group: "HEBERGEMENT", active: true },
-  { id: "3", name: "Camping Sapins", group: "HEBERGEMENT", active: true },
-  { id: "4", name: "Lodges de Camargue", group: "HEBERGEMENT", active: true },
-  { id: "5", name: "Granby Café", group: "RESTAURATION", active: false },
-  { id: "6", name: "DP-Aigle", group: "RESTAURATION", active: true },
-  { id: "7", name: "DP-Bulle", group: "RESTAURATION", active: true },
-  { id: "8", name: "DP-Sierre", group: "RESTAURATION", active: true },
-  { id: "9", name: "DP-Susten", group: "RESTAURATION", active: true },
-  { id: "10", name: "DP-Yverdon", group: "RESTAURATION", active: true },
-  { id: "11", name: "Popliving Riaz", group: "HEBERGEMENT", active: true },
-  { id: "12", name: "Hôtel Alpha", group: "HEBERGEMENT", active: true },
-];
 
 export default function MandatesIndexPage() {
   const router = useRouter();
@@ -56,52 +47,54 @@ export default function MandatesIndexPage() {
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  // Charger les mandats (à remplacer par un appel API)
+  // Charger les mandats
   useEffect(() => {
-    const loadMandates = async () => {
-      try {
-        setLoading(true);
-
-        // Simuler un appel API
-        // const response = await fetch("/api/mandates");
-        // const data = await response.json();
-
-        // Pour l'instant, utiliser les données simulées
-        await new Promise((resolve) => setTimeout(resolve, 500)); // Simuler le chargement
-        setMandates(mockMandates);
-      } catch (error) {
-        console.error("Erreur lors du chargement des mandats:", error);
-        toast.error("Erreur lors du chargement des mandats");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadMandates();
+    fetchMandates();
   }, []);
+
+  const fetchMandates = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch("/api/mandats?includeInactive=true");
+
+      if (!response.ok) {
+        throw new Error("Erreur lors du chargement des mandats");
+      }
+
+      const data = await response.json();
+      setMandates(data);
+    } catch (error) {
+      console.error("Erreur lors du chargement des mandats:", error);
+      toast.error("Erreur lors du chargement des mandats");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Fonction pour supprimer un mandat
   const handleDelete = async (mandateId: string) => {
     try {
       setDeletingId(mandateId);
 
-      // Appel API pour supprimer
-      // const response = await fetch(`/api/mandates/${mandateId}`, {
-      //   method: "DELETE",
-      // });
+      const response = await fetch(`/api/mandats/${mandateId}`, {
+        method: "DELETE",
+      });
 
-      // if (!response.ok) {
-      //   throw new Error("Erreur lors de la suppression");
-      // }
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Erreur lors de la suppression");
+      }
 
-      // Simuler la suppression
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
+      // Retirer le mandat de la liste locale
       setMandates((prev) => prev.filter((m) => m.id !== mandateId));
       toast.success("Mandat supprimé avec succès");
     } catch (error) {
       console.error("Erreur lors de la suppression:", error);
-      toast.error("Erreur lors de la suppression du mandat");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Erreur lors de la suppression du mandat"
+      );
     } finally {
       setDeletingId(null);
     }
@@ -109,12 +102,40 @@ export default function MandatesIndexPage() {
 
   // Fonction pour naviguer vers l'édition
   const handleEdit = (mandateId: string) => {
-    router.push(`/dashboard/mandates/${mandateId}/edit`);
+    router.push(`/dashboard/Mandates/${mandateId}/edit`);
+  };
+
+  // Fonction pour voir les données CA
+  const handleViewCA = (mandateId: string) => {
+    router.push(`/dashboard/Mandates/${mandateId}`);
   };
 
   // Fonction pour créer un nouveau mandat
   const handleCreateNew = () => {
-    router.push("/dashboard/mandates/create");
+    router.push("/dashboard/Mandates/Create");
+  };
+
+  // Fonction pour l'import
+  const handleImport = () => {
+    router.push("/dashboard/import");
+  };
+
+  // Fonction pour formater la devise
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("fr-CH", {
+      style: "currency",
+      currency: "CHF",
+    }).format(amount);
+  };
+
+  // Fonction pour formater la date
+  const formatDate = (date: Date | null) => {
+    if (!date) return "Jamais";
+    return new Date(date).toLocaleDateString("fr-CH", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
   };
 
   if (loading) {
@@ -139,13 +160,50 @@ export default function MandatesIndexPage() {
         <h1 className="text-4xl font-bold tracking-tight text-gray-900">
           Index
         </h1>
-        <Button
-          variant="link"
-          onClick={handleCreateNew}
-          className="text-blue-600 hover:text-blue-700 p-0 h-auto font-normal text-base mt-2"
-        >
-          Create New
-        </Button>
+        <div className="flex items-center space-x-4 mt-2">
+          <Button
+            variant="link"
+            onClick={handleCreateNew}
+            className="text-blue-600 hover:text-blue-700 p-0 h-auto font-normal text-base"
+          >
+            Create New
+          </Button>
+          <span className="text-gray-400">|</span>
+          <Button
+            variant="link"
+            onClick={handleImport}
+            className="text-blue-600 hover:text-blue-700 p-0 h-auto font-normal text-base"
+          >
+            <Upload className="mr-1 h-4 w-4" />
+            Import
+          </Button>
+        </div>
+      </div>
+
+      {/* Statistiques rapides */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="bg-white p-4 rounded-lg border">
+          <div className="text-sm text-gray-600">Total mandats</div>
+          <div className="text-2xl font-bold">{mandates.length}</div>
+        </div>
+        <div className="bg-white p-4 rounded-lg border">
+          <div className="text-sm text-gray-600">Actifs</div>
+          <div className="text-2xl font-bold text-green-600">
+            {mandates.filter((m) => m.active).length}
+          </div>
+        </div>
+        <div className="bg-white p-4 rounded-lg border">
+          <div className="text-sm text-gray-600">Hébergement</div>
+          <div className="text-2xl font-bold text-blue-600">
+            {mandates.filter((m) => m.group === "HEBERGEMENT").length}
+          </div>
+        </div>
+        <div className="bg-white p-4 rounded-lg border">
+          <div className="text-sm text-gray-600">Restauration</div>
+          <div className="text-2xl font-bold text-orange-600">
+            {mandates.filter((m) => m.group === "RESTAURATION").length}
+          </div>
+        </div>
       </div>
 
       {/* Table avec style épuré comme ton image */}
@@ -158,6 +216,15 @@ export default function MandatesIndexPage() {
               </TableHead>
               <TableHead className="text-left text-base font-medium text-gray-900 py-4">
                 Group
+              </TableHead>
+              <TableHead className="text-left text-base font-medium text-gray-900 py-4">
+                Revenue Total
+              </TableHead>
+              <TableHead className="text-left text-base font-medium text-gray-900 py-4">
+                Dernière Saisie
+              </TableHead>
+              <TableHead className="text-left text-base font-medium text-gray-900 py-4">
+                Valeurs
               </TableHead>
               <TableHead className="text-left text-base font-medium text-gray-900 py-4">
                 Activ
@@ -177,9 +244,26 @@ export default function MandatesIndexPage() {
                   {mandate.name}
                 </TableCell>
                 <TableCell className="py-4 text-gray-700">
-                  {mandate.group === "HEBERGEMENT"
-                    ? "Hébergement"
-                    : "Restauration"}
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      mandate.group === "HEBERGEMENT"
+                        ? "bg-blue-100 text-blue-800"
+                        : "bg-orange-100 text-orange-800"
+                    }`}
+                  >
+                    {mandate.group === "HEBERGEMENT"
+                      ? "Hébergement"
+                      : "Restauration"}
+                  </span>
+                </TableCell>
+                <TableCell className="py-4 text-gray-900 font-medium">
+                  {formatCurrency(mandate.totalRevenue)}
+                </TableCell>
+                <TableCell className="py-4 text-gray-700">
+                  {formatDate(mandate.lastEntry)}
+                </TableCell>
+                <TableCell className="py-4 text-gray-700">
+                  {mandate._count?.dayValues || 0} saisies
                 </TableCell>
                 <TableCell className="py-4">
                   <Checkbox
@@ -192,9 +276,7 @@ export default function MandatesIndexPage() {
                   <div className="flex items-center justify-end space-x-2 text-sm">
                     <Button
                       variant="link"
-                      onClick={() =>
-                        router.push(`/dashboard/mandates/${mandate.id}`)
-                      }
+                      onClick={() => handleViewCA(mandate.id)}
                       className="text-blue-600 hover:text-blue-700 p-0 h-auto font-normal text-sm"
                     >
                       CA
@@ -229,8 +311,19 @@ export default function MandatesIndexPage() {
                           </AlertDialogTitle>
                           <AlertDialogDescription>
                             Êtes-vous sûr de vouloir supprimer le mandat &quot;
-                            {mandate.name}&quot; ? Cette action est
-                            irréversible.
+                            {mandate.name}&quot; ?
+                            {mandate._count && mandate._count.dayValues > 0 && (
+                              <span className="text-red-600 font-medium">
+                                <br />
+                                ⚠️ Ce mandat contient {
+                                  mandate._count.dayValues
+                                }{" "}
+                                valeur(s) journalière(s) qui seront également
+                                supprimées.
+                              </span>
+                            )}
+                            <br />
+                            Cette action est irréversible.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -254,14 +347,42 @@ export default function MandatesIndexPage() {
 
       {/* Message si aucun mandat */}
       {mandates.length === 0 && !loading && (
-        <div className="text-center py-12">
-          <p className="text-gray-500 text-lg">Aucun mandat trouvé</p>
-          <Button
-            onClick={handleCreateNew}
-            className="mt-4 bg-blue-600 hover:bg-blue-700 text-white"
-          >
-            Créer le premier mandat
-          </Button>
+        <div className="text-center py-12 bg-white rounded-lg border">
+          <Plus className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-500 text-lg mb-4">Aucun mandat trouvé</p>
+          <div className="space-x-4">
+            <Button
+              onClick={handleCreateNew}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Créer le premier mandat
+            </Button>
+            <Button onClick={handleImport} variant="outline">
+              <Upload className="mr-2 h-4 w-4" />
+              Importer des données
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Footer avec résumé */}
+      {mandates.length > 0 && (
+        <div className="bg-white p-4 rounded-lg border">
+          <div className="flex items-center justify-between text-sm text-gray-600">
+            <div>
+              {mandates.length} mandat(s) •{" "}
+              {mandates.filter((m) => m.active).length} actif(s)
+            </div>
+            <div>
+              Revenue totale:{" "}
+              <span className="font-medium text-gray-900">
+                {formatCurrency(
+                  mandates.reduce((sum, m) => sum + m.totalRevenue, 0)
+                )}
+              </span>
+            </div>
+          </div>
         </div>
       )}
     </div>
