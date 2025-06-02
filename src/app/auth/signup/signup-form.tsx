@@ -1,4 +1,4 @@
-// 2. Mise à jour de signup-form.tsx - Utilisation correcte des additionalFields
+// signup-form.tsx - Version avec Suspense sécurisé
 "use client";
 
 import {
@@ -8,6 +8,7 @@ import {
   useRef,
   useCallback,
   memo,
+  Suspense,
 } from "react";
 import { authClient } from "@/lib/auth-client";
 import { useSearchParams } from "next/navigation";
@@ -34,7 +35,43 @@ const SignupImageUpload = dynamic(() => import("./SignupImageUpload"), {
   ssr: false,
 });
 
-function SignUpForm() {
+// Skeleton pour le formulaire d'inscription
+function SignUpFormSkeleton() {
+  return (
+    <div className="w-full animate-pulse">
+      <div className="absolute top-4 right-4">
+        <div className="w-5 h-5 bg-gray-200 rounded"></div>
+      </div>
+
+      <div className="h-6 bg-gray-200 rounded mb-6 w-1/2 mx-auto"></div>
+
+      <div className="flex flex-col items-center mb-6">
+        <div className="w-24 h-24 bg-gray-200 rounded-full mb-3"></div>
+        <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+      </div>
+
+      <div className="space-y-5">
+        <div className="space-y-2">
+          <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+          <div className="h-12 bg-gray-200 rounded"></div>
+        </div>
+        <div className="space-y-2">
+          <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+          <div className="h-12 bg-gray-200 rounded"></div>
+        </div>
+        <div className="space-y-2">
+          <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+          <div className="h-12 bg-gray-200 rounded"></div>
+        </div>
+        <div className="h-12 bg-gray-200 rounded mt-6"></div>
+        <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto"></div>
+      </div>
+    </div>
+  );
+}
+
+// Composant qui utilise useSearchParams
+function SignUpFormWithParams() {
   const searchParams = useSearchParams();
   const inviteCode = searchParams.get("code");
   const [isInvite, setIsInvite] = useState(false);
@@ -134,18 +171,7 @@ function SignUpForm() {
           organizationId: isInvite ? organizationId : undefined,
         });
 
-        // Définir un type pour les données d'inscription
-        interface SignupData {
-          email: string;
-          password: string;
-          name: string;
-          image?: string;
-          inviteCode?: string;
-          planType: string;
-          organizationId?: string;
-        }
-
-        const signupData: SignupData = {
+        const signupData = {
           email,
           password,
           name,
@@ -175,7 +201,7 @@ function SignUpForm() {
     },
     [inviteCode, planType, selectedFile, isSubmitting, isInvite, organizationId]
   );
-  // Le reste du composant reste identique...
+
   if (showSuccess) {
     return (
       <div className="w-full text-center">
@@ -183,20 +209,20 @@ function SignUpForm() {
           <CheckCircle className="w-8 h-8 text-green-600" />
         </div>
 
-        <h2 className="text-2xl font-bold text-[#141313] mb-4">
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">
           Vérifiez votre email
         </h2>
 
-        <div className="bg-[#e0f2fe] border border-[#7dd3fc] rounded-xl p-6 mb-6">
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-6">
           <div className="flex items-start gap-3">
-            <div className="text-[#0284c7] mt-0.5">
+            <div className="text-blue-600 mt-0.5">
               <Mail className="h-5 w-5" />
             </div>
             <div className="text-left">
-              <h3 className="font-semibold text-[#0284c7] mb-2">
+              <h3 className="font-semibold text-blue-700 mb-2">
                 Email de vérification envoyé !
               </h3>
-              <p className="text-[#0284c7] text-sm mb-3">
+              <p className="text-blue-700 text-sm mb-3">
                 Nous avons envoyé un lien de vérification à votre adresse email.
                 <strong>
                   {" "}
@@ -204,7 +230,7 @@ function SignUpForm() {
                   lien.
                 </strong>
               </p>
-              <p className="text-[#0284c7] text-sm">
+              <p className="text-blue-700 text-sm">
                 💡 <strong>Vérifiez également votre dossier spam</strong> si
                 vous ne voyez pas l&apos;email dans quelques minutes.
               </p>
@@ -213,13 +239,13 @@ function SignUpForm() {
         </div>
 
         {isInvite && (
-          <div className="bg-[#dcfce7] border border-[#86efac] rounded-xl p-4 mb-6">
+          <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6">
             <div className="flex items-start gap-3">
-              <div className="text-[#16a34a] mt-0.5">
+              <div className="text-green-600 mt-0.5">
                 <CheckCircle className="h-5 w-5" />
               </div>
               <div className="text-left">
-                <p className="text-[#16a34a] text-sm">
+                <p className="text-green-700 text-sm">
                   <strong>Invitation détectée :</strong> Après vérification de
                   votre email, vous serez ajouté à l&apos;organisation{" "}
                   <strong>{organizationName}</strong>.
@@ -229,11 +255,11 @@ function SignUpForm() {
           </div>
         )}
 
-        <div className="bg-[#fff3cd] border border-[#ffeaa7] rounded-xl p-4 mb-6">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
           <div className="flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-[#856404] mt-0.5" />
+            <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
             <div className="text-left">
-              <p className="text-[#856404] text-sm">
+              <p className="text-yellow-700 text-sm">
                 <strong>Important :</strong> Le lien expire dans 24 heures. Si
                 vous ne finalisez pas votre inscription dans ce délai, vous
                 devrez recommencer le processus.
@@ -243,19 +269,19 @@ function SignUpForm() {
         </div>
 
         <div className="space-y-3">
-          <p className="text-sm text-[#62605d]">
+          <p className="text-sm text-gray-600">
             Vous n&apos;avez pas reçu l&apos;email ?
           </p>
           <Button
             onClick={() => setShowSuccess(false)}
             variant="outline"
-            className="w-full border-[#beac93] hover:bg-[#e8ebe0]"
+            className="w-full border-orange-200 hover:bg-orange-50"
           >
             Réessayer avec une autre adresse
           </Button>
-          <p className="text-xs text-[#62605d]">
+          <p className="text-xs text-gray-600">
             Ou{" "}
-            <Link href="/signin" className="text-[#d9840d] hover:underline">
+            <Link href="/signin" className="text-orange-600 hover:underline">
               connectez-vous si vous avez déjà un compte
             </Link>
           </p>
@@ -269,20 +295,20 @@ function SignUpForm() {
       <div className="absolute top-4 right-4">
         <Link
           href="/"
-          className="text-[#62605d] hover:text-[#d9840d] transition-colors"
+          className="text-gray-600 hover:text-orange-600 transition-colors"
         >
           <Home size={20} />
         </Link>
       </div>
 
-      <h2 className="text-2xl font-bold text-center mb-6 text-[#141313]">
+      <h2 className="text-2xl font-bold text-center mb-6 text-gray-900">
         Inscription
       </h2>
 
       {isInvite && (
-        <div className="mb-6 p-5 bg-[#e0f2fe] border border-[#7dd3fc] rounded-xl shadow-sm">
+        <div className="mb-6 p-5 bg-blue-50 border border-blue-200 rounded-xl shadow-sm">
           <div className="flex items-start gap-3">
-            <div className="text-[#0284c7] mt-0.5">
+            <div className="text-blue-600 mt-0.5">
               <svg
                 className="h-5 w-5"
                 fill="none"
@@ -297,7 +323,7 @@ function SignUpForm() {
                 />
               </svg>
             </div>
-            <p className="text-[#0284c7] flex-1">
+            <p className="text-blue-700 flex-1">
               Vous avez été invité à rejoindre{" "}
               <strong className="font-semibold">{organizationName}</strong>
             </p>
@@ -306,9 +332,9 @@ function SignUpForm() {
       )}
 
       {error && (
-        <div className="mb-6 p-4 rounded-xl bg-[#fee2e2] border border-[#fca5a5] shadow-sm">
+        <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 shadow-sm">
           <div className="flex items-start gap-3">
-            <div className="text-[#b91c1c] mt-0.5">
+            <div className="text-red-600 mt-0.5">
               <svg
                 className="h-5 w-5"
                 fill="none"
@@ -323,7 +349,7 @@ function SignUpForm() {
                 />
               </svg>
             </div>
-            <p className="text-[#b91c1c] flex-1 font-medium text-sm">{error}</p>
+            <p className="text-red-700 flex-1 font-medium text-sm">{error}</p>
           </div>
         </div>
       )}
@@ -336,12 +362,12 @@ function SignUpForm() {
         <SignupImageUpload onImageSelect={handleImageSelect} />
 
         <div className="space-y-2">
-          <Label htmlFor="name" className="text-sm font-medium text-[#141313]">
+          <Label htmlFor="name" className="text-sm font-medium text-gray-900">
             Nom complet
           </Label>
           <div className="relative">
             <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-              <User className="h-4 w-4 text-[#62605d]" />
+              <User className="h-4 w-4 text-gray-600" />
             </div>
             <Input
               id="name"
@@ -350,18 +376,18 @@ function SignUpForm() {
               required
               placeholder="Entrez votre nom complet"
               autoComplete="name"
-              className="pl-10 bg-white border-[#beac93] focus:border-[#d9840d] rounded-lg shadow-sm hover:border-[#d9840d]/70 transition-colors"
+              className="pl-10 bg-white border-orange-200 focus:border-orange-500 rounded-lg shadow-sm hover:border-orange-400 transition-colors"
             />
           </div>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="email" className="text-sm font-medium text-[#141313]">
+          <Label htmlFor="email" className="text-sm font-medium text-gray-900">
             Adresse email
           </Label>
           <div className="relative">
             <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-              <Mail className="h-4 w-4 text-[#62605d]" />
+              <Mail className="h-4 w-4 text-gray-600" />
             </div>
             <Input
               id="email"
@@ -370,7 +396,7 @@ function SignUpForm() {
               required
               placeholder="Entrez votre email"
               autoComplete="email"
-              className="pl-10 bg-white border-[#beac93] focus:border-[#d9840d] rounded-lg shadow-sm hover:border-[#d9840d]/70 transition-colors"
+              className="pl-10 bg-white border-orange-200 focus:border-orange-500 rounded-lg shadow-sm hover:border-orange-400 transition-colors"
             />
           </div>
         </div>
@@ -378,13 +404,13 @@ function SignUpForm() {
         <div className="space-y-2">
           <Label
             htmlFor="password"
-            className="text-sm font-medium text-[#141313]"
+            className="text-sm font-medium text-gray-900"
           >
             Mot de passe
           </Label>
           <div className="relative">
             <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-              <Lock className="h-4 w-4 text-[#62605d]" />
+              <Lock className="h-4 w-4 text-gray-600" />
             </div>
             <Input
               id="password"
@@ -394,14 +420,14 @@ function SignUpForm() {
               placeholder="Mot de passe (min. 8 caractères)"
               minLength={8}
               autoComplete="new-password"
-              className="pl-10 bg-white border-[#beac93] focus:border-[#d9840d] rounded-lg shadow-sm hover:border-[#d9840d]/70 transition-colors"
+              className="pl-10 bg-white border-orange-200 focus:border-orange-500 rounded-lg shadow-sm hover:border-orange-400 transition-colors"
             />
           </div>
         </div>
 
         <Button
           type="submit"
-          className="w-full py-6 mt-2 bg-gradient-to-r from-[#d9840d] to-[#e36002] hover:from-[#c6780c] hover:to-[#d9840d] transition-all duration-300 transform hover:scale-[1.02] font-medium shadow-md text-white rounded-lg"
+          className="w-full py-6 mt-2 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 transition-all duration-300 transform hover:scale-[1.02] font-medium shadow-md text-white rounded-lg"
           disabled={isSubmitting}
         >
           {isSubmitting ? (
@@ -415,11 +441,11 @@ function SignUpForm() {
         </Button>
 
         <div className="mt-2 text-center">
-          <p className="text-sm text-[#62605d]">
+          <p className="text-sm text-gray-600">
             Vous avez déjà un compte?{" "}
             <Link
               href="/signin"
-              className="text-[#d9840d] hover:text-[#c6780c] hover:underline underline-offset-4 font-medium transition-colors"
+              className="text-orange-600 hover:text-orange-700 hover:underline underline-offset-4 font-medium transition-colors"
             >
               Connectez-vous
             </Link>
@@ -427,19 +453,19 @@ function SignUpForm() {
         </div>
       </form>
 
-      <div className="mt-8 pt-6 border-t border-[#beac93]/30">
-        <p className="text-xs text-center text-[#62605d]">
+      <div className="mt-8 pt-6 border-t border-orange-200/30">
+        <p className="text-xs text-center text-gray-600">
           En vous inscrivant, vous acceptez nos{" "}
           <a
             href="#"
-            className="underline underline-offset-4 hover:text-[#d9840d] transition-colors"
+            className="underline underline-offset-4 hover:text-orange-600 transition-colors"
           >
             Conditions d&apos;utilisation
           </a>{" "}
           et notre{" "}
           <a
             href="#"
-            className="underline underline-offset-4 hover:text-[#d9840d] transition-colors"
+            className="underline underline-offset-4 hover:text-orange-600 transition-colors"
           >
             Politique de confidentialité
           </a>
@@ -447,6 +473,15 @@ function SignUpForm() {
         </p>
       </div>
     </div>
+  );
+}
+
+// Composant principal exporté avec Suspense
+function SignUpForm() {
+  return (
+    <Suspense fallback={<SignUpFormSkeleton />}>
+      <SignUpFormWithParams />
+    </Suspense>
   );
 }
 
