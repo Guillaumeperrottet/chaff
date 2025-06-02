@@ -7,7 +7,6 @@ interface DashboardData {
   id: string;
   name: string;
   lastEntry: string | null;
-  lastEntryDate: Date | null;
   performance: string;
   values: Record<string, string>;
   category: string;
@@ -67,13 +66,14 @@ export async function GET(request: NextRequest) {
 
     const dashboardData: DashboardData[] = await Promise.all(
       mandates.map(async (mandate) => {
-        // Récupérer la dernière saisie par DATE (pas createdAt)
+        // 🔥 SIMPLIFICATION: Récupérer juste la dernière date de saisie
         const lastDayValue = await prisma.dayValue.findFirst({
           where: { mandateId: mandate.id },
-          orderBy: { date: "desc" },
+          orderBy: { date: "desc" }, // La plus récente en premier
+          select: { date: true, value: true },
         });
 
-        // Récupérer les valeurs pour les colonnes
+        // Récupérer les valeurs pour les colonnes (période affichée)
         const recentValues = await prisma.dayValue.findMany({
           where: {
             mandateId: mandate.id,
@@ -97,14 +97,10 @@ export async function GET(request: NextRequest) {
           values[dateKey] = value ? formatCurrency(value) : "0.00";
         });
 
-        // Juste la date, sans calcul des jours
-        let lastEntryFormatted: string | null = null;
-        let lastEntryDate: Date | null = null;
-
-        if (lastDayValue) {
-          lastEntryDate = lastDayValue.date;
-          lastEntryFormatted = formatDateSimple(lastDayValue.date);
-        }
+        // 🔥 DERNIÈRE SAISIE: Simple formatage de la date
+        const lastEntryFormatted = lastDayValue
+          ? formatDateSimple(lastDayValue.date) // "01.06.25"
+          : null;
 
         // Calculer la performance (record)
         const allTimeValues = await prisma.dayValue.findMany({
@@ -119,22 +115,21 @@ export async function GET(request: NextRequest) {
 
         const performance =
           maxValue > 0
-            ? `${formatCurrency(maxValue)} / ${formatDate(maxValueDate || new Date())}`
+            ? `${formatCurrency(maxValue)} / ${formatDateSimple(maxValueDate || new Date())}`
             : "Aucune donnée";
 
-        // 🔧 SIMPLIFIÉ: Statut basé uniquement sur l'existence de valeurs
+        // 🔥 STATUT: Basé sur l'existence d'une dernière saisie
         let status = "active";
         if (!mandate.active) {
           status = "inactive";
         } else if (!lastDayValue) {
-          status = "new";
+          status = "new"; // Aucune saisie jamais
         }
 
         return {
           id: mandate.id,
           name: mandate.name,
           lastEntry: lastEntryFormatted,
-          lastEntryDate: lastEntryDate,
           performance,
           values,
           category:
@@ -147,10 +142,14 @@ export async function GET(request: NextRequest) {
 
     // Trier par dernière saisie (plus récente en premier)
     dashboardData.sort((a, b) => {
-      if (!a.lastEntryDate && !b.lastEntryDate) return 0;
-      if (!a.lastEntryDate) return 1;
-      if (!b.lastEntryDate) return -1;
-      return b.lastEntryDate.getTime() - a.lastEntryDate.getTime();
+      if (!a.lastEntry && !b.lastEntry) return 0;
+      if (!a.lastEntry) return 1; // Les sans saisie à la fin
+      if (!b.lastEntry) return -1;
+
+      // Comparer les dates (format DD.MM.YY)
+      const dateA = parseSimpleDate(a.lastEntry);
+      const dateB = parseSimpleDate(b.lastEntry);
+      return dateB.getTime() - dateA.getTime(); // Plus récent en premier
     });
 
     // Calculer les totaux (code existant...)
@@ -214,13 +213,20 @@ export async function GET(request: NextRequest) {
   }
 }
 
-//Formatage simple de la date
+// 🔥 FONCTIONS DE FORMATAGE SIMPLIFIÉES
 function formatDateSimple(date: Date): string {
   return date.toLocaleDateString("fr-CH", {
     day: "2-digit",
     month: "2-digit",
-    year: "numeric",
+    year: "2-digit", // Format YY au lieu de YYYY
   });
+}
+
+function parseSimpleDate(dateStr: string): Date {
+  // Convertir "01.06.25" vers Date
+  const [day, month, year] = dateStr.split(".");
+  const fullYear = parseInt(year) + 2000; // 25 -> 2025
+  return new Date(fullYear, parseInt(month) - 1, parseInt(day));
 }
 
 function formatCurrency(amount: number): string {
@@ -230,7 +236,7 @@ function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
-function formatDate(date: Date): string {
+function formatDateShort(date: Date): string {
   return date.toLocaleDateString("fr-CH", {
     day: "2-digit",
     month: "2-digit",
@@ -238,10 +244,7 @@ function formatDate(date: Date): string {
   });
 }
 
-function formatDateShort(date: Date): string {
-  return date.toLocaleDateString("fr-CH", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "2-digit",
-  });
+interface ColumnLabel {
+  key: string;
+  label: string;
 }
