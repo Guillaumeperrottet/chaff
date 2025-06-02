@@ -1,50 +1,33 @@
-// src/app/api/import/preview/route.ts
+// src/app/api/import/route.ts - Version optimisée
 import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import * as XLSX from "xlsx";
 
-interface ExcelMandateRow {
-  Id?: string;
-  Nom?: string;
-  Catégorie?: string;
+interface ExcelMandant {
+  Id: string;
+  Nom: string;
   Monnaie?: string;
+  Catégorie: string;
 }
 
-interface ExcelDayValueRow {
-  Date?: string;
-  Valeur?: string | number;
-  Mandant?: string;
+interface ExcelDayValue {
+  Date: string;
+  Valeur: string;
+  MandantId: string;
+  Mandant: string;
 }
 
-interface PreviewResult {
+interface ImportResult {
   success: boolean;
   message: string;
-  data: {
-    mandates: Array<{
-      id: string;
-      name: string;
-      category: string;
-      currency?: string;
-      status: "new" | "existing" | "error";
-      error?: string;
-    }>;
-    dayValues: {
-      total: number;
-      preview: Array<{
-        date: string;
-        value: number;
-        mandateName: string;
-        status: "new" | "existing" | "error";
-        error?: string;
-      }>;
-      dateRange: {
-        start: string;
-        end: string;
-      };
-    };
+  stats: {
+    mandatesCreated: number;
+    mandatesUpdated: number;
+    valuesCreated: number;
+    valuesSkipped: number;
     errors: string[];
-    warnings: string[];
   };
 }
 
@@ -70,6 +53,28 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
+    // Vérifier le type de fichier
+    const allowedTypes = [
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // .xlsx
+      "application/vnd.ms-excel", // .xls
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      return NextResponse.json(
+        { error: "Format de fichier non supporté. Utilisez .xlsx ou .xls" },
+        { status: 400 }
+      );
+    }
+
+    // Augmenter la limite de taille pour les gros fichiers
+    const maxSize = 50 * 1024 * 1024; // 50MB au lieu de 10MB
+    if (file.size > maxSize) {
+      return NextResponse.json(
+        { error: "Le fichier est trop volumineux (max 50MB)" },
+        { status: 400 }
+      );
+    }
+
     // Lire le fichier Excel
     const buffer = Buffer.from(await file.arrayBuffer());
     const workbook = XLSX.read(buffer, {
@@ -83,27 +88,21 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       !workbook.SheetNames.includes("Mandants") ||
       !workbook.SheetNames.includes("DayValues")
     ) {
-      return NextResponse.json({
-        success: false,
-        message:
-          "Fichier Excel invalide. Les feuilles 'Mandants' et 'DayValues' sont requises.",
-        data: {
-          mandates: [],
-          dayValues: {
-            total: 0,
-            preview: [],
-            dateRange: { start: "", end: "" },
-          },
-          errors: ["Feuilles 'Mandants' et 'DayValues' manquantes"],
-          warnings: [],
+      return NextResponse.json(
+        {
+          error:
+            "Fichier Excel invalide. Les feuilles 'Mandants' et 'DayValues' sont requises.",
         },
-      });
+        { status: 400 }
+      );
     }
 
-    const result = await generatePreview(workbook);
+    // Traitement des données avec optimisations
+    const result = await processExcelDataOptimized(workbook);
+
     return NextResponse.json(result);
   } catch (error) {
-    console.error("Erreur lors de la prévisualisation:", error);
+    console.error("Erreur lors de l'import:", error);
     return NextResponse.json(
       {
         error: "Erreur lors du traitement du fichier",
@@ -114,179 +113,294 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 }
 
-async function generatePreview(
+async function processExcelDataOptimized(
   workbook: XLSX.WorkBook
-): Promise<PreviewResult> {
-  const errors: string[] = [];
-  const warnings: string[] = [];
+): Promise<ImportResult> {
+  const stats = {
+    mandatesCreated: 0,
+    mandatesUpdated: 0,
+    valuesCreated: 0,
+    valuesSkipped: 0,
+    errors: [] as string[],
+  };
 
   try {
-    // 1. Analyser les mandants
+    // 1. Traiter les mandants d'abord (plus rapide)
     const mandantsSheet = workbook.Sheets["Mandants"];
-    const mandantsData = XLSX.utils.sheet_to_json(mandantsSheet, {
-      raw: false,
-    }) as ExcelMandateRow[];
+    const mandantsData: ExcelMandant[] = XLSX.utils.sheet_to_json(
+      mandantsSheet,
+      { raw: false }
+    );
 
-    const mandatesPreview = mandantsData.map((row: ExcelMandateRow, index) => {
-      const rowData = row;
-      const mandate = {
-        id: rowData.Id || `ligne-${index + 2}`,
-        name: rowData.Nom || "",
-        category: rowData.Catégorie || "",
-        currency: rowData.Monnaie || "CHF",
-        status: "new" as "new" | "existing" | "error",
-        error: undefined as string | undefined,
-      };
+    console.log(`📋 Traitement de ${mandantsData.length} mandants...`);
 
-      // Validation
-      if (!mandate.name) {
-        mandate.status = "error";
-        mandate.error = "Nom manquant";
-      } else if (!mandate.category) {
-        mandate.status = "error";
-        mandate.error = "Catégorie manquante";
-      } else if (
-        !["Hébergement", "Restauration", "hébergement", "restauration"].some(
-          (cat) => mandate.category.toLowerCase().includes(cat.toLowerCase())
-        )
-      ) {
-        mandate.status = "error";
-        mandate.error =
-          "Catégorie invalide (doit être Hébergement ou Restauration)";
+    const mandateMapping = new Map<string, string>(); // MandantId -> mandateId en DB
+
+    // Traiter tous les mandants en une seule transaction
+    await prisma.$transaction(async (tx) => {
+      for (const mandantRow of mandantsData) {
+        try {
+          // Validation des données
+          if (!mandantRow.Id || !mandantRow.Nom || !mandantRow.Catégorie) {
+            stats.errors.push(
+              `Mandant invalide: ${JSON.stringify(mandantRow)}`
+            );
+            continue;
+          }
+
+          // Mapper la catégorie
+          let group: "HEBERGEMENT" | "RESTAURATION";
+          if (
+            mandantRow.Catégorie.toLowerCase().includes("hébergement") ||
+            mandantRow.Catégorie.toLowerCase().includes("hebergement")
+          ) {
+            group = "HEBERGEMENT";
+          } else if (
+            mandantRow.Catégorie.toLowerCase().includes("restauration")
+          ) {
+            group = "RESTAURATION";
+          } else {
+            stats.errors.push(
+              `Catégorie inconnue pour ${mandantRow.Nom}: ${mandantRow.Catégorie}`
+            );
+            continue;
+          }
+
+          // Utiliser upsert pour éviter les doublons
+          const mandate = await tx.mandate.upsert({
+            where: { name: mandantRow.Nom },
+            update: {
+              group,
+              active: true,
+            },
+            create: {
+              name: mandantRow.Nom,
+              group,
+              active: true,
+            },
+          });
+
+          mandateMapping.set(mandantRow.Id, mandate.id);
+
+          if (mandate) {
+            // Vérifier si c'était une création ou une mise à jour
+            const existing = await tx.mandate.findFirst({
+              where: { name: mandantRow.Nom, id: { not: mandate.id } },
+            });
+            if (existing) {
+              stats.mandatesUpdated++;
+            } else {
+              stats.mandatesCreated++;
+            }
+          }
+        } catch (error) {
+          stats.errors.push(
+            `Erreur lors du traitement du mandant ${mandantRow.Nom}: ${error}`
+          );
+        }
       }
-
-      return mandate;
     });
 
-    // 2. Analyser les valeurs journalières
+    // 2. Traiter les valeurs journalières avec optimisations massives
     const dayValuesSheet = workbook.Sheets["DayValues"];
-    const dayValuesData = XLSX.utils.sheet_to_json(dayValuesSheet, {
-      raw: false,
-    }) as ExcelDayValueRow[];
+    const dayValuesData: ExcelDayValue[] = XLSX.utils.sheet_to_json(
+      dayValuesSheet,
+      { raw: false }
+    );
 
-    const validDates: Date[] = [];
-    const dayValuesPreview = dayValuesData.slice(0, 10).map((row) => {
-      const value = {
-        date: row.Date || "",
-        value: parseFloat(row.Valeur as string) || 0,
-        mandateName: row.Mandant || "",
-        status: "new" as "new" | "existing" | "error",
-        error: undefined as string | undefined,
+    console.log(
+      `📊 Traitement de ${dayValuesData.length} valeurs journalières...`
+    );
+
+    // Optimisation: traiter par beaucoup plus gros lots
+    const batchSize = 500; // Augmenté de 100 à 500
+    const maxBatches = 20; // Limite le nombre de lots pour éviter les timeouts
+
+    // Si trop de données, proposer un import en plusieurs fois
+    if (dayValuesData.length > batchSize * maxBatches) {
+      return {
+        success: false,
+        message: `Fichier trop volumineux: ${dayValuesData.length} valeurs. Maximum supporté: ${batchSize * maxBatches}. Veuillez diviser votre fichier en plusieurs parties.`,
+        stats,
       };
+    }
 
-      // Validation de la date
-      let parsedDate: Date | null = null;
+    for (let i = 0; i < dayValuesData.length; i += batchSize) {
+      const batch = dayValuesData.slice(i, i + batchSize);
+      const batchNumber = Math.floor(i / batchSize) + 1;
+      const totalBatches = Math.ceil(dayValuesData.length / batchSize);
+
+      console.log(
+        `📊 Traitement lot ${batchNumber}/${totalBatches} (${batch.length} valeurs)`
+      );
+
+      // Traitement optimisé par transaction
+      await processBatchOptimized(batch, mandateMapping, stats);
+
+      // Log de progression
+      console.log(
+        `📊 Traité ${Math.min(i + batchSize, dayValuesData.length)}/${dayValuesData.length} valeurs`
+      );
+    }
+
+    // 3. Mise à jour des statistiques en lot
+    console.log("🔄 Mise à jour des statistiques des mandats...");
+    await updateMandateStatsInBatch(Array.from(mandateMapping.values()));
+
+    return {
+      success: true,
+      message: "Import terminé avec succès",
+      stats,
+    };
+  } catch (error) {
+    console.error("Erreur lors du traitement des données:", error);
+    return {
+      success: false,
+      message: "Erreur lors du traitement des données",
+      stats: {
+        ...stats,
+        errors: [...stats.errors, `Erreur générale: ${error}`],
+      },
+    };
+  }
+}
+
+async function processBatchOptimized(
+  batch: ExcelDayValue[],
+  mandateMapping: Map<string, string>,
+  stats: ImportResult["stats"]
+) {
+  // Préparer les données pour l'insertion en lot
+  const validValues: Array<{
+    date: Date;
+    value: number;
+    mandateId: string;
+  }> = [];
+
+  // Validation et préparation des données
+  for (const valueRow of batch) {
+    try {
+      // Validation des données
+      if (!valueRow.Date || !valueRow.Valeur || !valueRow.MandantId) {
+        stats.errors.push(`Valeur invalide: ${JSON.stringify(valueRow)}`);
+        continue;
+      }
+
+      // Récupérer l'ID du mandat
+      const mandateId = mandateMapping.get(valueRow.MandantId);
+      if (!mandateId) {
+        stats.errors.push(
+          `Mandat non trouvé pour MandantId: ${valueRow.MandantId}`
+        );
+        continue;
+      }
+
+      // Parser la date
+      let date: Date;
       try {
-        if (value.date.includes("/")) {
-          const parts = value.date.split("/");
+        if (valueRow.Date.includes("/")) {
+          const parts = valueRow.Date.split("/");
           if (parts.length === 3) {
             let year = parseInt(parts[2]);
             if (year < 100) {
               year += year < 50 ? 2000 : 1900;
             }
-            parsedDate = new Date(
-              year,
-              parseInt(parts[0]) - 1,
-              parseInt(parts[1])
-            );
+            date = new Date(year, parseInt(parts[0]) - 1, parseInt(parts[1]));
+          } else {
+            throw new Error("Format de date invalide");
           }
         } else {
-          parsedDate = new Date(value.date);
+          date = new Date(valueRow.Date);
         }
 
-        if (!parsedDate || isNaN(parsedDate.getTime())) {
+        if (isNaN(date.getTime())) {
           throw new Error("Date invalide");
         }
-
-        validDates.push(parsedDate);
-        value.date = parsedDate.toISOString().split("T")[0];
       } catch {
-        value.status = "error";
-        value.error = "Format de date invalide";
+        stats.errors.push(
+          `Date invalide pour ${valueRow.Mandant}: ${valueRow.Date}`
+        );
+        continue;
       }
 
-      // Validation de la valeur
-      if (isNaN(value.value) || value.value < 0) {
-        value.status = "error";
-        value.error = value.error
-          ? value.error + ", valeur invalide"
-          : "Valeur invalide";
+      // Parser la valeur
+      const value = parseFloat(valueRow.Valeur);
+      if (isNaN(value) || value < 0) {
+        stats.errors.push(
+          `Valeur invalide pour ${valueRow.Mandant}: ${valueRow.Valeur}`
+        );
+        continue;
       }
 
-      // Validation du mandat
-      if (!value.mandateName) {
-        value.status = "error";
-        value.error = value.error
-          ? value.error + ", mandat manquant"
-          : "Mandat manquant";
-      }
+      validValues.push({ date, value, mandateId });
+    } catch (error) {
+      stats.errors.push(
+        `Erreur lors du traitement de la valeur ${valueRow.Mandant} ${valueRow.Date}: ${error}`
+      );
+    }
+  }
 
-      return value;
+  // Insertion en lot avec upsert
+  if (validValues.length > 0) {
+    await prisma.$transaction(async (tx) => {
+      for (const validValue of validValues) {
+        try {
+          await tx.dayValue.upsert({
+            where: {
+              date_mandateId: {
+                date: validValue.date,
+                mandateId: validValue.mandateId,
+              },
+            },
+            update: {
+              value: validValue.value,
+            },
+            create: {
+              date: validValue.date,
+              value: validValue.value,
+              mandateId: validValue.mandateId,
+            },
+          });
+          stats.valuesCreated++;
+        } catch {
+          // Si erreur d'upsert, c'est probablement une valeur existante
+          stats.valuesSkipped++;
+        }
+      }
     });
+  }
+}
 
-    // Calculer la plage de dates
-    let dateRange = { start: "", end: "" };
-    if (validDates.length > 0) {
-      const minDate = new Date(Math.min(...validDates.map((d) => d.getTime())));
-      const maxDate = new Date(Math.max(...validDates.map((d) => d.getTime())));
-      dateRange = {
-        start: minDate.toISOString().split("T")[0],
-        end: maxDate.toISOString().split("T")[0],
-      };
-    }
+async function updateMandateStatsInBatch(mandateIds: string[]) {
+  // Traiter les mises à jour de stats par petits lots
+  const batchSize = 10;
 
-    // Générer des avertissements
-    const mandateErrors = mandatesPreview.filter(
-      (m) => m.status === "error"
-    ).length;
-    const valueErrors = dayValuesPreview.filter(
-      (v) => v.status === "error"
-    ).length;
+  for (let i = 0; i < mandateIds.length; i += batchSize) {
+    const batch = mandateIds.slice(i, i + batchSize);
 
-    if (mandateErrors > 0) {
-      warnings.push(`${mandateErrors} mandat(s) contiennent des erreurs`);
-    }
+    await Promise.all(
+      batch.map(async (mandateId) => {
+        try {
+          const stats = await prisma.dayValue.aggregate({
+            where: { mandateId },
+            _sum: { value: true },
+            _max: { date: true },
+          });
 
-    if (valueErrors > 0) {
-      warnings.push(
-        `${valueErrors} valeur(s) sur les 10 premières contiennent des erreurs`
-      );
-    }
-
-    if (dayValuesData.length > 1000) {
-      warnings.push(
-        `Fichier volumineux: ${dayValuesData.length} valeurs à importer`
-      );
-    }
-
-    return {
-      success: true,
-      message: "Prévisualisation générée avec succès",
-      data: {
-        mandates: mandatesPreview,
-        dayValues: {
-          total: dayValuesData.length,
-          preview: dayValuesPreview,
-          dateRange,
-        },
-        errors,
-        warnings,
-      },
-    };
-  } catch (error) {
-    console.error(
-      "Erreur lors de la génération de la prévisualisation:",
-      error
+          await prisma.mandate.update({
+            where: { id: mandateId },
+            data: {
+              totalRevenue: stats._sum.value || 0,
+              lastEntry: stats._max.date,
+            },
+          });
+        } catch (error) {
+          console.error(
+            `Erreur lors de la mise à jour des stats pour ${mandateId}:`,
+            error
+          );
+        }
+      })
     );
-    return {
-      success: false,
-      message: "Erreur lors de l'analyse du fichier",
-      data: {
-        mandates: [],
-        dayValues: { total: 0, preview: [], dateRange: { start: "", end: "" } },
-        errors: [`Erreur d'analyse: ${error}`],
-        warnings,
-      },
-    };
   }
 }
