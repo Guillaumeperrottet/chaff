@@ -36,6 +36,11 @@ interface BreadcrumbItem {
   isActive?: boolean;
 }
 
+// Interface pour le wrapper conditionnel
+interface ConditionalNavbarProps {
+  children: React.ReactNode;
+}
+
 // Fonction pour générer les breadcrumbs basés sur le pathname
 const generateBreadcrumbs = (pathname: string): BreadcrumbItem[] => {
   // Mapping des chemins vers des labels personnalisés
@@ -84,7 +89,8 @@ const generateBreadcrumbs = (pathname: string): BreadcrumbItem[] => {
   return breadcrumbs;
 };
 
-export default function ModernNavbar() {
+// Composant de navigation moderne
+function ModernNavbar() {
   const { data: session } = useSession();
   const pathname = usePathname();
   const router = useRouter();
@@ -279,9 +285,7 @@ export default function ModernNavbar() {
 
                 <DropdownMenuSeparator />
 
-                <DropdownMenuItem
-                  onClick={() => router.push("/dashboard/profile")}
-                >
+                <DropdownMenuItem onClick={() => router.push("/profile")}>
                   <User className="mr-2 h-4 w-4" />
                   <span>Profil</span>
                 </DropdownMenuItem>
@@ -338,5 +342,42 @@ export default function ModernNavbar() {
         </div>
       </div>
     </nav>
+  );
+}
+
+// Composant principal avec logique conditionnelle
+export default function ConditionalNavbar({
+  children,
+}: ConditionalNavbarProps) {
+  const pathname = usePathname();
+  const { data: session } = useSession();
+
+  // Routes où la navigation ne doit pas s'afficher (pages d'authentification et publiques)
+  const authRoutes = [
+    "/auth/sign-in",
+    "/auth/signup",
+    "/auth/email-verification-required",
+    "/auth/verification-success",
+    "/auth/verification-failed",
+    "/resend-verification",
+    "/about",
+    "/",
+  ];
+
+  // Fonction pour vérifier si on est sur une route d'authentification
+  const isAuthRoute = authRoutes.some(
+    (route) => pathname === route || pathname.startsWith(route + "/")
+  );
+
+  // Ne pas afficher la navbar si :
+  // - L'utilisateur n'est pas connecté
+  // - On est sur une route d'authentification
+  const shouldShowNavbar = session && !isAuthRoute;
+
+  return (
+    <div className="min-h-screen bg-background">
+      {shouldShowNavbar && <ModernNavbar />}
+      <div className={shouldShowNavbar ? "" : ""}>{children}</div>
+    </div>
   );
 }
