@@ -54,6 +54,7 @@ export default function EditDayValuePage() {
   const [mandates, setMandates] = useState<Mandate[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [loadingMandates, setLoadingMandates] = useState(false);
 
   // État du formulaire
   const [formData, setFormData] = useState({
@@ -78,13 +79,15 @@ export default function EditDayValuePage() {
         }
         const valueData = await valueResponse.json();
         setDayValue(valueData);
-
         // Charger les mandats
+        setLoadingMandates(true);
         const mandatesResponse = await fetch("/api/mandats");
         if (!mandatesResponse.ok) {
           throw new Error("Erreur lors du chargement des mandats");
         }
         const mandatesData = await mandatesResponse.json();
+        setMandates(mandatesData.filter((m: Mandate) => m.active));
+        setLoadingMandates(false);
         setMandates(mandatesData.filter((m: Mandate) => m.active));
 
         // Initialiser le formulaire
@@ -287,32 +290,45 @@ export default function EditDayValuePage() {
                     <SelectValue placeholder="Sélectionnez un mandat..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {/* Grouper par type */}
-                    <div className="py-1">
-                      <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">
-                        Hébergement
+                    {loadingMandates ? (
+                      <div className="flex items-center justify-center py-4">
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        Chargement des mandats...
                       </div>
-                      {mandates
-                        .filter((mandate) => mandate.group === "HEBERGEMENT")
-                        .map((mandate) => (
-                          <SelectItem key={mandate.id} value={mandate.id}>
-                            {mandate.name}
-                          </SelectItem>
-                        ))}
-                    </div>
+                    ) : (
+                      <>
+                        {/* Grouper par type */}
+                        <div className="py-1">
+                          <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">
+                            Hébergement
+                          </div>
+                          {mandates
+                            .filter(
+                              (mandate) => mandate.group === "HEBERGEMENT"
+                            )
+                            .map((mandate) => (
+                              <SelectItem key={mandate.id} value={mandate.id}>
+                                {mandate.name}
+                              </SelectItem>
+                            ))}
+                        </div>
 
-                    <div className="py-1">
-                      <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">
-                        Restauration
-                      </div>
-                      {mandates
-                        .filter((mandate) => mandate.group === "RESTAURATION")
-                        .map((mandate) => (
-                          <SelectItem key={mandate.id} value={mandate.id}>
-                            {mandate.name}
-                          </SelectItem>
-                        ))}
-                    </div>
+                        <div className="py-1">
+                          <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">
+                            Restauration
+                          </div>
+                          {mandates
+                            .filter(
+                              (mandate) => mandate.group === "RESTAURATION"
+                            )
+                            .map((mandate) => (
+                              <SelectItem key={mandate.id} value={mandate.id}>
+                                {mandate.name}
+                              </SelectItem>
+                            ))}
+                        </div>
+                      </>
+                    )}
                   </SelectContent>
                 </Select>
                 {errors.mandateId && (
