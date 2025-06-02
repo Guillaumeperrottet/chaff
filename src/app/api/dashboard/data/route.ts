@@ -101,6 +101,28 @@ export async function GET(request: NextRequest) {
           ? formatDateSimple(lastDayValue.date) // "01.06.25"
           : null;
 
+        // 🐛 DEBUG TEMPORAIRE - À retirer après vérification
+        if (mandate.name === "Camping Lac") {
+          console.log(`🔍 DEBUG ${mandate.name}:`);
+          console.log(`  lastDayValue:`, lastDayValue);
+          console.log(`  date brute:`, lastDayValue?.date);
+          console.log(`  date formatée:`, lastEntryFormatted);
+          console.log(`  vraies dates en DB pour ce mandat:`);
+
+          // Voir les 3 dernières vraies dates
+          const debugDates = await prisma.dayValue.findMany({
+            where: { mandateId: mandate.id },
+            orderBy: { date: "desc" },
+            take: 3,
+            select: { date: true, value: true },
+          });
+          debugDates.forEach((d, i) => {
+            console.log(
+              `    ${i + 1}. ${d.date.toISOString().split("T")[0]} (${d.value})`
+            );
+          });
+        }
+
         // Calculer la performance (record)
         const allTimeValues = await prisma.dayValue.findMany({
           where: { mandateId: mandate.id },
@@ -145,10 +167,18 @@ export async function GET(request: NextRequest) {
       if (!a.lastEntry) return 1; // Les sans saisie à la fin
       if (!b.lastEntry) return -1;
 
-      // Comparer les dates (format DD.MM.YY)
-      const dateA = parseSimpleDate(a.lastEntry);
-      const dateB = parseSimpleDate(b.lastEntry);
-      return dateB.getTime() - dateA.getTime(); // Plus récent en premier
+      try {
+        // Comparer les dates (format DD.MM.YY ou DD.MM.YYYY)
+        const dateA = parseSimpleDate(a.lastEntry);
+        const dateB = parseSimpleDate(b.lastEntry);
+        return dateB.getTime() - dateA.getTime(); // Plus récent en premier
+      } catch {
+        console.error("Erreur parsing dates pour tri:", {
+          a: a.lastEntry,
+          b: b.lastEntry,
+        });
+        return 0; // En cas d'erreur, ne pas trier
+      }
     });
 
     // Calculer les totaux (code existant...)
@@ -222,10 +252,38 @@ function formatDateSimple(date: Date): string {
 }
 
 function parseSimpleDate(dateStr: string): Date {
-  // Convertir "01.06.25" vers Date
-  const [day, month, year] = dateStr.split(".");
-  const fullYear = parseInt(year) + 2000; // 25 -> 2025
-  return new Date(fullYear, parseInt(month) - 1, parseInt(day));
+  try {
+    // Format DD.MM.YY ou DD.MM.YYYY
+    if (dateStr.includes(".")) {
+      const [day, month, year] = dateStr.split(".");
+      let fullYear = parseInt(year);
+
+      // Si année sur 2 chiffres
+      if (fullYear < 100) {
+        fullYear += fullYear < 50 ? 2000 : 1900; // 22 = 2022, 25 = 2025, 50 = 1950
+      }
+
+      return new Date(Date.UTC(fullYear, parseInt(month) - 1, parseInt(day)));
+    }
+
+    // Format DD/MM/YY ou DD/MM/YYYY
+    if (dateStr.includes("/")) {
+      const [day, month, year] = dateStr.split("/");
+      let fullYear = parseInt(year);
+
+      if (fullYear < 100) {
+        fullYear += fullYear < 50 ? 2000 : 1900;
+      }
+
+      return new Date(Date.UTC(fullYear, parseInt(month) - 1, parseInt(day)));
+    }
+
+    // Fallback
+    return new Date(dateStr);
+  } catch (error) {
+    console.error("Erreur parsing date:", dateStr, error);
+    return new Date(0); // Date très ancienne en cas d'erreur
+  }
 }
 
 function formatCurrency(amount: number): string {
