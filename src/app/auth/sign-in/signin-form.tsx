@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
@@ -11,7 +11,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronRight, User, Lock, Eye, EyeOff, Home } from "lucide-react";
 
-export default function SignInForm({
+// Composant séparé pour la partie qui utilise useSearchParams
+function SignInFormWithParams({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<"div">) {
@@ -62,13 +63,13 @@ export default function SignInForm({
         <div className="absolute top-4 right-4">
           <Link
             href="/"
-            className="text-[#62605d] hover:text-[#d9840d] transition-colors"
+            className="text-gray-600 hover:text-orange-600 transition-colors"
           >
             <Home size={20} />
           </Link>
         </div>
 
-        <div className="w-16 h-16 bg-gradient-to-br from-[#d9840d] to-[#e36002] rounded-xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+        <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center mx-auto mb-6 shadow-lg">
           <div className="w-8 h-8 text-white">
             <svg
               viewBox="0 0 24 24"
@@ -83,18 +84,18 @@ export default function SignInForm({
             </svg>
           </div>
         </div>
-        <h1 className="text-2xl font-bold text-[#141313]">
-          Bienvenue sur PlanniKeeper
+        <h1 className="text-2xl font-bold text-gray-900">
+          Bienvenue sur Chaff.ch
         </h1>
-        <p className="text-[#62605d] mt-2">
+        <p className="text-gray-600 mt-2">
           Connectez-vous pour accéder à votre espace
         </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {error && (
-          <div className="p-4 rounded-lg bg-[#fee2e2] border border-[#fca5a5] shadow-sm">
-            <p className="text-[#b91c1c] text-sm font-medium">{error}</p>
+          <div className="p-4 rounded-lg bg-red-50 border border-red-200 shadow-sm">
+            <p className="text-red-700 text-sm font-medium">{error}</p>
           </div>
         )}
 
@@ -102,13 +103,13 @@ export default function SignInForm({
           <div className="space-y-2">
             <Label
               htmlFor="email"
-              className="text-sm font-medium text-[#141313]"
+              className="text-sm font-medium text-gray-900"
             >
               Email
             </Label>
             <div className="relative">
               <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                <User className="h-4 w-4 text-[#62605d]" />
+                <User className="h-4 w-4 text-gray-600" />
               </div>
               <Input
                 id="email"
@@ -118,7 +119,7 @@ export default function SignInForm({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isLoading}
-                className="pl-10 bg-white border-[#beac93] focus:border-[#d9840d] rounded-lg shadow-sm hover:border-[#d9840d]/70 transition-colors"
+                className="pl-10 bg-white border-orange-200 focus:border-orange-500 rounded-lg shadow-sm hover:border-orange-400 transition-colors"
               />
             </div>
           </div>
@@ -126,13 +127,13 @@ export default function SignInForm({
           <div className="space-y-2">
             <Label
               htmlFor="password"
-              className="text-sm font-medium text-[#141313]"
+              className="text-sm font-medium text-gray-900"
             >
               Mot de passe
             </Label>
             <div className="relative">
               <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                <Lock className="h-4 w-4 text-[#62605d]" />
+                <Lock className="h-4 w-4 text-gray-600" />
               </div>
               <Input
                 id="password"
@@ -141,7 +142,7 @@ export default function SignInForm({
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={isLoading}
-                className="pl-10 pr-10 bg-white border-[#beac93] focus:border-[#d9840d] rounded-lg shadow-sm hover:border-[#d9840d]/70 transition-colors"
+                className="pl-10 pr-10 bg-white border-orange-200 focus:border-orange-500 rounded-lg shadow-sm hover:border-orange-400 transition-colors"
               />
               <button
                 type="button"
@@ -150,9 +151,9 @@ export default function SignInForm({
                 tabIndex={-1}
               >
                 {showPassword ? (
-                  <EyeOff className="h-4 w-4 text-[#62605d] hover:text-[#141313] transition-colors" />
+                  <EyeOff className="h-4 w-4 text-gray-600 hover:text-gray-900 transition-colors" />
                 ) : (
-                  <Eye className="h-4 w-4 text-[#62605d] hover:text-[#141313] transition-colors" />
+                  <Eye className="h-4 w-4 text-gray-600 hover:text-gray-900 transition-colors" />
                 )}
               </button>
             </div>
@@ -161,7 +162,7 @@ export default function SignInForm({
 
         <Button
           type="submit"
-          className="w-full py-6 bg-gradient-to-r from-[#d9840d] to-[#e36002] hover:from-[#c6780c] hover:to-[#d9840d] transition-all duration-300 transform hover:scale-[1.02] font-medium shadow-md text-white rounded-lg"
+          className="w-full py-6 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 transition-all duration-300 transform hover:scale-[1.02] font-medium shadow-md text-white rounded-lg"
           disabled={isLoading}
         >
           {isLoading ? "Connexion en cours..." : "Se connecter"}
@@ -170,12 +171,12 @@ export default function SignInForm({
 
         <div className="flex flex-col space-y-4 text-center">
           <div className="text-sm">
-            <span className="text-[#62605d]">
+            <span className="text-gray-600">
               Vous n&apos;avez pas encore de compte ?{" "}
             </span>
             <Link
               href="/signup"
-              className="text-[#d9840d] hover:text-[#c6780c] hover:underline underline-offset-4 font-medium transition-colors"
+              className="text-orange-600 hover:text-orange-700 hover:underline underline-offset-4 font-medium transition-colors"
             >
               Inscrivez-vous
             </Link>
@@ -184,7 +185,7 @@ export default function SignInForm({
           <div className="text-sm">
             <Link
               href="/pricing"
-              className="text-[#d9840d] hover:text-[#c6780c] hover:underline underline-offset-4 font-medium transition-colors"
+              className="text-orange-600 hover:text-orange-700 hover:underline underline-offset-4 font-medium transition-colors"
             >
               Découvrez nos formules
             </Link>
@@ -192,19 +193,19 @@ export default function SignInForm({
         </div>
       </form>
 
-      <div className="mt-8 pt-6 border-t border-[#beac93]/30">
-        <p className="text-xs text-center text-[#62605d]">
+      <div className="mt-8 pt-6 border-t border-orange-200/30">
+        <p className="text-xs text-center text-gray-600">
           En continuant, vous acceptez nos{" "}
           <a
             href="#"
-            className="underline underline-offset-4 hover:text-[#d9840d] transition-colors"
+            className="underline underline-offset-4 hover:text-orange-600 transition-colors"
           >
             Conditions d&apos;utilisation
           </a>{" "}
           et notre{" "}
           <a
             href="#"
-            className="underline underline-offset-4 hover:text-[#d9840d] transition-colors"
+            className="underline underline-offset-4 hover:text-orange-600 transition-colors"
           >
             Politique de confidentialité
           </a>
@@ -212,5 +213,49 @@ export default function SignInForm({
         </p>
       </div>
     </div>
+  );
+}
+
+// Fallback pour le chargement
+function SignInFormSkeleton() {
+  return (
+    <div className="flex flex-col animate-pulse">
+      <div className="mb-8 text-center">
+        <div className="w-16 h-16 bg-gray-200 rounded-xl mx-auto mb-6"></div>
+        <div className="h-6 bg-gray-200 rounded w-3/4 mx-auto mb-2"></div>
+        <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
+      </div>
+
+      <div className="space-y-6">
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+            <div className="h-12 bg-gray-200 rounded"></div>
+          </div>
+          <div className="space-y-2">
+            <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+            <div className="h-12 bg-gray-200 rounded"></div>
+          </div>
+        </div>
+
+        <div className="h-12 bg-gray-200 rounded"></div>
+
+        <div className="space-y-4 text-center">
+          <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Composant principal exporté avec Suspense
+export default function SignInForm(
+  props: React.ComponentPropsWithoutRef<"div">
+) {
+  return (
+    <Suspense fallback={<SignInFormSkeleton />}>
+      <SignInFormWithParams {...props} />
+    </Suspense>
   );
 }
