@@ -105,8 +105,6 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-
-    // Valider les données
     const validatedData = CreateDayValueSchema.parse(body);
 
     // Vérifier que le mandat existe et est actif
@@ -144,40 +142,42 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Créer la valeur journalière
-    const dayValue = await prisma.dayValue.create({
-      data: {
-        date: date,
-        value: validatedData.value,
-        mandateId: validatedData.mandateId,
-      },
-      include: {
-        mandate: {
-          select: {
-            id: true,
-            name: true,
-            group: true,
+    // 🔧 NOUVEAU: Transaction pour créer la valeur ET mettre à jour lastEntry
+    const result = await prisma.$transaction(async (tx) => {
+      // Créer la valeur journalière
+      const dayValue = await tx.dayValue.create({
+        data: {
+          date: date,
+          value: validatedData.value,
+          mandateId: validatedData.mandateId,
+        },
+        include: {
+          mandate: {
+            select: {
+              id: true,
+              name: true,
+              group: true,
+            },
           },
         },
-      },
+      });
+
+      // Mettre à jour lastEntry avec la date de saisie (maintenant)
+      await tx.mandate.update({
+        where: { id: validatedData.mandateId },
+        data: {
+          lastEntry: new Date(), // 🔧 Date de saisie = maintenant
+          // Optionnel: mettre à jour aussi totalRevenue en temps réel
+          totalRevenue: {
+            increment: validatedData.value,
+          },
+        },
+      });
+
+      return dayValue;
     });
 
-    // Mettre à jour les statistiques du mandat
-    const stats = await prisma.dayValue.aggregate({
-      where: { mandateId: validatedData.mandateId },
-      _sum: { value: true },
-      _max: { date: true },
-    });
-
-    await prisma.mandate.update({
-      where: { id: validatedData.mandateId },
-      data: {
-        totalRevenue: stats._sum.value || 0,
-        lastEntry: stats._max.date,
-      },
-    });
-
-    return NextResponse.json(dayValue, { status: 201 });
+    return NextResponse.json(result, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

@@ -2,29 +2,35 @@ import { prisma } from "./prisma";
 
 /**
  * Met à jour les statistiques d'un mandat (totalRevenue et lastEntry)
- * À appeler après chaque ajout/modification/suppression de valeur
+ * lastEntry = date de la dernière SAISIE (createdAt), pas la date CA
  */
 export async function updateMandateStats(mandateId: string) {
   try {
-    // Récupérer les stats agrégées
-    const stats = await prisma.dayValue.aggregate({
+    // Récupérer les stats agrégées pour le total
+    const revenueStats = await prisma.dayValue.aggregate({
       where: { mandateId },
       _sum: { value: true },
-      _max: { date: true }, // 🔧 IMPORTANT: Prendre la date MAX, pas createdAt
+    });
+
+    // Récupérer la dernière saisie (date de création)
+    const lastSaisie = await prisma.dayValue.findFirst({
+      where: { mandateId },
+      orderBy: { createdAt: "desc" },
+      select: { createdAt: true },
     });
 
     // Mettre à jour le mandat
     await prisma.mandate.update({
       where: { id: mandateId },
       data: {
-        totalRevenue: stats._sum.value || 0,
-        lastEntry: stats._max.date, // Date de la dernière valeur (date CA, pas date de saisie)
+        totalRevenue: revenueStats._sum.value || 0,
+        lastEntry: lastSaisie?.createdAt || null, // 🔧 Date de la dernière saisie
       },
     });
 
     console.log(`✅ Stats mises à jour pour mandat ${mandateId}:`, {
-      totalRevenue: stats._sum.value || 0,
-      lastEntry: stats._max.date?.toISOString().split("T")[0] || "Aucune",
+      totalRevenue: revenueStats._sum.value || 0,
+      lastEntry: lastSaisie?.createdAt?.toISOString() || "Aucune",
     });
   } catch (error) {
     console.error(`❌ Erreur mise à jour stats mandat ${mandateId}:`, error);

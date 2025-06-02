@@ -79,8 +79,6 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
 
     const body = await request.json();
-
-    // Valider les données
     const validatedData = UpdateDayValueSchema.parse(body);
 
     // Vérifier que la valeur existe
@@ -150,25 +148,58 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       updateData.value = validatedData.value;
     if (validatedData.mandateId) updateData.mandateId = validatedData.mandateId;
 
-    // Mettre à jour la valeur journalière
-    const updatedValue = await prisma.dayValue.update({
-      where: { id },
-      data: updateData,
-      include: {
-        mandate: {
-          select: {
-            id: true,
-            name: true,
-            group: true,
+    // 🔧 NOUVEAU: Transaction pour mettre à jour la valeur ET lastEntry
+    const result = await prisma.$transaction(async (tx) => {
+      // Mettre à jour la valeur journalière
+      const updatedValue = await tx.dayValue.update({
+        where: { id },
+        data: updateData,
+        include: {
+          mandate: {
+            select: {
+              id: true,
+              name: true,
+              group: true,
+            },
           },
         },
-      },
+      });
+
+      // Mettre à jour lastEntry du mandat concerné
+      await tx.mandate.update({
+        where: { id: updatedValue.mandateId },
+        data: {
+          lastEntry: new Date(), // 🔧 Date de modification = maintenant
+        },
+      });
+
+      // Si le mandat a changé, mettre à jour aussi l'ancien mandat
+      if (
+        validatedData.mandateId &&
+        validatedData.mandateId !== existingValue.mandateId
+      ) {
+        // Recalculer les stats de l'ancien mandat
+        const oldMandateLastEntry = await tx.dayValue.findFirst({
+          where: { mandateId: existingValue.mandateId },
+          orderBy: { createdAt: "desc" },
+          select: { createdAt: true },
+        });
+
+        await tx.mandate.update({
+          where: { id: existingValue.mandateId },
+          data: {
+            lastEntry: oldMandateLastEntry?.createdAt || null,
+          },
+        });
+      }
+
+      return updatedValue;
     });
 
-    // Mettre à jour les statistiques du mandat concerné
-    await updateMandateStats(updatedValue.mandateId);
+    // Recalculer les stats complètes (totalRevenue)
+    await updateMandateStats(result.mandateId);
 
-    // Si le mandat a changé, mettre à jour aussi l'ancien mandat
+    // Si le mandat a changé, recalculer aussi l'ancien mandat
     if (
       validatedData.mandateId &&
       validatedData.mandateId !== existingValue.mandateId
@@ -176,7 +207,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       await updateMandateStats(existingValue.mandateId);
     }
 
-    return NextResponse.json(updatedValue);
+    return NextResponse.json(result);
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -219,12 +250,30 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Supprimer la valeur journalière
-    await prisma.dayValue.delete({
-      where: { id },
+    // 🔧 NOUVEAU: Transaction pour supprimer ET recalculer lastEntry
+    await prisma.$transaction(async (tx) => {
+      // Supprimer la valeur journalière
+      await tx.dayValue.delete({
+        where: { id },
+      });
+
+      // Recalculer lastEntry (dernière saisie restante)
+      const lastRemainingEntry = await tx.dayValue.findFirst({
+        where: { mandateId: existingValue.mandateId },
+        orderBy: { createdAt: "desc" },
+        select: { createdAt: true },
+      });
+
+      // Mettre à jour le mandat
+      await tx.mandate.update({
+        where: { id: existingValue.mandateId },
+        data: {
+          lastEntry: lastRemainingEntry?.createdAt || null, // null si plus de valeurs
+        },
+      });
     });
 
-    // Mettre à jour les statistiques du mandat
+    // Recalculer les statistiques complètes du mandat
     await updateMandateStats(existingValue.mandateId);
 
     return NextResponse.json({
@@ -238,20 +287,26 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     );
   }
 }
-
-// Fonction utilitaire pour mettre à jour les statistiques d'un mandat
 async function updateMandateStats(mandateId: string) {
-  const stats = await prisma.dayValue.aggregate({
-    where: { mandateId },
-    _sum: { value: true },
-    _max: { date: true },
-  });
+  try {
+    // Calculer le total des revenus pour ce mandat
+    const totalRevenue = await prisma.dayValue.aggregate({
+      where: { mandateId },
+      _sum: { value: true },
+    });
 
-  await prisma.mandate.update({
-    where: { id: mandateId },
-    data: {
-      totalRevenue: stats._sum.value || 0,
-      lastEntry: stats._max.date,
-    },
-  });
+    // Mettre à jour les statistiques du mandat
+    await prisma.mandate.update({
+      where: { id: mandateId },
+      data: {
+        totalRevenue: totalRevenue._sum.value || 0,
+      },
+    });
+  } catch (error) {
+    console.error(
+      `Erreur lors de la mise à jour des stats du mandat ${mandateId}:`,
+      error
+    );
+    // Ne pas propager l'erreur pour éviter d'interrompre l'opération principale
+  }
 }
