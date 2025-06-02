@@ -43,24 +43,8 @@ export async function DELETE(req: Request, { params }: RouteParams) {
     }
 
     try {
-      // Récupérer tous les objets de l'organisation
-      const objects = await prisma.objet.findMany({
-        where: { organizationId: userOrg.organizationId },
-        select: { id: true },
-      });
-
-      const objectIds = objects.map((obj) => obj.id);
-
       // Effectuer les suppressions dans une transaction
       await prisma.$transaction([
-        // 1. Supprimer tous les accès aux objets de l'organisation pour cet utilisateur
-        prisma.objectAccess.deleteMany({
-          where: {
-            userId,
-            objectId: { in: objectIds },
-          },
-        }),
-
         // 2. Supprimer l'association avec l'organisation
         prisma.organizationUser.delete({
           where: {
@@ -78,36 +62,7 @@ export async function DELETE(req: Request, { params }: RouteParams) {
       );
     }
   } else {
-    // Si l'utilisateur se supprime lui-même...
     try {
-      // Récupérer son organisation
-      const userOrg = await prisma.organizationUser.findFirst({
-        where: { userId },
-        select: { organizationId: true },
-      });
-
-      if (userOrg) {
-        const objects = await prisma.objet.findMany({
-          where: { organizationId: userOrg.organizationId },
-          select: { id: true },
-        });
-
-        const objectIds = objects.map((obj) => obj.id);
-
-        // Supprimer ses accès et son association
-        await prisma.$transaction([
-          prisma.objectAccess.deleteMany({
-            where: {
-              userId,
-              objectId: { in: objectIds },
-            },
-          }),
-          prisma.organizationUser.deleteMany({
-            where: { userId },
-          }),
-        ]);
-      }
-
       return NextResponse.json({ success: true });
     } catch (error) {
       console.error("Erreur lors de la suppression de l'utilisateur :", error);
