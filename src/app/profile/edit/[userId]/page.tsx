@@ -5,7 +5,6 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { DeleteUserButton } from "../delete-user-button";
 import { UserRoleSelector } from "../user-role-selector";
-import { ObjectAccessManager } from "../object-access-manager";
 import { Button } from "@/app/components/ui/button";
 import { ArrowLeft, Shield, User as UserIcon, Lock } from "lucide-react";
 import Image from "next/image";
@@ -56,12 +55,6 @@ export default async function EditUserPage({
   if (!userToEditOrg) {
     redirect("/profile/edit");
   }
-
-  // Récupérez tous les objets de l'organisation
-  const objects = await prisma.objet.findMany({
-    where: { organizationId: currentUserOrg.organizationId },
-    orderBy: { nom: "asc" },
-  });
 
   const isCurrentUser = currentUser.id === userToEdit.id;
 
@@ -181,27 +174,6 @@ export default async function EditUserPage({
                   Accès aux objets
                 </h2>
               </div>
-            </div>
-
-            <div className="p-5">
-              {objects.length === 0 ? (
-                <div className="text-center py-10 text-[color:var(--muted-foreground)]">
-                  <p>Aucun objet n&apos;a été créé dans cette organisation.</p>
-                  <Link
-                    href="/dashboard/objet/new"
-                    className="text-[color:var(--primary)] hover:underline mt-2 inline-block"
-                  >
-                    Créer un objet
-                  </Link>
-                </div>
-              ) : (
-                <ObjectAccessManager
-                  userId={userToEdit.id}
-                  objects={objects}
-                  organizationId={currentUserOrg.organizationId}
-                  isTargetUserAdmin={userToEditOrg.role === "admin"}
-                />
-              )}
             </div>
           </div>
         </div>
