@@ -67,6 +67,11 @@ const config = {
           "accent-foreground": "hsl(var(--sidebar-accent-foreground))",
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
+          width: {
+            sidebar: "16rem",
+            "sidebar-mobile": "18rem",
+            "sidebar-icon": "3rem",
+          },
         },
       },
       borderRadius: {
