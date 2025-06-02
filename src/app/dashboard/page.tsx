@@ -140,41 +140,49 @@ export default function DashboardPage() {
       return matchesSearch && matchesCategory && matchesStatus;
     }) || [];
 
-  // Calculer les totaux filtrés
-  const calculateFilteredTotals = () => {
-    if (!dashboardData) return null;
+  // Grouper les données par catégorie et calculer les totaux
+  const groupedData = () => {
+    if (!dashboardData) return { hebergement: [], restauration: [] };
 
-    const dailyTotals: Record<string, number> = {};
-    const hebergementTotals: Record<string, number> = {};
-    const restaurationTotals: Record<string, number> = {};
+    const hebergement = filteredData.filter(
+      (item) => item.category === "Hébergement"
+    );
+    const restauration = filteredData.filter(
+      (item) => item.category === "Restauration"
+    );
 
-    // Calculer les totaux pour les données filtrées
-    filteredData.forEach((item) => {
-      dashboardData.columnLabels.forEach((col) => {
-        const value = parseFloat(item.values[col.key] || "0");
-
-        // Total général
-        dailyTotals[col.key] = (dailyTotals[col.key] || 0) + value;
-
-        // Sous-totaux par catégorie
-        if (item.category === "Hébergement") {
-          hebergementTotals[col.key] =
-            (hebergementTotals[col.key] || 0) + value;
-        } else if (item.category === "Restauration") {
-          restaurationTotals[col.key] =
-            (restaurationTotals[col.key] || 0) + value;
-        }
-      });
-    });
-
-    return {
-      dailyTotals,
-      hebergementTotals,
-      restaurationTotals,
-    };
+    return { hebergement, restauration };
   };
 
-  const filteredTotals = calculateFilteredTotals();
+  // Calculer les totaux pour un groupe
+  const calculateGroupTotals = (groupData: DashboardData[]) => {
+    if (!dashboardData) return {};
+
+    const totals: Record<string, number> = {};
+    dashboardData.columnLabels.forEach((col) => {
+      totals[col.key] = groupData.reduce((sum, item) => {
+        const value = parseFloat(item.values[col.key] || "0");
+        return sum + value;
+      }, 0);
+    });
+
+    return totals;
+  };
+
+  // Calculer le total général
+  const calculateGrandTotal = () => {
+    if (!dashboardData) return {};
+
+    const totals: Record<string, number> = {};
+    dashboardData.columnLabels.forEach((col) => {
+      totals[col.key] = filteredData.reduce((sum, item) => {
+        const value = parseFloat(item.values[col.key] || "0");
+        return sum + value;
+      }, 0);
+    });
+
+    return totals;
+  };
 
   const handleExport = async () => {
     try {
@@ -254,6 +262,151 @@ export default function DashboardPage() {
     }).format(value);
   };
 
+  // Composant pour rendre une ligne de campus
+  const CampusRow = ({ campus }: { campus: DashboardData }) => (
+    <TableRow key={campus.id} className="hover:bg-muted/50">
+      <TableCell>
+        <div className="flex items-center space-x-2">
+          <div>
+            <div className="font-medium">{campus.name}</div>
+            <div className="text-sm text-muted-foreground flex items-center gap-2">
+              <Badge
+                variant={
+                  campus.status === "active"
+                    ? "default"
+                    : campus.status === "new"
+                      ? "secondary"
+                      : campus.status === "warning"
+                        ? "destructive"
+                        : "outline"
+                }
+                className="text-xs"
+              >
+                {campus.category}
+              </Badge>
+
+              {campus.daysSinceLastEntry !== null &&
+                campus.daysSinceLastEntry > 7 && (
+                  <Badge variant="destructive" className="text-xs">
+                    {campus.daysSinceLastEntry > 30
+                      ? `⚠️ ${Math.floor(campus.daysSinceLastEntry / 30)}M`
+                      : `⚠️ ${campus.daysSinceLastEntry}J`}
+                  </Badge>
+                )}
+
+              {campus.status === "new" && (
+                <Badge variant="secondary" className="text-xs">
+                  🆕 Nouveau
+                </Badge>
+              )}
+            </div>
+          </div>
+        </div>
+      </TableCell>
+      <TableCell>
+        <div className="flex flex-col">
+          <div className="text-sm font-medium">
+            {campus.lastEntry || "Jamais"}
+          </div>
+          {campus.daysSinceLastEntry !== null && (
+            <div
+              className={`text-xs ${
+                campus.daysSinceLastEntry === 0
+                  ? "text-green-600"
+                  : campus.daysSinceLastEntry <= 3
+                    ? "text-blue-600"
+                    : campus.daysSinceLastEntry <= 7
+                      ? "text-yellow-600"
+                      : campus.daysSinceLastEntry <= 30
+                        ? "text-orange-600"
+                        : "text-red-600"
+              }`}
+            >
+              {campus.daysSinceLastEntry === 0 && "🟢 Aujourd'hui"}
+              {campus.daysSinceLastEntry === 1 && "🟡 Hier"}
+              {campus.daysSinceLastEntry > 1 &&
+                campus.daysSinceLastEntry <= 7 &&
+                `🟡 ${campus.daysSinceLastEntry} jours`}
+              {campus.daysSinceLastEntry > 7 &&
+                campus.daysSinceLastEntry <= 30 &&
+                `🟠 ${campus.daysSinceLastEntry} jours`}
+              {campus.daysSinceLastEntry > 30 &&
+                `🔴 ${Math.floor(campus.daysSinceLastEntry / 30)} mois`}
+            </div>
+          )}
+        </div>
+      </TableCell>
+      <TableCell>
+        <div className="text-sm font-medium text-blue-600">
+          {campus.performance}
+        </div>
+      </TableCell>
+      {dashboardData?.columnLabels.map((col) => (
+        <TableCell key={col.key} className="text-center">
+          <div className="text-sm font-medium">
+            {campus.values[col.key] || "0.00"}
+          </div>
+        </TableCell>
+      ))}
+      <TableCell>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuItem onClick={() => handleViewDetails(campus.id)}>
+              <Eye className="mr-2 h-4 w-4" />
+              Voir les détails
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleEditMandate(campus.id)}>
+              <Edit className="mr-2 h-4 w-4" />
+              Modifier
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="text-red-600"
+              onClick={() => handleDeleteMandate(campus.id, campus.name)}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Supprimer
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </TableCell>
+    </TableRow>
+  );
+
+  // Composant pour rendre une ligne de sous-total
+  const SubtotalRow = ({
+    label,
+    totals,
+    bgColor,
+    textColor,
+  }: {
+    label: string;
+    totals: Record<string, number>;
+    bgColor: string;
+    textColor: string;
+  }) => (
+    <TableRow className={`${bgColor} hover:${bgColor}`}>
+      <TableCell colSpan={3} className={`font-medium ${textColor}`}>
+        {label}
+      </TableCell>
+      {dashboardData?.columnLabels.map((col) => (
+        <TableCell
+          key={col.key}
+          className={`text-center font-medium ${textColor}`}
+        >
+          {formatCurrency(totals[col.key] || 0)}
+        </TableCell>
+      ))}
+      <TableCell></TableCell>
+    </TableRow>
+  );
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -278,6 +431,11 @@ export default function DashboardPage() {
       </div>
     );
   }
+
+  const grouped = groupedData();
+  const hebergementTotals = calculateGroupTotals(grouped.hebergement);
+  const restaurationTotals = calculateGroupTotals(grouped.restauration);
+  const grandTotals = calculateGrandTotal();
 
   return (
     <div className="space-y-6">
@@ -350,7 +508,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Table principale */}
+      {/* Table principale avec totaux intégrés */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -387,179 +545,73 @@ export default function DashboardPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredData.map((campus) => (
-                  <TableRow key={campus.id} className="hover:bg-muted/50">
-                    <TableCell>
-                      <div className="flex items-center space-x-2">
-                        <div>
-                          <div className="font-medium">{campus.name}</div>
-                          <div className="text-sm text-muted-foreground flex items-center gap-2">
-                            <Badge
-                              variant={
-                                campus.status === "active"
-                                  ? "default"
-                                  : campus.status === "new"
-                                    ? "secondary"
-                                    : campus.status === "warning"
-                                      ? "destructive"
-                                      : "outline"
-                              }
-                              className="text-xs"
-                            >
-                              {campus.category}
-                            </Badge>
-
-                            {campus.daysSinceLastEntry !== null &&
-                              campus.daysSinceLastEntry > 7 && (
-                                <Badge
-                                  variant="destructive"
-                                  className="text-xs"
-                                >
-                                  {campus.daysSinceLastEntry > 30
-                                    ? `⚠️ ${Math.floor(campus.daysSinceLastEntry / 30)}M`
-                                    : `⚠️ ${campus.daysSinceLastEntry}J`}
-                                </Badge>
-                              )}
-
-                            {campus.status === "new" && (
-                              <Badge variant="secondary" className="text-xs">
-                                🆕 Nouveau
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col">
-                        <div className="text-sm font-medium">
-                          {campus.lastEntry || "Jamais"}
-                        </div>
-                        {campus.daysSinceLastEntry !== null && (
-                          <div
-                            className={`text-xs ${
-                              campus.daysSinceLastEntry === 0
-                                ? "text-green-600"
-                                : campus.daysSinceLastEntry <= 3
-                                  ? "text-blue-600"
-                                  : campus.daysSinceLastEntry <= 7
-                                    ? "text-yellow-600"
-                                    : campus.daysSinceLastEntry <= 30
-                                      ? "text-orange-600"
-                                      : "text-red-600"
-                            }`}
-                          >
-                            {campus.daysSinceLastEntry === 0 &&
-                              "🟢 Aujourd'hui"}
-                            {campus.daysSinceLastEntry === 1 && "🟡 Hier"}
-                            {campus.daysSinceLastEntry > 1 &&
-                              campus.daysSinceLastEntry <= 7 &&
-                              `🟡 ${campus.daysSinceLastEntry} jours`}
-                            {campus.daysSinceLastEntry > 7 &&
-                              campus.daysSinceLastEntry <= 30 &&
-                              `🟠 ${campus.daysSinceLastEntry} jours`}
-                            {campus.daysSinceLastEntry > 30 &&
-                              `🔴 ${Math.floor(campus.daysSinceLastEntry / 30)} mois`}
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm font-medium text-blue-600">
-                        {campus.performance}
-                      </div>
-                    </TableCell>
-                    {dashboardData.columnLabels.map((col) => (
-                      <TableCell key={col.key} className="text-center">
-                        <div className="text-sm font-medium">
-                          {campus.values[col.key] || "0.00"}
-                        </div>
-                      </TableCell>
+                {/* Section Hébergement */}
+                {categoryFilter === "all" ||
+                categoryFilter === "hebergement" ? (
+                  <>
+                    {grouped.hebergement.map((campus) => (
+                      <CampusRow key={campus.id} campus={campus} />
                     ))}
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem
-                            onClick={() => handleViewDetails(campus.id)}
-                          >
-                            <Eye className="mr-2 h-4 w-4" />
-                            Voir les détails
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleEditMandate(campus.id)}
-                          >
-                            <Edit className="mr-2 h-4 w-4" />
-                            Modifier
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            className="text-red-600"
-                            onClick={() =>
-                              handleDeleteMandate(campus.id, campus.name)
-                            }
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Supprimer
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                    {grouped.hebergement.length > 0 && (
+                      <SubtotalRow
+                        label="Hébergement"
+                        totals={hebergementTotals}
+                        bgColor="bg-blue-50"
+                        textColor="text-blue-700"
+                      />
+                    )}
+                  </>
+                ) : null}
+
+                {/* Section Restauration */}
+                {categoryFilter === "all" ||
+                categoryFilter === "restauration" ? (
+                  <>
+                    {grouped.restauration.map((campus) => (
+                      <CampusRow key={campus.id} campus={campus} />
+                    ))}
+                    {grouped.restauration.length > 0 && (
+                      <SubtotalRow
+                        label="Restauration"
+                        totals={restaurationTotals}
+                        bgColor="bg-orange-50"
+                        textColor="text-orange-700"
+                      />
+                    )}
+                  </>
+                ) : null}
+
+                {/* Affichage quand aucun campus */}
+                {filteredData.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8">
+                      <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold">
+                        Aucun campus trouvé
+                      </h3>
+                      <p className="text-muted-foreground mb-4">
+                        {dashboardData.data.length === 0
+                          ? "Commencez par créer votre premier mandat"
+                          : "Essayez de modifier vos filtres de recherche"}
+                      </p>
+                      {dashboardData.data.length === 0 && (
+                        <Button
+                          onClick={() =>
+                            router.push("/dashboard/mandates/create")
+                          }
+                        >
+                          <Plus className="mr-2 h-4 w-4" />
+                          Créer un mandat
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
-                ))}
+                )}
               </TableBody>
 
-              {/* Section des totaux */}
-              {filteredTotals && (
+              {/* Total général */}
+              {filteredData.length > 0 && categoryFilter === "all" && (
                 <TableFooter>
-                  {/* Sous-total Hébergement */}
-                  <TableRow className="bg-blue-50 hover:bg-blue-50">
-                    <TableCell
-                      colSpan={3}
-                      className="font-medium text-blue-700"
-                    >
-                      Hébergement
-                    </TableCell>
-                    {dashboardData.columnLabels.map((col) => (
-                      <TableCell
-                        key={col.key}
-                        className="text-center font-medium text-blue-700"
-                      >
-                        {formatCurrency(
-                          filteredTotals.hebergementTotals[col.key] || 0
-                        )}
-                      </TableCell>
-                    ))}
-                    <TableCell></TableCell>
-                  </TableRow>
-
-                  {/* Sous-total Restauration */}
-                  <TableRow className="bg-orange-50 hover:bg-orange-50">
-                    <TableCell
-                      colSpan={3}
-                      className="font-medium text-orange-700"
-                    >
-                      Restauration
-                    </TableCell>
-                    {dashboardData.columnLabels.map((col) => (
-                      <TableCell
-                        key={col.key}
-                        className="text-center font-medium text-orange-700"
-                      >
-                        {formatCurrency(
-                          filteredTotals.restaurationTotals[col.key] || 0
-                        )}
-                      </TableCell>
-                    ))}
-                    <TableCell></TableCell>
-                  </TableRow>
-
-                  {/* Total général */}
                   <TableRow className="bg-gray-100 hover:bg-gray-100">
                     <TableCell colSpan={3} className="font-bold text-gray-900">
                       Total
@@ -569,9 +621,7 @@ export default function DashboardPage() {
                         key={col.key}
                         className="text-center font-bold text-gray-900"
                       >
-                        {formatCurrency(
-                          filteredTotals.dailyTotals[col.key] || 0
-                        )}
+                        {formatCurrency(grandTotals[col.key] || 0)}
                       </TableCell>
                     ))}
                     <TableCell></TableCell>
@@ -580,26 +630,6 @@ export default function DashboardPage() {
               )}
             </Table>
           </div>
-
-          {filteredData.length === 0 && (
-            <div className="text-center py-8">
-              <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold">Aucun campus trouvé</h3>
-              <p className="text-muted-foreground mb-4">
-                {dashboardData.data.length === 0
-                  ? "Commencez par créer votre premier mandat"
-                  : "Essayez de modifier vos filtres de recherche"}
-              </p>
-              {dashboardData.data.length === 0 && (
-                <Button
-                  onClick={() => router.push("/dashboard/mandates/create")}
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Créer un mandat
-                </Button>
-              )}
-            </div>
-          )}
         </CardContent>
       </Card>
 
@@ -633,19 +663,15 @@ export default function DashboardPage() {
                 <div className="flex justify-between text-sm">
                   <span>Campus:</span>
                   <span className="font-medium text-blue-700">
-                    {
-                      filteredData.filter(
-                        (item) => item.category === "Hébergement"
-                      ).length
-                    }
+                    {grouped.hebergement.length}
                   </span>
                 </div>
-                {filteredTotals && dashboardData.columnLabels.length > 0 && (
+                {dashboardData.columnLabels.length > 0 && (
                   <div className="flex justify-between text-sm">
                     <span>Total semaine:</span>
                     <span className="font-medium text-blue-700">
                       {formatCurrency(
-                        Object.values(filteredTotals.hebergementTotals).reduce(
+                        Object.values(hebergementTotals).reduce(
                           (a, b) => a + b,
                           0
                         )
@@ -665,19 +691,15 @@ export default function DashboardPage() {
                 <div className="flex justify-between text-sm">
                   <span>Campus:</span>
                   <span className="font-medium text-orange-700">
-                    {
-                      filteredData.filter(
-                        (item) => item.category === "Restauration"
-                      ).length
-                    }
+                    {grouped.restauration.length}
                   </span>
                 </div>
-                {filteredTotals && dashboardData.columnLabels.length > 0 && (
+                {dashboardData.columnLabels.length > 0 && (
                   <div className="flex justify-between text-sm">
                     <span>Total semaine:</span>
                     <span className="font-medium text-orange-700">
                       {formatCurrency(
-                        Object.values(filteredTotals.restaurationTotals).reduce(
+                        Object.values(restaurationTotals).reduce(
                           (a, b) => a + b,
                           0
                         )
@@ -690,16 +712,13 @@ export default function DashboardPage() {
           </div>
 
           {/* Total général en bas */}
-          {filteredTotals && dashboardData.columnLabels.length > 0 && (
+          {filteredData.length > 0 && dashboardData.columnLabels.length > 0 && (
             <div className="mt-4 pt-4 border-t border-border">
               <div className="flex items-center justify-between">
                 <span className="font-bold text-lg">TOTAL PÉRIODE:</span>
                 <span className="font-bold text-xl text-primary">
                   {formatCurrency(
-                    Object.values(filteredTotals.dailyTotals).reduce(
-                      (a, b) => a + b,
-                      0
-                    )
+                    Object.values(grandTotals).reduce((a, b) => a + b, 0)
                   )}
                 </span>
               </div>
