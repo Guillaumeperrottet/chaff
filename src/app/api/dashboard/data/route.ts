@@ -65,9 +65,10 @@ export async function GET(request: NextRequest) {
         // 🔥 SIMPLIFICATION: Récupérer la dernière DATE DE VALEUR (pas createdAt)
         const lastDayValue = await prisma.dayValue.findFirst({
           where: { mandateId: mandate.id },
-          orderBy: { date: "desc" }, // Trier par le champ 'date' (date de la valeur)
+          orderBy: { createdAt: "desc" }, // ✅ Trier par date de saisie
           select: {
-            date: true, // La date de la valeur (ex: 27.05.25)
+            createdAt: true, // ✅ Prendre la date de saisie
+            date: true, // Garder pour debug/record
             value: true,
           },
         });
@@ -98,7 +99,7 @@ export async function GET(request: NextRequest) {
 
         // 🔥 DERNIÈRE SAISIE: Simple formatage de la date
         const lastEntryFormatted = lastDayValue
-          ? formatDateSimple(lastDayValue.date) // "01.06.25"
+          ? formatDateSimple(lastDayValue.createdAt) // ✅ Formatage de la date de saisie
           : null;
 
         // 🐛 DEBUG TEMPORAIRE - À retirer après vérification

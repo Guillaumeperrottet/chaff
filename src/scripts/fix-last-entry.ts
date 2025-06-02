@@ -1,4 +1,5 @@
 // src/scripts/fix-last-entry.ts - Version corrigée avec les bons noms de colonnes
+// npx tsx src/scripts/fix-last-entry.ts
 
 import { prisma } from "@/lib/prisma";
 
