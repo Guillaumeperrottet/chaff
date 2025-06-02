@@ -34,17 +34,12 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const includeInactive = searchParams.get("includeInactive") === "true";
-    // Nouveau : permettre de spécifier le nombre de jours
     const days = parseInt(searchParams.get("days") || "7");
 
     // Récupérer tous les mandats avec leurs valeurs récentes
     const mandates = await prisma.mandate.findMany({
       where: includeInactive ? {} : { active: true },
       include: {
-        dayValues: {
-          orderBy: { date: "desc" },
-          take: 1, // Seulement la plus récente pour lastEntry
-        },
         _count: {
           select: { dayValues: true },
         },
@@ -63,7 +58,6 @@ export async function GET(request: NextRequest) {
       const dateKey = date.toISOString().split("T")[0];
       dateColumns.push(dateKey);
 
-      // Créer aussi les labels avec jour de la semaine
       const dayNames = ["dim.", "lun.", "mar.", "mer.", "jeu.", "ven.", "sam."];
       const dayName = dayNames[date.getDay()];
       const formattedDate = formatDateShort(date);
@@ -77,10 +71,10 @@ export async function GET(request: NextRequest) {
     // Transformer les données pour le frontend
     const dashboardData: DashboardData[] = await Promise.all(
       mandates.map(async (mandate) => {
-        // 🔧 CORRECTION: Récupérer la VRAIE dernière saisie
+        // 🔧 CORRECTION PRINCIPALE: Récupérer la VRAIE dernière saisie par DATE
         const lastDayValue = await prisma.dayValue.findFirst({
           where: { mandateId: mandate.id },
-          orderBy: { date: "desc" }, // Trier par DATE de la valeur, pas par date de création
+          orderBy: { date: "desc" }, // Trier par date de la valeur (pas createdAt)
         });
 
         // Récupérer les valeurs pour les X derniers jours pour l'affichage
@@ -109,7 +103,7 @@ export async function GET(request: NextRequest) {
           values[dateKey] = value ? formatCurrency(value) : "0.00";
         });
 
-        // 🔧 CORRECTION: Calculer les jours depuis la dernière saisie
+        // 🔧 CORRECTION: Calculer correctement les jours depuis la dernière saisie
         let daysSinceLastEntry: number | null = null;
         let lastEntryFormatted: string | null = null;
         let lastEntryDate: Date | null = null;
@@ -118,9 +112,20 @@ export async function GET(request: NextRequest) {
           lastEntryDate = lastDayValue.date;
           lastEntryFormatted = formatDateWithDetails(lastDayValue.date);
 
-          // Calculer les jours écoulés
-          const timeDiff = today.getTime() - lastDayValue.date.getTime();
+          // Calculer les jours écoulés depuis la DATE de la saisie (pas createdAt)
+          const today = new Date();
+          today.setHours(0, 0, 0, 0); // Normaliser à minuit
+
+          const lastEntryDateNormalized = new Date(lastDayValue.date);
+          lastEntryDateNormalized.setHours(0, 0, 0, 0); // Normaliser à minuit
+
+          const timeDiff = today.getTime() - lastEntryDateNormalized.getTime();
           daysSinceLastEntry = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+
+          // 🔧 DÉBOGAGE: Log pour vérifier
+          console.log(
+            `${mandate.name}: Dernière saisie le ${lastDayValue.date.toISOString().split("T")[0]}, il y a ${daysSinceLastEntry} jours`
+          );
         }
 
         // Calculer la performance (record)
@@ -199,20 +204,16 @@ export async function GET(request: NextRequest) {
 
     // Calculer les totaux par jour et les sous-totaux par catégorie
     dateColumns.forEach((dateKey) => {
-      // Initialiser les totaux pour ce jour
       totals.dailyTotals[dateKey] = 0;
       totals.subtotalsByCategory.hebergement[dateKey] = 0;
       totals.subtotalsByCategory.restauration[dateKey] = 0;
 
-      // Parcourir les données pour calculer totaux et sous-totaux
       dashboardData.forEach((item) => {
         const value = item.values[dateKey];
         const numValue = value ? parseFloat(value.replace(/[^\d.-]/g, "")) : 0;
 
-        // Ajouter au total quotidien
         totals.dailyTotals[dateKey] += numValue;
 
-        // Ajouter au sous-total par catégorie
         if (item.category === "Hébergement") {
           totals.subtotalsByCategory.hebergement[dateKey] += numValue;
         } else if (item.category === "Restauration") {
@@ -220,8 +221,6 @@ export async function GET(request: NextRequest) {
         }
       });
     });
-
-    // Note: Les labels sont maintenant générés au début avec les dateColumns
 
     return NextResponse.json({
       data: dashboardData,
@@ -231,7 +230,7 @@ export async function GET(request: NextRequest) {
         dateRange: {
           start: dateColumns[0],
           end: dateColumns[dateColumns.length - 1],
-          days: days, // Ajouter le nombre de jours à la réponse
+          days: days,
         },
         generatedAt: new Date().toISOString(),
       },
@@ -272,10 +271,15 @@ function formatDateShort(date: Date): string {
   });
 }
 
-// 🔧 NOUVELLE FONCTION: Formatage détaillé de la dernière saisie
+// 🔧 FONCTION CORRIGÉE: Formatage détaillé de la dernière saisie
 function formatDateWithDetails(date: Date): string {
   const now = new Date();
-  const timeDiff = now.getTime() - date.getTime();
+  now.setHours(0, 0, 0, 0); // Normaliser à minuit
+
+  const entryDate = new Date(date);
+  entryDate.setHours(0, 0, 0, 0); // Normaliser à minuit
+
+  const timeDiff = now.getTime() - entryDate.getTime();
   const daysDiff = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
 
   const formattedDate = date.toLocaleDateString("fr-CH", {
