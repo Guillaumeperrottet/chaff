@@ -102,17 +102,17 @@ export default function MandatesIndexPage() {
 
   // Fonction pour naviguer vers l'édition
   const handleEdit = (mandateId: string) => {
-    router.push(`/dashboard/Mandates/${mandateId}/edit`);
+    router.push(`/dashboard/mandates/${mandateId}/edit`);
   };
 
   // Fonction pour voir les données CA
   const handleViewCA = (mandateId: string) => {
-    router.push(`/dashboard/Mandates/${mandateId}`);
+    router.push(`/dashboard/mandates/${mandateId}`);
   };
 
   // Fonction pour créer un nouveau mandat
   const handleCreateNew = () => {
-    router.push("/dashboard/Mandates/Create");
+    router.push("/dashboard/mandates/Create");
   };
 
   // Fonction pour l'import
