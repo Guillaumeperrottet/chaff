@@ -1,3 +1,4 @@
+// src/app/api/dashboard/data/route.ts - Version simplifiée
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
@@ -6,17 +7,12 @@ import { headers } from "next/headers";
 interface DashboardData {
   id: string;
   name: string;
-  lastEntry: string | null;
+  lastEntry: string | null; // Format simple: "01.06.25" ou null
   performance: string;
   values: Record<string, string>;
   category: string;
   status: string;
   totalRevenue: number;
-}
-
-interface ColumnLabel {
-  key: string;
-  label: string;
 }
 
 export async function GET(request: NextRequest) {
@@ -66,11 +62,14 @@ export async function GET(request: NextRequest) {
 
     const dashboardData: DashboardData[] = await Promise.all(
       mandates.map(async (mandate) => {
-        // 🔥 SIMPLIFICATION: Récupérer juste la dernière date de saisie
+        // 🔥 SIMPLIFICATION: Récupérer la dernière DATE DE VALEUR (pas createdAt)
         const lastDayValue = await prisma.dayValue.findFirst({
           where: { mandateId: mandate.id },
-          orderBy: { date: "desc" }, // La plus récente en premier
-          select: { date: true, value: true },
+          orderBy: { date: "desc" }, // Trier par le champ 'date' (date de la valeur)
+          select: {
+            date: true, // La date de la valeur (ex: 27.05.25)
+            value: true,
+          },
         });
 
         // Récupérer les valeurs pour les colonnes (période affichée)

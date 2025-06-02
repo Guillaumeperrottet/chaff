@@ -122,7 +122,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 }
 
-// Fonction pour parser intelligemment les dates
 function parseSmartDate(dateValue: string | number | Date): Date {
   if (dateValue instanceof Date) {
     return dateValue;
@@ -131,8 +130,40 @@ function parseSmartDate(dateValue: string | number | Date): Date {
   const dateStr = String(dateValue).trim();
   console.log(`📅 Parsing date: "${dateStr}"`);
 
+  // 🔥 CAS SPÉCIAL : Format "M/D/YY" (1/1/22, 12/31/22, etc.)
+  if (dateStr.match(/^\d{1,2}\/\d{1,2}\/\d{2}$/)) {
+    const parts = dateStr.split("/");
+    if (parts.length === 3) {
+      const month = parseInt(parts[0]); // Premier = mois (format US)
+      const day = parseInt(parts[1]); // Deuxième = jour
+      let year = parseInt(parts[2]); // Troisième = année
+
+      // Corriger l'année sur 2 chiffres
+      if (year < 100) {
+        // Règle : 22-99 = 1922-1999, 00-21 = 2000-2021
+        year += year >= 22 ? 1900 : 2000;
+      }
+
+      console.log(`📅 Format M/D/YY détecté: ${month}/${day}/${year}`);
+      return new Date(Date.UTC(year, month - 1, day));
+    }
+  }
+
+  // 🔥 CAS SPÉCIAL : Format "M/D/YYYY" (1/1/2022, 12/31/2022, etc.)
+  if (dateStr.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
+    const parts = dateStr.split("/");
+    if (parts.length === 3) {
+      const month = parseInt(parts[0]); // Premier = mois (format US)
+      const day = parseInt(parts[1]); // Deuxième = jour
+      const year = parseInt(parts[2]); // Troisième = année
+
+      console.log(`📅 Format M/D/YYYY détecté: ${month}/${day}/${year}`);
+      return new Date(Date.UTC(year, month - 1, day));
+    }
+  }
+
+  // Format DD/MM/YYYY ou DD/MM/YY (européen)
   if (dateStr.includes("/")) {
-    // Format DD/MM/YYYY ou MM/DD/YYYY
     const parts = dateStr.split("/");
     if (parts.length === 3) {
       let day = parseInt(parts[0]);
@@ -147,18 +178,24 @@ function parseSmartDate(dateValue: string | number | Date): Date {
       // Détection intelligente du format
       if (day > 12) {
         // DD/MM/YYYY
+        console.log(`📅 Format DD/MM/YYYY détecté: ${day}/${month}/${year}`);
         return new Date(Date.UTC(year, month - 1, day));
       } else if (month > 12) {
         // MM/DD/YYYY (inverser)
         [day, month] = [month, day];
+        console.log(`📅 Format MM/DD/YYYY détecté: ${day}/${month}/${year}`);
         return new Date(Date.UTC(year, month - 1, day));
       } else {
-        // Ambiguë - utiliser DD/MM/YYYY par défaut (format européen)
+        // Ambiguë - MAIS vu le fichier Excel, c'est probablement M/D/YY (format US)
+        // Donc : premier = mois, deuxième = jour
+        console.log(`📅 Format M/D/YY (US) assumé: ${month}/${day}/${year}`);
         return new Date(Date.UTC(year, month - 1, day));
       }
     }
-  } else if (dateStr.includes("-")) {
-    // Format YYYY-MM-DD ou DD-MM-YYYY
+  }
+
+  // Format avec tirets
+  if (dateStr.includes("-")) {
     const parts = dateStr.split("-");
     if (parts.length === 3) {
       if (parts[0].length === 4) {
