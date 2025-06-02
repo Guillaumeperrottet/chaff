@@ -1,4 +1,3 @@
-// src/app/api/import/chunked/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
@@ -8,7 +7,14 @@ interface MandateRow {
   Id: string;
   Nom: string;
   Catégorie: string;
-  // Ajoutez d'autres propriétés si nécessaire
+  Monnaie?: string;
+}
+
+interface DayValueRow {
+  Date: string;
+  Valeur: string;
+  MandantId: string;
+  Mandant?: string;
 }
 
 interface ChunkedImportRequest {
@@ -19,14 +25,6 @@ interface ChunkedImportRequest {
   dayValues: DayValueRow[];
   isFirstChunk: boolean;
   isLastChunk: boolean;
-}
-
-// Ajoutez cette interface pour corriger l'erreur
-interface DayValueRow {
-  Date: string;
-  Valeur: string;
-  MandantId: string;
-  Mandant?: string; // Optionnel, selon l'usage dans le code
 }
 
 interface ImportSession {
@@ -103,8 +101,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     importSession.status = "processing";
 
-    // Traiter le chunk actuel
-    const result = await processChunkData(mandates, dayValues, importSession);
+    // Traiter le chunk actuel avec les corrections
+    const result = await processChunkDataFixed(
+      mandates,
+      dayValues,
+      importSession
+    );
 
     // Mettre à jour la progression
     importSession.processedRows += result.processed;
@@ -174,7 +176,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 }
 
-async function processChunkData(
+async function processChunkDataFixed(
   mandates: MandateRow[],
   dayValues: DayValueRow[],
   session: ImportSession
@@ -209,26 +211,31 @@ async function processChunkData(
               continue;
             }
 
-            // Mapper la catégorie
+            // 🔧 CORRECTION: Mapper correctement la catégorie
             let group: "HEBERGEMENT" | "RESTAURATION";
-            const category = mandateRow.Catégorie.toLowerCase();
+            const category = mandateRow.Catégorie.toLowerCase().trim();
+
             if (
               category.includes("hébergement") ||
-              category.includes("hebergement")
+              category.includes("hebergement") ||
+              category === "hébergement"
             ) {
               group = "HEBERGEMENT";
-            } else if (category.includes("restauration")) {
+            } else if (
+              category.includes("restauration") ||
+              category === "restauration"
+            ) {
               group = "RESTAURATION";
             } else {
               result.errors.push(
-                `Catégorie inconnue pour ${mandateRow.Nom}: ${mandateRow.Catégorie}`
+                `Catégorie inconnue pour ${mandateRow.Nom}: "${mandateRow.Catégorie}". Utilisez "Hébergement" ou "Restauration"`
               );
               continue;
             }
 
             // Vérifier si existe déjà
             const existing = await tx.mandate.findFirst({
-              where: { name: mandateRow.Nom },
+              where: { name: mandateRow.Nom.trim() },
             });
 
             if (existing) {
@@ -243,7 +250,7 @@ async function processChunkData(
               // Créer nouveau
               const newMandate = await tx.mandate.create({
                 data: {
-                  name: mandateRow.Nom,
+                  name: mandateRow.Nom.trim(),
                   group,
                   active: true,
                 },
@@ -260,7 +267,7 @@ async function processChunkData(
       });
     }
 
-    // 2. Traiter les valeurs journalières
+    // 2. Traiter les valeurs journalières avec corrections
     if (dayValues.length > 0) {
       await prisma.$transaction(async (tx) => {
         for (const valueRow of dayValues) {
@@ -282,26 +289,57 @@ async function processChunkData(
               continue;
             }
 
-            // Parser la date
+            // 🔧 CORRECTION MAJEURE: Parser correctement la date
             let date: Date;
             try {
-              if (valueRow.Date.includes("/")) {
-                const parts = valueRow.Date.split("/");
+              const dateStr = valueRow.Date.toString().trim();
+
+              if (dateStr.includes("/")) {
+                // Format MM/DD/YYYY ou DD/MM/YYYY ou M/D/YY
+                const parts = dateStr.split("/");
                 if (parts.length === 3) {
+                  const month = parseInt(parts[0]);
+                  const day = parseInt(parts[1]);
                   let year = parseInt(parts[2]);
+
+                  // Si l'année est sur 2 chiffres, ajouter 2000
                   if (year < 100) {
                     year += year < 50 ? 2000 : 1900;
                   }
-                  date = new Date(
-                    year,
-                    parseInt(parts[0]) - 1,
-                    parseInt(parts[1])
-                  );
+
+                  // Créer la date en UTC pour éviter les problèmes de timezone
+                  date = new Date(Date.UTC(year, month - 1, day));
+                } else {
+                  throw new Error("Format de date invalide");
+                }
+              } else if (dateStr.includes("-")) {
+                // Format YYYY-MM-DD ou DD-MM-YYYY
+                const parts = dateStr.split("-");
+                if (parts.length === 3) {
+                  if (parts[0].length === 4) {
+                    // YYYY-MM-DD
+                    date = new Date(
+                      Date.UTC(
+                        parseInt(parts[0]),
+                        parseInt(parts[1]) - 1,
+                        parseInt(parts[2])
+                      )
+                    );
+                  } else {
+                    // DD-MM-YYYY
+                    date = new Date(
+                      Date.UTC(
+                        parseInt(parts[2]),
+                        parseInt(parts[1]) - 1,
+                        parseInt(parts[0])
+                      )
+                    );
+                  }
                 } else {
                   throw new Error("Format de date invalide");
                 }
               } else {
-                date = new Date(valueRow.Date);
+                date = new Date(dateStr);
               }
 
               if (isNaN(date.getTime())) {
@@ -309,16 +347,25 @@ async function processChunkData(
               }
             } catch {
               result.errors.push(
-                `Date invalide pour ${valueRow.Mandant}: ${valueRow.Date}`
+                `Date invalide pour ${valueRow.Mandant}: "${valueRow.Date}"`
               );
               continue;
             }
 
-            // Parser la valeur
-            const value = parseFloat(valueRow.Valeur);
-            if (isNaN(value) || value < 0) {
+            // 🔧 CORRECTION: Parser correctement la valeur
+            let value: number;
+            try {
+              const valueStr = valueRow.Valeur.toString().trim();
+              // Remplacer les virgules par des points pour le parsing
+              const normalizedValue = valueStr.replace(",", ".");
+              value = parseFloat(normalizedValue);
+
+              if (isNaN(value) || value < 0) {
+                throw new Error("Valeur numérique invalide");
+              }
+            } catch {
               result.errors.push(
-                `Valeur invalide pour ${valueRow.Mandant}: ${valueRow.Valeur}`
+                `Valeur invalide pour ${valueRow.Mandant}: "${valueRow.Valeur}"`
               );
               continue;
             }
