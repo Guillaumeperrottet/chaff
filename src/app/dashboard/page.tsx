@@ -166,11 +166,11 @@ export default function DashboardPage() {
   };
 
   const handleViewDetails = (mandateId: string) => {
-    router.push(`/dashboard/Mandates/${mandateId}`);
+    router.push(`/dashboard/mandates/${mandateId}`);
   };
 
   const handleEditMandate = (mandateId: string) => {
-    router.push(`/dashboard/Mandates/${mandateId}/edit`);
+    router.push(`/dashboard/mandates/${mandateId}/edit`);
   };
 
   const handleDeleteMandate = async (
@@ -479,7 +479,7 @@ export default function DashboardPage() {
               </p>
               {dashboardData.data.length === 0 && (
                 <Button
-                  onClick={() => router.push("/dashboard/Mandates/Create")}
+                  onClick={() => router.push("/dashboard/mandates/Create")}
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   Créer un mandat
