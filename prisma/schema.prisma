@@ -1,4 +1,3 @@
-// prisma/schema.prisma - Version template nettoyée
 
 generator client {
   provider = "prisma-client-js"
@@ -260,6 +259,42 @@ model Notification {
   @@index([userId])
   @@index([read])
   @@index([createdAt])
+}
+
+// ==========================================
+// nouveaux models pour la gestion des mandats
+// ==========================================
+
+model Mandate {
+  id          String      @id @default(cuid())
+  name        String      @unique
+  group       MandateGroup
+  active      Boolean     @default(true)
+  lastEntry   DateTime?   // Dernière saisie
+  totalRevenue Float      @default(0) // Cache du total
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  dayValues   DayValue[]
+
+  @@map("mandates")
+}
+
+model DayValue {
+  id        String   @id @default(cuid())
+  date      DateTime @db.Date
+  value     Float
+  mandateId String
+  mandate   Mandate  @relation(fields: [mandateId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([date, mandateId])
+  @@map("day_values")
+}
+
+enum MandateGroup {
+  HEBERGEMENT
+  RESTAURATION
 }
 
 // ==========================================
