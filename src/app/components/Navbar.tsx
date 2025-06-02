@@ -41,6 +41,53 @@ interface ConditionalNavbarProps {
   children: React.ReactNode;
 }
 
+// Interface pour le mandat (utilisé pour les breadcrumbs)
+interface MandateInfo {
+  id: string;
+  name: string;
+}
+
+// Cache pour stocker les informations des mandats afin d'éviter les appels répétés
+const mandatesCache = new Map<string, MandateInfo>();
+
+// Fonction pour récupérer les informations d'un mandat depuis son ID
+const fetchMandateInfo = async (
+  mandateId: string
+): Promise<MandateInfo | null> => {
+  // Vérifier d'abord si l'info est dans le cache
+  if (mandatesCache.has(mandateId)) {
+    return mandatesCache.get(mandateId)!;
+  }
+
+  try {
+    const response = await fetch(`/api/mandats/${mandateId}`);
+
+    if (!response.ok) {
+      console.error(
+        "Erreur lors de la récupération du mandat:",
+        response.statusText
+      );
+      return null;
+    }
+
+    const mandate = await response.json();
+
+    // Stocker dans le cache pour les futurs appels
+    mandatesCache.set(mandateId, {
+      id: mandate.id,
+      name: mandate.name,
+    });
+
+    return {
+      id: mandate.id,
+      name: mandate.name,
+    };
+  } catch (error) {
+    console.error("Erreur lors de la récupération du mandat:", error);
+    return null;
+  }
+};
+
 // Fonction pour générer les breadcrumbs basés sur le pathname
 const generateBreadcrumbs = (pathname: string): BreadcrumbItem[] => {
   // Mapping des chemins vers des labels personnalisés
@@ -75,10 +122,20 @@ const generateBreadcrumbs = (pathname: string): BreadcrumbItem[] => {
 
     // Créer l'élément breadcrumb
     const isActive = i === segments.length - 1;
-    const label =
-      pathLabels[currentPath] ||
-      segments[i].charAt(0).toUpperCase() + segments[i].slice(1);
 
+    let label = pathLabels[currentPath];
+
+    if (!label) {
+      // Si c'est potentiellement un ID de mandat (nous le remplacerons plus tard)
+      if (segments[i - 1] === "mandates" && segments[i] !== "create") {
+        label = "Chargement..."; // Placeholder temporaire
+      } else {
+        // Pour les autres segments, capitaliser la première lettre
+        label = segments[i].charAt(0).toUpperCase() + segments[i].slice(1);
+      }
+    }
+
+    // Ajouter au breadcrumb
     breadcrumbs.push({
       label,
       href: currentPath,
@@ -99,8 +156,50 @@ function ModernNavbar() {
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Générer les breadcrumbs
-  const breadcrumbs = generateBreadcrumbs(pathname);
+  // État pour les breadcrumbs
+  const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbItem[]>([]);
+
+  // Générer les breadcrumbs au chargement et quand le pathname change
+  useEffect(() => {
+    // Générer les breadcrumbs initiaux
+    const initialBreadcrumbs = generateBreadcrumbs(pathname);
+    setBreadcrumbs(initialBreadcrumbs);
+
+    // Vérifier s'il y a des IDs de mandats dans le chemin
+    const segments = pathname.split("/").filter(Boolean);
+
+    // Trouver l'index de 'mandates'
+    const mandatesIndex = segments.findIndex(
+      (segment) => segment === "mandates"
+    );
+
+    // Si 'mandates' est suivi par un ID (non 'create')
+    if (
+      mandatesIndex !== -1 &&
+      mandatesIndex + 1 < segments.length &&
+      segments[mandatesIndex + 1] !== "create"
+    ) {
+      const mandateId = segments[mandatesIndex + 1];
+
+      // Récupérer le nom du mandat
+      fetchMandateInfo(mandateId).then((mandate) => {
+        if (mandate) {
+          // Créer une copie pour mettre à jour l'état
+          const updatedBreadcrumbs = [...initialBreadcrumbs];
+
+          // Calculer l'index du breadcrumb à mettre à jour
+          // +1 pour 'Accueil' et +1 pour l'index des segments après 'mandates'
+          const breadcrumbIndex = mandatesIndex + 1;
+
+          // Mettre à jour le label avec le nom du mandat
+          if (updatedBreadcrumbs[breadcrumbIndex]) {
+            updatedBreadcrumbs[breadcrumbIndex].label = mandate.name;
+            setBreadcrumbs(updatedBreadcrumbs);
+          }
+        }
+      });
+    }
+  }, [pathname]);
 
   // Gestion de la déconnexion
   const handleSignOut = async () => {

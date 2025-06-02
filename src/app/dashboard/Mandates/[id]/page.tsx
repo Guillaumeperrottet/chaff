@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import {
   Table,
   TableBody,
@@ -163,25 +164,23 @@ export default function MandateCAPage() {
     <div className="space-y-6">
       {/* Navigation */}
       <BackButton href="/dashboard/mandates" label="Retour aux mandats" />
-
-      {/* Header avec navigation similaire à ton image */}
       <div className="border-b pb-4">
         <nav className="flex items-center space-x-4 text-sm text-blue-600 mb-4">
-          <a href="/dashboard" className="hover:underline">
+          <Link href="/dashboard" className="hover:underline">
             Campus
-          </a>
+          </Link>
           <span className="text-gray-400">|</span>
-          <a href="/dashboard" className="hover:underline">
+          <Link href="/dashboard" className="hover:underline">
             Tableau de bord
-          </a>
+          </Link>
           <span className="text-gray-400">|</span>
-          <a href="/dashboard/day-values" className="hover:underline">
+          <Link href="/dashboard/day-values" className="hover:underline">
             Valeurs journalières
-          </a>
+          </Link>
           <span className="text-gray-400">|</span>
-          <a href="/dashboard/mandates" className="hover:underline">
+          <Link href="/dashboard/mandates" className="hover:underline">
             Mandants
-          </a>
+          </Link>
           <span className="text-gray-400">|</span>
           <button onClick={handleExport} className="hover:underline">
             Exporte tout
@@ -192,8 +191,7 @@ export default function MandateCAPage() {
           {caData?.mandateName}
         </h1>
       </div>
-
-      {/* Filtres */}
+      x{/* Filtres */}
       <div className="flex items-center space-x-4">
         <div className="flex items-center space-x-2">
           <CalendarIcon className="h-4 w-4 text-gray-500" />
@@ -224,7 +222,6 @@ export default function MandateCAPage() {
           Exporter
         </Button>
       </div>
-
       {/* Table des données avec scroll horizontal */}
       <div className="overflow-x-auto border rounded-lg">
         <Table className="text-xs">
@@ -395,7 +392,6 @@ export default function MandateCAPage() {
           </TableBody>
         </Table>
       </div>
-
       {/* Informations supplémentaires */}
       <div className="text-sm text-gray-600">
         <p>
