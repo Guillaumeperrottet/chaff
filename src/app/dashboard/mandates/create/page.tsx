@@ -70,7 +70,7 @@ export default function CreateMandatePage() {
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/mandates", {
+      const response = await fetch("/api/mandats", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
