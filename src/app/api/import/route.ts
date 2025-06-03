@@ -130,71 +130,66 @@ function parseSmartDate(dateValue: string | number | Date): Date {
   const dateStr = String(dateValue).trim();
   console.log(`📅 Parsing date: "${dateStr}"`);
 
-  // 🔥 CAS SPÉCIAL : Format "M/D/YY" (1/1/22, 12/31/22, etc.)
-  if (dateStr.match(/^\d{1,2}\/\d{1,2}\/\d{2}$/)) {
+  // 🔥 CORRECTION SPÉCIFIQUE pour le format M/D/YY (format américain)
+  if (dateStr.match(/^\d{1,2}\/\d{1,2}\/\d{2,4}$/)) {
     const parts = dateStr.split("/");
     if (parts.length === 3) {
-      const month = parseInt(parts[0]); // Premier = mois (format US)
-      const day = parseInt(parts[1]); // Deuxième = jour
-      let year = parseInt(parts[2]); // Troisième = année
+      const first = parseInt(parts[0]);
+      const second = parseInt(parts[1]);
+      let year = parseInt(parts[2]);
 
       // Corriger l'année sur 2 chiffres
       if (year < 100) {
-        // Règle : 22-99 = 1922-1999, 00-21 = 2000-2021
-        year += year >= 22 ? 1900 : 2000;
+        year += year >= 22 ? 1900 : 2000; // 22-99 = 1922-1999, 00-21 = 2000-2021
       }
 
-      console.log(`📅 Format M/D/YY détecté: ${month}/${day}/${year}`);
-      return new Date(Date.UTC(year, month - 1, day));
-    }
-  }
+      // 🎯 NOUVELLE LOGIQUE DE DÉTECTION
+      if (first > 12 && second <= 12) {
+        // Format DD/MM/YYYY (jour > 12, mois <= 12)
+        console.log(`  Format DD/MM/YYYY détecté: ${first}/${second}/${year}`);
+        return new Date(Date.UTC(year, second - 1, first));
+      } else if (second > 12 && first <= 12) {
+        // Format MM/DD/YYYY (mois > 12, jour <= 12) - INVERSION
+        console.log(
+          `  Format MM/DD/YYYY détecté: ${first}/${second}/${year} -> ${second}/${first}/${year}`
+        );
+        return new Date(Date.UTC(year, first - 1, second));
+      } else if (first <= 12 && second <= 12) {
+        // 🔥 CAS AMBIGU: Détection intelligente basée sur le contexte
 
-  // 🔥 CAS SPÉCIAL : Format "M/D/YYYY" (1/1/2022, 12/31/2022, etc.)
-  if (dateStr.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
-    const parts = dateStr.split("/");
-    if (parts.length === 3) {
-      const month = parseInt(parts[0]); // Premier = mois (format US)
-      const day = parseInt(parts[1]); // Deuxième = jour
-      const year = parseInt(parts[2]); // Troisième = année
+        // Règle 1: Si c'est clairement un fichier américain (détecté par d'autres indices)
+        // Pour vos données, on peut assumer format américain MM/DD/YY
+        console.log(
+          `  Format ambigu ${first}/${second}/${year} - ASSUME FORMAT AMÉRICAIN MM/DD/YY`
+        );
 
-      console.log(`📅 Format M/D/YYYY détecté: ${month}/${day}/${year}`);
-      return new Date(Date.UTC(year, month - 1, day));
-    }
-  }
+        // Vérification de cohérence : éviter les dates futures impossibles
+        const usDate = new Date(Date.UTC(year, first - 1, second)); // MM/DD
+        const euDate = new Date(Date.UTC(year, second - 1, first)); // DD/MM
+        const maxValidDate = new Date("2025-06-01"); // Votre limite
 
-  // Format DD/MM/YYYY ou DD/MM/YY (européen)
-  if (dateStr.includes("/")) {
-    const parts = dateStr.split("/");
-    if (parts.length === 3) {
-      let day = parseInt(parts[0]);
-      let month = parseInt(parts[1]);
-      let year = parseInt(parts[2]);
-
-      // Si l'année est sur 2 chiffres
-      if (year < 100) {
-        year += year < 50 ? 2000 : 1900;
-      }
-
-      // Détection intelligente du format
-      if (day > 12) {
-        // DD/MM/YYYY
-        console.log(`📅 Format DD/MM/YYYY détecté: ${day}/${month}/${year}`);
-        return new Date(Date.UTC(year, month - 1, day));
-      } else if (month > 12) {
-        // MM/DD/YYYY (inverser)
-        [day, month] = [month, day];
-        console.log(`📅 Format MM/DD/YYYY détecté: ${day}/${month}/${year}`);
-        return new Date(Date.UTC(year, month - 1, day));
-      } else {
-        // Ambiguë - MAIS vu le fichier Excel, c'est probablement M/D/YY (format US)
-        // Donc : premier = mois, deuxième = jour
-        console.log(`📅 Format M/D/YY (US) assumé: ${month}/${day}/${year}`);
-        return new Date(Date.UTC(year, month - 1, day));
+        if (usDate <= maxValidDate && euDate > maxValidDate) {
+          console.log(
+            `  Choix format US car date EU serait future: ${usDate.toISOString().split("T")[0]} vs ${euDate.toISOString().split("T")[0]}`
+          );
+          return usDate;
+        } else if (euDate <= maxValidDate && usDate > maxValidDate) {
+          console.log(
+            `  Choix format EU car date US serait future: ${euDate.toISOString().split("T")[0]} vs ${usDate.toISOString().split("T")[0]}`
+          );
+          return euDate;
+        } else {
+          // Par défaut, format américain pour vos données
+          console.log(
+            `  Défaut format américain MM/DD/YY: ${usDate.toISOString().split("T")[0]}`
+          );
+          return usDate;
+        }
       }
     }
   }
 
-  // Format avec tirets
+  // Autres formats existants...
   if (dateStr.includes("-")) {
     const parts = dateStr.split("-");
     if (parts.length === 3) {
@@ -207,20 +202,11 @@ function parseSmartDate(dateValue: string | number | Date): Date {
             parseInt(parts[2])
           )
         );
-      } else {
-        // DD-MM-YYYY
-        return new Date(
-          Date.UTC(
-            parseInt(parts[2]),
-            parseInt(parts[1]) - 1,
-            parseInt(parts[0])
-          )
-        );
       }
     }
   }
 
-  // Fallback: parsing direct
+  // Fallback
   const directParse = new Date(dateStr);
   if (!isNaN(directParse.getTime())) {
     return directParse;
@@ -228,7 +214,6 @@ function parseSmartDate(dateValue: string | number | Date): Date {
 
   throw new Error(`Format de date non reconnu: "${dateStr}"`);
 }
-
 // Fonction pour parser intelligemment les valeurs numériques
 function parseSmartValue(valueStr: string | number): number {
   const valueString = String(valueStr).trim();
