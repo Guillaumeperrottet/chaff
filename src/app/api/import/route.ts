@@ -145,6 +145,13 @@ function parseSmartDate(dateValue: string | number | Date): Date {
         console.log(`  Année corrigée: ${parts[2]} -> ${year}`);
       }
 
+      // Gestion des cas ambigus où jour et mois sont <= 12
+      if (day <= 12 && month <= 12) {
+        // TOUJOURS format européen DD/MM
+        console.log(`Format DD/MM assumé: ${day}/${month}/${year}`);
+        return new Date(Date.UTC(year, month - 1, day));
+      }
+
       // 🔒 VALIDATION STRICTE
       if (day < 1 || day > 31) {
         throw new Error(
