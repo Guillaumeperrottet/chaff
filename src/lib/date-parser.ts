@@ -122,30 +122,34 @@ function parseDateWithSlashes(
   }
 
   try {
-    let month = parseInt(parts[0]);
-    let day = parseInt(parts[1]);
-    let year = parseInt(parts[2]);
+    // 🔥 CORRECTION: Format européen DD/MM/YY UNIQUEMENT
+    const day = parseInt(parts[0]); // ✅ Premier = jour
+    const month = parseInt(parts[1]); // ✅ Deuxième = mois
+    let year = parseInt(parts[2]); // ✅ Troisième = année
 
-    // Si l'année est sur 2 chiffres
+    // Correction de l'année sur 2 chiffres
     if (year < 100) {
       year += year < 50 ? 2000 : 1900;
     }
 
-    // Vérifier les valeurs
-    if (month < 1 || month > 12) {
-      // Peut-être DD/MM/YYYY
-      [day, month] = [month, day];
-      if (month < 1 || month > 12) {
-        throw new Error("Mois invalide");
-      }
-    }
-
+    // 🔒 Validation stricte format européen
     if (day < 1 || day > 31) {
-      throw new Error("Jour invalide");
+      throw new Error(`Jour invalide: ${day} (doit être 1-31)`);
     }
 
-    // Créer la date en UTC
+    if (month < 1 || month > 12) {
+      throw new Error(`Mois invalide: ${month} (doit être 1-12)`);
+    }
+
+    // 🔒 Validation date future (optionnel)
     const date = new Date(Date.UTC(year, month - 1, day));
+    const maxValidDate = new Date("2025-06-01");
+
+    if (date > maxValidDate) {
+      throw new Error(
+        `Date future détectée: ${dateStr} -> ${date.toISOString().split("T")[0]}`
+      );
+    }
 
     if (isNaN(date.getTime())) {
       throw new Error("Date invalide");
@@ -155,14 +159,14 @@ function parseDateWithSlashes(
       success: true,
       date,
       originalValue,
-      detectedFormat: `Slash format (${month}/${day}/${year})`,
+      detectedFormat: `DD/MM/YYYY (${day}/${month}/${year})`,
     };
   } catch (error) {
     return {
       success: false,
-      error: `Erreur parsing date avec /: ${error}`,
+      error: `Erreur parsing date DD/MM/YY: ${error}`,
       originalValue,
-      detectedFormat: "Slash format (error)",
+      detectedFormat: "DD/MM/YY format (error)",
     };
   }
 }
