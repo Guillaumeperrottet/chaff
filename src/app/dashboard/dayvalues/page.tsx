@@ -12,6 +12,7 @@ import {
   Loader2,
   Edit,
   Trash2,
+  Undo2,
 } from "lucide-react";
 import {
   Card,
@@ -87,6 +88,11 @@ export default function ValeursPage() {
   const [dateRange, setDateRange] = useState<string>("30");
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  // État pour la corbeille des valeurs supprimées
+  const [deletedValues, setDeletedValues] = useState<Map<string, DayValue>>(
+    new Map()
+  );
+
   useEffect(() => {
     Promise.all([fetchDayValues(), fetchMandates()]).finally(() => {
       setLoading(false);
@@ -95,6 +101,7 @@ export default function ValeursPage() {
 
   useEffect(() => {
     filterValues();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dayValues, searchTerm, mandateFilter, dateRange]);
 
   const fetchDayValues = async () => {
@@ -164,12 +171,17 @@ export default function ValeursPage() {
   };
 
   const handleDelete = async (valueId: string) => {
-    if (!confirm(`Êtes-vous sûr de vouloir supprimer cette valeur ?`)) {
-      return;
-    }
-
     try {
+      // 1. Trouver la valeur à supprimer
+      const valueToDelete = dayValues.find((v) => v.id === valueId);
+      if (!valueToDelete) {
+        toast.error("Valeur introuvable");
+        return;
+      }
+
       setDeletingId(valueId);
+
+      // 2. Supprimer côté serveur
       const response = await fetch(`/api/valeurs/${valueId}`, {
         method: "DELETE",
       });
@@ -179,9 +191,30 @@ export default function ValeursPage() {
         throw new Error(error.error || "Erreur lors de la suppression");
       }
 
-      // Retirer la valeur de la liste locale
+      // 3. Sauvegarder dans la corbeille temporaire
+      setDeletedValues((prev) => new Map(prev).set(valueId, valueToDelete));
+
+      // 4. Retirer de la liste locale immédiatement
       setDayValues((prev) => prev.filter((v) => v.id !== valueId));
-      toast.success("Valeur supprimée avec succès");
+
+      // 5. Toast avec option d'annulation
+      toast.success("Valeur supprimée", {
+        description: `Saisie du ${formatDate(valueToDelete.date)} pour ${valueToDelete.mandate.name}`,
+        duration: 10000, // 10 secondes
+        action: {
+          label: "Annuler",
+          onClick: () => handleUndoDelete(valueId, valueToDelete),
+        },
+      });
+
+      // 6. Programmer le nettoyage
+      setTimeout(() => {
+        setDeletedValues((prev) => {
+          const newMap = new Map(prev);
+          newMap.delete(valueId);
+          return newMap;
+        });
+      }, 10000);
     } catch (error) {
       console.error("Erreur:", error);
       toast.error(
@@ -190,6 +223,59 @@ export default function ValeursPage() {
     } finally {
       setDeletingId(null);
     }
+  };
+
+  // Fonction pour annuler une suppression
+  const handleUndoDelete = async (valueId: string, originalValue: DayValue) => {
+    try {
+      // 1. Recréer la valeur côté serveur
+      const response = await fetch("/api/valeurs", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          date: originalValue.date,
+          value: originalValue.value,
+          mandateId: originalValue.mandateId,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Erreur lors de la restauration");
+      }
+
+      const restoredValue = await response.json();
+
+      // 2. Remettre dans la liste
+      setDayValues((prev) => [...prev, restoredValue]);
+
+      // 3. Retirer de la corbeille
+      setDeletedValues((prev) => {
+        const newMap = new Map(prev);
+        newMap.delete(valueId);
+        return newMap;
+      });
+
+      // 4. Confirmation
+      toast.success("Valeur restaurée", {
+        description: `Saisie du ${formatDate(originalValue.date)} restaurée`,
+        icon: <Undo2 className="h-4 w-4" />,
+      });
+    } catch (error) {
+      console.error("Erreur lors de la restauration:", error);
+      toast.error("Impossible de restaurer la valeur");
+    }
+  };
+
+  // Fonction pour vider la corbeille
+  const handleEmptyTrash = () => {
+    const count = deletedValues.size;
+    setDeletedValues(new Map());
+
+    toast.info("Corbeille vidée", {
+      description: `${count} valeur(s) définitivement supprimée(s)`,
+    });
   };
 
   const handleExport = async () => {
@@ -289,9 +375,29 @@ export default function ValeursPage() {
           </h1>
           <p className="text-muted-foreground">
             Consultez et gérez les saisies quotidiennes
+            {deletedValues.size > 0 && (
+              <span className="ml-2">
+                <Badge variant="secondary" className="text-xs">
+                  {deletedValues.size} en corbeille
+                </Badge>
+              </span>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {/* Bouton corbeille si elle n'est pas vide */}
+          {deletedValues.size > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleEmptyTrash}
+              className="text-muted-foreground"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Vider ({deletedValues.size})
+            </Button>
+          )}
+
           <Button variant="outline" onClick={handleExport}>
             <FileDown className="mr-2 h-4 w-4" />
             Exporter

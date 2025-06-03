@@ -40,6 +40,7 @@ import {
   Edit,
   Trash2,
   Loader2,
+  Undo2,
 } from "lucide-react";
 import { Input } from "@/app/components/ui/input";
 import {
@@ -99,6 +100,11 @@ export default function DashboardPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+
+  // État pour gérer les éléments supprimés (corbeille temporaire)
+  const [deletedItems, setDeletedItems] = useState<Map<string, DashboardData>>(
+    new Map()
+  );
 
   // Charger les données du dashboard
   useEffect(() => {
@@ -226,15 +232,15 @@ export default function DashboardPage() {
     mandateId: string,
     mandateName: string
   ) => {
-    if (
-      !confirm(
-        `Êtes-vous sûr de vouloir supprimer le mandat "${mandateName}" ?`
-      )
-    ) {
-      return;
-    }
-
     try {
+      // 1. Récupérer les données complètes avant suppression
+      const mandateResponse = await fetch(`/api/mandats/${mandateId}`);
+      if (!mandateResponse.ok)
+        throw new Error("Impossible de récupérer les données");
+
+      const mandateBackup = await mandateResponse.json();
+
+      // 2. Supprimer côté serveur
       const response = await fetch(`/api/mandats/${mandateId}`, {
         method: "DELETE",
       });
@@ -244,14 +250,126 @@ export default function DashboardPage() {
         throw new Error(error.error || "Erreur lors de la suppression");
       }
 
-      toast.success("Mandat supprimé avec succès");
-      fetchDashboardData();
+      // 3. Trouver l'élément dans les données dashboard
+      const deletedItem = dashboardData?.data.find(
+        (item) => item.id === mandateId
+      );
+
+      if (deletedItem) {
+        // 4. Sauvegarder dans la corbeille temporaire
+        setDeletedItems((prev) => new Map(prev).set(mandateId, deletedItem));
+
+        // 5. Retirer immédiatement de l'UI
+        setDashboardData((prev) =>
+          prev
+            ? {
+                ...prev,
+                data: prev.data.filter((item) => item.id !== mandateId),
+              }
+            : null
+        );
+
+        // 6. Afficher le toast avec action d'annulation
+        toast.success("Mandat supprimé", {
+          description: `"${mandateName}" a été supprimé avec succès`,
+          duration: 15000, // 15 secondes pour annuler
+          action: {
+            label: "Annuler",
+            onClick: async () => {
+              await handleUndoDelete(mandateId, mandateBackup, deletedItem);
+            },
+          },
+        });
+
+        // 7. Programmer la suppression définitive de la corbeille après 15 secondes
+        setTimeout(() => {
+          setDeletedItems((prev) => {
+            const newMap = new Map(prev);
+            newMap.delete(mandateId);
+            return newMap;
+          });
+        }, 15000);
+      }
     } catch (error) {
       console.error("Erreur:", error);
       toast.error(
         error instanceof Error ? error.message : "Erreur lors de la suppression"
       );
     }
+  };
+
+  // Fonction pour annuler une suppression
+  const handleUndoDelete = async (
+    mandateId: string,
+    mandateBackup: {
+      id: string;
+      name: string;
+      group: string;
+      active: boolean;
+    },
+    dashboardItem: DashboardData
+  ) => {
+    try {
+      // 1. Recréer le mandat côté serveur
+      const response = await fetch("/api/mandats", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: mandateBackup.id, // Garder le même ID si possible
+          name: mandateBackup.name,
+          group: mandateBackup.group,
+          active: mandateBackup.active,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Erreur lors de la restauration");
+      }
+
+      // 2. Restaurer dans l'UI immédiatement
+      setDashboardData((prev) =>
+        prev
+          ? {
+              ...prev,
+              data: [...prev.data, dashboardItem],
+            }
+          : null
+      );
+
+      // 3. Retirer de la corbeille temporaire
+      setDeletedItems((prev) => {
+        const newMap = new Map(prev);
+        newMap.delete(mandateId);
+        return newMap;
+      });
+
+      // 4. Afficher confirmation
+      toast.success("Mandat restauré", {
+        description: `"${mandateBackup.name}" a été restauré avec succès`,
+        icon: <Undo2 className="h-4 w-4" />,
+      });
+
+      // 5. Rafraîchir les données pour être sûr
+      setTimeout(() => {
+        fetchDashboardData();
+      }, 1000);
+    } catch (error) {
+      console.error("Erreur lors de la restauration:", error);
+      toast.error("Erreur lors de la restauration du mandat");
+    }
+  };
+
+  // Fonction pour vider la corbeille (si nécessaire)
+  const handleEmptyTrash = () => {
+    if (deletedItems.size === 0) return;
+
+    toast.warning("Corbeille vidée", {
+      description: `${deletedItems.size} élément(s) définitivement supprimé(s)`,
+    });
+
+    setDeletedItems(new Map());
   };
 
   const formatCurrency = (value: number) => {
@@ -445,9 +563,29 @@ export default function DashboardPage() {
           <h1 className="text-3xl font-bold tracking-tight">Campus</h1>
           <p className="text-muted-foreground">
             Tableau de bord des valeurs journalières
+            {deletedItems.size > 0 && (
+              <span className="ml-2">
+                <Badge variant="secondary" className="text-xs">
+                  {deletedItems.size} élément(s) en corbeille
+                </Badge>
+              </span>
+            )}
           </p>
         </div>
         <div className="flex items-center space-x-2">
+          {/* Bouton pour vider la corbeille si elle n'est pas vide */}
+          {deletedItems.size > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleEmptyTrash}
+              className="text-muted-foreground"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Vider corbeille ({deletedItems.size})
+            </Button>
+          )}
+
           <Button variant="outline" size="sm">
             <Calendar className="mr-2 h-4 w-4" />
             Période

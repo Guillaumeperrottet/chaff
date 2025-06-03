@@ -13,18 +13,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/app/components/ui/table";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/app/components/ui/alert-dialog";
-import { Loader2, Plus, Upload } from "lucide-react";
+import { Loader2, Plus, Upload, Undo2, Trash2 } from "lucide-react";
+import { Badge } from "@/app/components/ui/badge";
 
 // Types basés sur le schema Prisma
 interface Mandate {
@@ -46,6 +36,11 @@ export default function MandatesIndexPage() {
   const [mandates, setMandates] = useState<Mandate[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // État pour la corbeille temporaire
+  const [deletedMandates, setDeletedMandates] = useState<Map<string, Mandate>>(
+    new Map()
+  );
 
   // Charger les mandats
   useEffect(() => {
@@ -74,8 +69,16 @@ export default function MandatesIndexPage() {
   // Fonction pour supprimer un mandat
   const handleDelete = async (mandateId: string) => {
     try {
+      // 1. Trouver le mandat à supprimer
+      const mandateToDelete = mandates.find((m) => m.id === mandateId);
+      if (!mandateToDelete) {
+        toast.error("Mandat introuvable");
+        return;
+      }
+
       setDeletingId(mandateId);
 
+      // 2. Supprimer côté serveur
       const response = await fetch(`/api/mandats/${mandateId}`, {
         method: "DELETE",
       });
@@ -85,9 +88,32 @@ export default function MandatesIndexPage() {
         throw new Error(errorData.error || "Erreur lors de la suppression");
       }
 
-      // Retirer le mandat de la liste locale
+      // 3. Sauvegarder dans la corbeille temporaire
+      setDeletedMandates((prev) =>
+        new Map(prev).set(mandateId, mandateToDelete)
+      );
+
+      // 4. Retirer de la liste locale immédiatement
       setMandates((prev) => prev.filter((m) => m.id !== mandateId));
-      toast.success("Mandat supprimé avec succès");
+
+      // 5. Afficher le toast avec annulation
+      toast.success("Mandat supprimé", {
+        description: `"${mandateToDelete.name}" supprimé avec succès`,
+        duration: 12000, // 12 secondes pour annuler
+        action: {
+          label: "Annuler",
+          onClick: () => handleUndoDelete(mandateId, mandateToDelete),
+        },
+      });
+
+      // 6. Programmer le nettoyage de la corbeille
+      setTimeout(() => {
+        setDeletedMandates((prev) => {
+          const newMap = new Map(prev);
+          newMap.delete(mandateId);
+          return newMap;
+        });
+      }, 12000);
     } catch (error) {
       console.error("Erreur lors de la suppression:", error);
       toast.error(
@@ -98,6 +124,78 @@ export default function MandatesIndexPage() {
     } finally {
       setDeletingId(null);
     }
+  };
+
+  // Fonction pour annuler une suppression
+  const handleUndoDelete = async (
+    mandateId: string,
+    originalMandate: Mandate
+  ) => {
+    try {
+      // 1. Recréer le mandat côté serveur
+      const response = await fetch("/api/mandats", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: originalMandate.name,
+          group: originalMandate.group,
+          active: originalMandate.active,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Erreur lors de la restauration");
+      }
+
+      const restoredMandate = await response.json();
+
+      // 2. Remettre dans la liste (remplacer l'ancien ID par le nouveau)
+      setMandates((prev) => [...prev, restoredMandate]);
+
+      // 3. Retirer de la corbeille
+      setDeletedMandates((prev) => {
+        const newMap = new Map(prev);
+        newMap.delete(mandateId);
+        return newMap;
+      });
+
+      // 4. Confirmation
+      toast.success("Mandat restauré", {
+        description: `"${originalMandate.name}" a été restauré`,
+        icon: <Undo2 className="h-4 w-4" />,
+      });
+
+      // 5. Rafraîchir pour être sûr que tout est synchronisé
+      setTimeout(() => {
+        fetchMandates();
+      }, 1000);
+    } catch (error) {
+      console.error("Erreur lors de la restauration:", error);
+      toast.error("Impossible de restaurer le mandat");
+    }
+  };
+
+  // Fonction pour vider la corbeille
+  const handleEmptyTrash = () => {
+    const count = deletedMandates.size;
+    setDeletedMandates(new Map());
+
+    toast.info("Corbeille vidée", {
+      description: `${count} mandat(s) définitivement supprimé(s)`,
+    });
+  };
+
+  // Fonction pour restaurer tous les éléments de la corbeille
+  const handleRestoreAll = async () => {
+    const itemsToRestore = Array.from(deletedMandates.values());
+
+    for (const mandate of itemsToRestore) {
+      await handleUndoDelete(mandate.id, mandate);
+    }
+
+    toast.success(`${itemsToRestore.length} mandat(s) restauré(s)`);
   };
 
   // Fonction pour naviguer vers l'édition
@@ -157,9 +255,53 @@ export default function MandatesIndexPage() {
     <div className="space-y-6">
       {/* Header avec style identique à ton image */}
       <div className="border-b pb-4">
-        <h1 className="text-4xl font-bold tracking-tight text-gray-900">
-          Index
-        </h1>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-4xl font-bold tracking-tight text-gray-900">
+              Index
+            </h1>
+            {deletedMandates.size > 0 && (
+              <p className="text-sm text-muted-foreground mt-1">
+                <Badge variant="secondary" className="mr-2">
+                  {deletedMandates.size} élément(s) en corbeille
+                </Badge>
+                <Button
+                  variant="link"
+                  size="sm"
+                  onClick={handleRestoreAll}
+                  className="p-0 h-auto text-xs"
+                >
+                  Tout restaurer
+                </Button>
+                <span className="mx-1">•</span>
+                <Button
+                  variant="link"
+                  size="sm"
+                  onClick={handleEmptyTrash}
+                  className="p-0 h-auto text-xs text-destructive"
+                >
+                  Vider corbeille
+                </Button>
+              </p>
+            )}
+          </div>
+
+          {/* Actions existantes */}
+          <div className="flex items-center space-x-4">
+            {deletedMandates.size > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleEmptyTrash}
+                className="text-muted-foreground"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Vider ({deletedMandates.size})
+              </Button>
+            )}
+          </div>
+        </div>
+
         <div className="flex items-center space-x-4 mt-2">
           <Button
             variant="link"
@@ -290,53 +432,20 @@ export default function MandatesIndexPage() {
                       Edit
                     </Button>
                     <span className="text-gray-400">|</span>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="link"
-                          className="text-blue-600 hover:text-blue-700 p-0 h-auto font-normal text-sm"
-                          disabled={deletingId === mandate.id}
-                        >
-                          {deletingId === mandate.id ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                          ) : (
-                            "Delete"
-                          )}
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>
-                            Confirmer la suppression
-                          </AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Êtes-vous sûr de vouloir supprimer le mandat &quot;
-                            {mandate.name}&quot; ?
-                            {mandate._count && mandate._count.dayValues > 0 && (
-                              <span className="text-red-600 font-medium">
-                                <br />
-                                ⚠️ Ce mandat contient {
-                                  mandate._count.dayValues
-                                }{" "}
-                                valeur(s) journalière(s) qui seront également
-                                supprimées.
-                              </span>
-                            )}
-                            <br />
-                            Cette action est irréversible.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Annuler</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => handleDelete(mandate.id)}
-                            className="bg-red-600 hover:bg-red-700"
-                          >
-                            Supprimer
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+
+                    {/* Bouton Delete modifié - plus d'AlertDialog */}
+                    <Button
+                      variant="link"
+                      onClick={() => handleDelete(mandate.id)}
+                      className="text-blue-600 hover:text-blue-700 p-0 h-auto font-normal text-sm"
+                      disabled={deletingId === mandate.id}
+                    >
+                      {deletingId === mandate.id ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        "Delete"
+                      )}
+                    </Button>
                   </div>
                 </TableCell>
               </TableRow>

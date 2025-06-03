@@ -1,4 +1,3 @@
-// src/app/robots.ts
 import { MetadataRoute } from "next";
 
 export default function robots(): MetadataRoute.Robots {
@@ -8,6 +7,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: "/",
       disallow: ["/api/", "/admin/", "/dashboard/", "/profile/"],
     },
-    sitemap: "https://plannikeeper.com/sitemap.xml",
+    sitemap: "https://chaff.ch/sitemap.xml",
   };
 }

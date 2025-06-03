@@ -372,8 +372,8 @@ export default function EditMandatePage() {
                           Confirmer la suppression
                         </AlertDialogTitle>
                         <AlertDialogDescription>
-                          Êtes-vous sûr de vouloir supprimer le mandat &quots;
-                          {mandate.name}&quots; ?
+                          Êtes-vous sûr de vouloir supprimer le mandat
+                          {mandate.name} ?
                           {mandate._count && mandate._count.dayValues > 0 && (
                             <span className="text-red-600 font-medium">
                               <br />
