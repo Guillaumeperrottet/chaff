@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -21,29 +21,26 @@ import {
   SelectValue,
 } from "@/app/components/ui/select";
 import { BackButton } from "@/app/components/ui/BackButton";
-import { CalendarIcon, Save, X } from "lucide-react";
+import { CalendarIcon, Save, X, Loader2 } from "lucide-react";
 
-// Types basés sur ton schema Prisma
-interface MandateOption {
+// Types basés sur le schema Prisma
+interface Mandate {
   id: string;
   name: string;
   group: "HEBERGEMENT" | "RESTAURATION";
+  active: boolean;
+  totalRevenue: number;
+  lastEntry: Date | null;
+  _count?: {
+    dayValues: number;
+  };
 }
-
-// Données simulées pour les mandats (à remplacer par tes vraies données)
-const mandates: MandateOption[] = [
-  { id: "1", name: "Camping Lac", group: "HEBERGEMENT" },
-  { id: "2", name: "Camping Pont", group: "HEBERGEMENT" },
-  { id: "3", name: "Camping Sapins", group: "HEBERGEMENT" },
-  { id: "4", name: "Hôtel Alpha", group: "HEBERGEMENT" },
-  { id: "5", name: "Lodges de Camargue", group: "HEBERGEMENT" },
-  { id: "6", name: "Restaurant Central", group: "RESTAURATION" },
-  { id: "7", name: "Café du Parc", group: "RESTAURATION" },
-];
 
 export default function CreateDayValuePage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [mandates, setMandates] = useState<Mandate[]>([]);
+  const [loadingMandates, setLoadingMandates] = useState(true);
 
   // État du formulaire
   const [formData, setFormData] = useState({
@@ -54,6 +51,31 @@ export default function CreateDayValuePage() {
 
   // Gestion des erreurs
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Charger les mandats depuis l'API
+  useEffect(() => {
+    const loadMandates = async () => {
+      try {
+        setLoadingMandates(true);
+        const response = await fetch("/api/mandats");
+
+        if (!response.ok) {
+          throw new Error("Erreur lors du chargement des mandats");
+        }
+
+        const data = await response.json();
+        // Filtrer seulement les mandats actifs
+        setMandates(data.filter((m: Mandate) => m.active));
+      } catch (error) {
+        console.error("Erreur:", error);
+        toast.error("Erreur lors du chargement des mandats");
+      } finally {
+        setLoadingMandates(false);
+      }
+    };
+
+    loadMandates();
+  }, []);
 
   // Validation du formulaire
   const validateForm = () => {
@@ -89,7 +111,7 @@ export default function CreateDayValuePage() {
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/day-values", {
+      const response = await fetch("/api/valeurs", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -103,7 +125,7 @@ export default function CreateDayValuePage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Erreur lors de la création");
+        throw new Error(errorData.error || "Erreur lors de la création");
       }
 
       toast.success("Valeur journalière créée avec succès");
@@ -136,6 +158,12 @@ export default function CreateDayValuePage() {
 
   // Obtenir le mandat sélectionné
   const selectedMandate = mandates.find((m) => m.id === formData.mandateId);
+
+  // Grouper les mandats par catégorie
+  const hebergementMandates = mandates.filter((m) => m.group === "HEBERGEMENT");
+  const restaurationMandates = mandates.filter(
+    (m) => m.group === "RESTAURATION"
+  );
 
   return (
     <div className="space-y-6">
@@ -182,51 +210,99 @@ export default function CreateDayValuePage() {
                   onValueChange={(value) =>
                     handleInputChange("mandateId", value)
                   }
+                  disabled={loadingMandates}
                 >
                   <SelectTrigger
                     className={errors.mandateId ? "border-red-500" : ""}
                   >
-                    <SelectValue placeholder="Sélectionnez un mandat..." />
+                    <SelectValue
+                      placeholder={
+                        loadingMandates
+                          ? "Chargement..."
+                          : "Sélectionnez un mandat..."
+                      }
+                    />
                   </SelectTrigger>
                   <SelectContent>
-                    {/* Grouper par type */}
-                    <div className="py-1">
-                      <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">
-                        Hébergement
+                    {loadingMandates ? (
+                      <div className="flex items-center justify-center py-4">
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        Chargement des mandats...
                       </div>
-                      {mandates
-                        .filter((mandate) => mandate.group === "HEBERGEMENT")
-                        .map((mandate) => (
-                          <SelectItem key={mandate.id} value={mandate.id}>
-                            {mandate.name}
-                          </SelectItem>
-                        ))}
-                    </div>
+                    ) : (
+                      <>
+                        {/* Grouper par type */}
+                        {hebergementMandates.length > 0 && (
+                          <div className="py-1">
+                            <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">
+                              Hébergement
+                            </div>
+                            {hebergementMandates.map((mandate) => (
+                              <SelectItem key={mandate.id} value={mandate.id}>
+                                <div className="flex items-center justify-between w-full">
+                                  <span>{mandate.name}</span>
+                                  {mandate._count &&
+                                    mandate._count.dayValues > 0 && (
+                                      <span className="text-xs text-muted-foreground ml-2">
+                                        ({mandate._count.dayValues} valeurs)
+                                      </span>
+                                    )}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </div>
+                        )}
 
-                    <div className="py-1">
-                      <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">
-                        Restauration
-                      </div>
-                      {mandates
-                        .filter((mandate) => mandate.group === "RESTAURATION")
-                        .map((mandate) => (
-                          <SelectItem key={mandate.id} value={mandate.id}>
-                            {mandate.name}
-                          </SelectItem>
-                        ))}
-                    </div>
+                        {restaurationMandates.length > 0 && (
+                          <div className="py-1">
+                            <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">
+                              Restauration
+                            </div>
+                            {restaurationMandates.map((mandate) => (
+                              <SelectItem key={mandate.id} value={mandate.id}>
+                                <div className="flex items-center justify-between w-full">
+                                  <span>{mandate.name}</span>
+                                  {mandate._count &&
+                                    mandate._count.dayValues > 0 && (
+                                      <span className="text-xs text-muted-foreground ml-2">
+                                        ({mandate._count.dayValues} valeurs)
+                                      </span>
+                                    )}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </div>
+                        )}
+
+                        {mandates.length === 0 && (
+                          <div className="text-center py-4 text-muted-foreground">
+                            Aucun mandat actif trouvé
+                          </div>
+                        )}
+                      </>
+                    )}
                   </SelectContent>
                 </Select>
                 {errors.mandateId && (
                   <p className="text-sm text-red-500">{errors.mandateId}</p>
                 )}
                 {selectedMandate && (
-                  <p className="text-sm text-muted-foreground">
-                    Groupe:{" "}
-                    {selectedMandate.group === "HEBERGEMENT"
-                      ? "Hébergement"
-                      : "Restauration"}
-                  </p>
+                  <div className="text-sm text-muted-foreground space-y-1">
+                    <p>
+                      Groupe:{" "}
+                      {selectedMandate.group === "HEBERGEMENT"
+                        ? "Hébergement"
+                        : "Restauration"}
+                    </p>
+                    {selectedMandate.lastEntry && (
+                      <p>
+                        Dernière saisie:{" "}
+                        {new Date(selectedMandate.lastEntry).toLocaleDateString(
+                          "fr-CH"
+                        )}
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
 
@@ -293,12 +369,14 @@ export default function CreateDayValuePage() {
 
                 <Button
                   type="submit"
-                  disabled={isLoading}
+                  disabled={
+                    isLoading || loadingMandates || mandates.length === 0
+                  }
                   className="min-w-[120px]"
                 >
                   {isLoading ? (
                     <div className="flex items-center">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      <Loader2 className="animate-spin h-4 w-4 mr-2" />
                       Enregistrement...
                     </div>
                   ) : (
@@ -332,6 +410,22 @@ export default function CreateDayValuePage() {
               • <strong>Valeur :</strong> Entrez le montant en francs suisses
               (décimales autorisées)
             </p>
+            {mandates.length === 0 && !loadingMandates && (
+              <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                <p className="text-yellow-800">
+                  ⚠️ Aucun mandat actif n&apos;est disponible. Veuillez
+                  d&apos;abord créer un mandat.
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-2"
+                  onClick={() => router.push("/dashboard/mandates/create")}
+                >
+                  Créer un mandat
+                </Button>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
