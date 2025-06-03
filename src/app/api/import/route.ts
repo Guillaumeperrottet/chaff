@@ -130,89 +130,76 @@ function parseSmartDate(dateValue: string | number | Date): Date {
   const dateStr = String(dateValue).trim();
   console.log(`📅 Parsing date: "${dateStr}"`);
 
-  // 🔥 CORRECTION SPÉCIFIQUE pour le format M/D/YY (format américain)
+  // 🔥 FORMAT EUROPÉEN DD/MM/YY ou DD/MM/YYYY UNIQUEMENT
   if (dateStr.match(/^\d{1,2}\/\d{1,2}\/\d{2,4}$/)) {
     const parts = dateStr.split("/");
     if (parts.length === 3) {
-      const first = parseInt(parts[0]);
-      const second = parseInt(parts[1]);
-      let year = parseInt(parts[2]);
+      const day = parseInt(parts[0]); // Premier = jour
+      const month = parseInt(parts[1]); // Deuxième = mois
+      let year = parseInt(parts[2]); // Troisième = année
 
-      // Corriger l'année sur 2 chiffres
+      // ✅ CORRECTION DE L'ANNÉE POUR VOS DONNÉES MODERNES
       if (year < 100) {
-        year += year >= 22 ? 1900 : 2000; // 22-99 = 1922-1999, 00-21 = 2000-2021
+        year += 2000; // Force 20XX : 22 -> 2022, 25 -> 2025
+        console.log(`  Année corrigée: ${parts[2]} -> ${year}`);
       }
 
-      // 🎯 NOUVELLE LOGIQUE DE DÉTECTION
-      if (first > 12 && second <= 12) {
-        // Format DD/MM/YYYY (jour > 12, mois <= 12)
-        console.log(`  Format DD/MM/YYYY détecté: ${first}/${second}/${year}`);
-        return new Date(Date.UTC(year, second - 1, first));
-      } else if (second > 12 && first <= 12) {
-        // Format MM/DD/YYYY (mois > 12, jour <= 12) - INVERSION
-        console.log(
-          `  Format MM/DD/YYYY détecté: ${first}/${second}/${year} -> ${second}/${first}/${year}`
-        );
-        return new Date(Date.UTC(year, first - 1, second));
-      } else if (first <= 12 && second <= 12) {
-        // 🔥 CAS AMBIGU: Détection intelligente basée sur le contexte
-
-        // Règle 1: Si c'est clairement un fichier américain (détecté par d'autres indices)
-        // Pour vos données, on peut assumer format américain MM/DD/YY
-        console.log(
-          `  Format ambigu ${first}/${second}/${year} - ASSUME FORMAT AMÉRICAIN MM/DD/YY`
-        );
-
-        // Vérification de cohérence : éviter les dates futures impossibles
-        const usDate = new Date(Date.UTC(year, first - 1, second)); // MM/DD
-        const euDate = new Date(Date.UTC(year, second - 1, first)); // DD/MM
-        const maxValidDate = new Date("2025-06-01"); // Votre limite
-
-        if (usDate <= maxValidDate && euDate > maxValidDate) {
-          console.log(
-            `  Choix format US car date EU serait future: ${usDate.toISOString().split("T")[0]} vs ${euDate.toISOString().split("T")[0]}`
-          );
-          return usDate;
-        } else if (euDate <= maxValidDate && usDate > maxValidDate) {
-          console.log(
-            `  Choix format EU car date US serait future: ${euDate.toISOString().split("T")[0]} vs ${usDate.toISOString().split("T")[0]}`
-          );
-          return euDate;
-        } else {
-          // Par défaut, format américain pour vos données
-          console.log(
-            `  Défaut format américain MM/DD/YY: ${usDate.toISOString().split("T")[0]}`
-          );
-          return usDate;
-        }
+      // 🎯 VALIDATION FORMAT EUROPÉEN DD/MM
+      if (day < 1 || day > 31) {
+        throw new Error(`Jour invalide: ${day} (doit être entre 1 et 31)`);
       }
+
+      if (month < 1 || month > 12) {
+        throw new Error(`Mois invalide: ${month} (doit être entre 1 et 12)`);
+      }
+
+      // 🔒 VALIDATION DATE FUTURE (optionnel)
+      const maxValidDate = new Date("2025-06-01");
+      const parsedDate = new Date(Date.UTC(year, month - 1, day));
+
+      if (parsedDate > maxValidDate) {
+        throw new Error(
+          `Date future détectée: ${parsedDate.toISOString().split("T")[0]}. Vérifiez vos données.`
+        );
+      }
+
+      console.log(
+        `  ✅ Format DD/MM/YYYY: ${day}/${month}/${year} -> ${parsedDate.toISOString().split("T")[0]}`
+      );
+      return parsedDate;
     }
   }
 
-  // Autres formats existants...
-  if (dateStr.includes("-")) {
+  // 🔥 FORMAT ISO YYYY-MM-DD
+  if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
     const parts = dateStr.split("-");
     if (parts.length === 3) {
-      if (parts[0].length === 4) {
-        // YYYY-MM-DD
-        return new Date(
-          Date.UTC(
-            parseInt(parts[0]),
-            parseInt(parts[1]) - 1,
-            parseInt(parts[2])
-          )
-        );
-      }
+      const year = parseInt(parts[0]);
+      const month = parseInt(parts[1]);
+      const day = parseInt(parts[2]);
+
+      console.log(`  ✅ Format ISO YYYY-MM-DD: ${dateStr}`);
+      return new Date(Date.UTC(year, month - 1, day));
     }
   }
 
-  // Fallback
-  const directParse = new Date(dateStr);
-  if (!isNaN(directParse.getTime())) {
-    return directParse;
+  // 🔥 FORMAT AVEC TIRETS DD-MM-YYYY
+  if (dateStr.match(/^\d{1,2}-\d{1,2}-\d{4}$/)) {
+    const parts = dateStr.split("-");
+    if (parts.length === 3) {
+      const day = parseInt(parts[0]);
+      const month = parseInt(parts[1]);
+      const year = parseInt(parts[2]);
+
+      console.log(`  ✅ Format DD-MM-YYYY: ${day}-${month}-${year}`);
+      return new Date(Date.UTC(year, month - 1, day));
+    }
   }
 
-  throw new Error(`Format de date non reconnu: "${dateStr}"`);
+  // ❌ AUCUN FORMAT RECONNU
+  throw new Error(
+    `Format de date non reconnu: "${dateStr}". Utilisez DD/MM/YY, DD/MM/YYYY ou YYYY-MM-DD`
+  );
 }
 // Fonction pour parser intelligemment les valeurs numériques
 function parseSmartValue(valueStr: string | number): number {
