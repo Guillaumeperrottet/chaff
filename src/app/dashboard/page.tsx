@@ -211,7 +211,7 @@ export default function DashboardPage() {
   };
 
   const handleAddValue = () => {
-    router.push("/dashboard/DayValues/Create");
+    router.push("/dashboard/dayvalues/create");
   };
 
   const handleViewDetails = (mandateId: string) => {

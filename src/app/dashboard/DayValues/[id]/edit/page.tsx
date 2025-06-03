@@ -101,7 +101,7 @@ export default function EditDayValuePage() {
         toast.error(
           error instanceof Error ? error.message : "Erreur lors du chargement"
         );
-        router.push("/dashboard/DayValues");
+        router.push("/dashboard/dayvalues");
       } finally {
         setLoading(false);
       }
@@ -164,7 +164,7 @@ export default function EditDayValuePage() {
       }
 
       toast.success("Valeur journalière mise à jour avec succès");
-      router.push("/dashboard/DayValues");
+      router.push("/dashboard/dayvalues");
     } catch (error) {
       console.error("Erreur:", error);
       toast.error(
@@ -208,7 +208,7 @@ export default function EditDayValuePage() {
       }
 
       toast.success("Valeur journalière supprimée avec succès");
-      router.push("/dashboard/DayValues");
+      router.push("/dashboard/dayvalues");
     } catch (error) {
       console.error("Erreur:", error);
       toast.error(
@@ -222,7 +222,7 @@ export default function EditDayValuePage() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <BackButton href="/dashboard/DayValues" />
+        <BackButton href="/dashboard/dayvalues" />
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin" />
         </div>
@@ -233,7 +233,7 @@ export default function EditDayValuePage() {
   if (!dayValue) {
     return (
       <div className="space-y-6">
-        <BackButton href="/dashboard/DayValues" />
+        <BackButton href="/dashboard/dayvalues" />
         <div className="text-center py-12">
           <p className="text-muted-foreground">
             Valeur journalière non trouvée
@@ -246,7 +246,7 @@ export default function EditDayValuePage() {
   return (
     <div className="space-y-6">
       {/* Navigation */}
-      <BackButton href="/dashboard/DayValues" label="Retour aux valeurs" />
+      <BackButton href="/dashboard/dayvalues" label="Retour aux valeurs" />
 
       {/* Header */}
       <div>
@@ -395,7 +395,7 @@ export default function EditDayValuePage() {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => router.push("/dashboard/DayValues")}
+                    onClick={() => router.push("/dashboard/dayvalues")}
                     disabled={saving}
                   >
                     Annuler

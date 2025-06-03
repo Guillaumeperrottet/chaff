@@ -503,7 +503,7 @@ export default function EditMandatePage() {
                 variant="outline"
                 size="sm"
                 className="w-full justify-start"
-                onClick={() => router.push("/dashboard/DayValues/Create")}
+                onClick={() => router.push("/dashboard/dayvalues/create")}
               >
                 Ajouter une valeur
               </Button>
