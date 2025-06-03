@@ -8,6 +8,7 @@ interface DashboardData {
   id: string;
   name: string;
   lastEntry: string | null; // Format simple: "01.06.25" ou null
+  daysSinceLastEntry: number | null; // Nombre de jours depuis la dernière saisie
   performance: string;
   values: Record<string, string>;
   category: string;
@@ -102,6 +103,19 @@ export async function GET(request: NextRequest) {
           ? formatDateSimple(lastDayValue.createdAt) // ✅ Formatage de la date de saisie
           : null;
 
+        // Calculer les jours depuis la dernière saisie (pas depuis la date CA)
+        let daysSinceLastEntry = null;
+        if (lastDayValue) {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+
+          const lastSaisieDate = new Date(lastDayValue.createdAt);
+          lastSaisieDate.setHours(0, 0, 0, 0);
+
+          const diffTime = today.getTime() - lastSaisieDate.getTime();
+          daysSinceLastEntry = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        }
+
         // 🐛 DEBUG TEMPORAIRE - À retirer après vérification
         if (mandate.name === "Camping Lac") {
           console.log(`🔍 DEBUG ${mandate.name}:`);
@@ -152,6 +166,7 @@ export async function GET(request: NextRequest) {
           id: mandate.id,
           name: mandate.name,
           lastEntry: lastEntryFormatted,
+          daysSinceLastEntry, // Ajouter cette ligne
           performance,
           values,
           category:
