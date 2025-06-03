@@ -63,14 +63,13 @@ export async function GET(request: NextRequest) {
 
     const dashboardData: DashboardData[] = await Promise.all(
       mandates.map(async (mandate) => {
-        // 🔥 SIMPLIFICATION: Récupérer la dernière DATE DE VALEUR (pas createdAt)
         const lastDayValue = await prisma.dayValue.findFirst({
           where: { mandateId: mandate.id },
-          orderBy: { createdAt: "desc" }, // ✅ Trier par date de saisie
+          orderBy: { date: "desc" }, // Trier par date CA
           select: {
-            createdAt: true, // ✅ Prendre la date de saisie
-            date: true, // Garder pour debug/record
+            date: true,
             value: true,
+            createdAt: true,
           },
         });
 
@@ -98,9 +97,8 @@ export async function GET(request: NextRequest) {
           values[dateKey] = value ? formatCurrency(value) : "0.00";
         });
 
-        // 🔥 DERNIÈRE SAISIE: Simple formatage de la date
         const lastEntryFormatted = lastDayValue
-          ? formatDateSimple(lastDayValue.createdAt) // ✅ Formatage de la date de saisie
+          ? formatDateSimple(lastDayValue.date) // Utiliser la date CA
           : null;
 
         // Calculer les jours depuis la dernière saisie (pas depuis la date CA)

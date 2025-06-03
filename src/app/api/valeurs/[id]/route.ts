@@ -169,7 +169,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       await tx.mandate.update({
         where: { id: updatedValue.mandateId },
         data: {
-          lastEntry: new Date(), // 🔧 Date de modification = maintenant
+          lastEntry: updatedValue.date, // Date de la valeur CA mise à jour
         },
       });
 
@@ -257,18 +257,17 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         where: { id },
       });
 
-      // Recalculer lastEntry (dernière saisie restante)
+      // Recalculer lastEntry (dernière date CA restante)
       const lastRemainingEntry = await tx.dayValue.findFirst({
         where: { mandateId: existingValue.mandateId },
-        orderBy: { createdAt: "desc" },
-        select: { createdAt: true },
+        orderBy: { date: "desc" }, // ✅ Trier par date CA, pas createdAt
+        select: { date: true },
       });
 
-      // Mettre à jour le mandat
       await tx.mandate.update({
         where: { id: existingValue.mandateId },
         data: {
-          lastEntry: lastRemainingEntry?.createdAt || null, // null si plus de valeurs
+          lastEntry: lastRemainingEntry?.date || null,
         },
       });
     });

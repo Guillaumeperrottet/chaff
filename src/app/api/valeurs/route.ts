@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
       await tx.mandate.update({
         where: { id: validatedData.mandateId },
         data: {
-          lastEntry: new Date(), // 🔧 Date de saisie = maintenant
+          lastEntry: date, // Date de la valeur CA
           // Optionnel: mettre à jour aussi totalRevenue en temps réel
           totalRevenue: {
             increment: validatedData.value,
