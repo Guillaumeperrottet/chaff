@@ -1,6 +1,7 @@
+// src/app/dashboard/mandates/[id]/payroll/page.tsx - Version corrigée
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import {
   Card,
@@ -118,7 +119,10 @@ export default function MandatePayrollPage() {
     notes: "",
   });
 
-  const fetchPayrollData = async () => {
+  // ✅ FIX: Utiliser useCallback pour éviter la recréation de la fonction
+  const fetchPayrollData = useCallback(async () => {
+    if (!mandateId) return;
+
     try {
       setLoading(true);
       const response = await fetch(
@@ -137,7 +141,12 @@ export default function MandatePayrollPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [mandateId, selectedYear]); // ✅ FIX: Dépendances correctes
+
+  // ✅ FIX: useEffect avec les bonnes dépendances
+  useEffect(() => {
+    fetchPayrollData();
+  }, [fetchPayrollData]); // ✅ FIX: Utiliser fetchPayrollData mémorisée
 
   const handleSaveEntry = async () => {
     if (!formData.month || !formData.grossAmount) {
@@ -182,7 +191,7 @@ export default function MandatePayrollPage() {
 
       setIsDialogOpen(false);
       resetForm();
-      fetchPayrollData();
+      fetchPayrollData(); // ✅ Utiliser la fonction mémorisée
     } catch (error) {
       console.error("Erreur:", error);
       toast.error(
@@ -193,7 +202,7 @@ export default function MandatePayrollPage() {
     }
   };
 
-  const handleEdit = (summary: PayrollSummary) => {
+  const handleEdit = useCallback((summary: PayrollSummary) => {
     if (!summary.manualEntry) return;
 
     setEditingEntry(summary.manualEntry);
@@ -205,30 +214,33 @@ export default function MandatePayrollPage() {
       notes: summary.manualEntry.notes || "",
     });
     setIsDialogOpen(true);
-  };
+  }, []); // ✅ FIX: Mémoriser pour éviter les re-renders
 
-  const handleDelete = async (year: number, month: number) => {
-    if (!confirm("Supprimer cette saisie de masse salariale ?")) return;
+  const handleDelete = useCallback(
+    async (year: number, month: number) => {
+      if (!confirm("Supprimer cette saisie de masse salariale ?")) return;
 
-    try {
-      const response = await fetch(
-        `/api/mandats/${mandateId}/payroll?year=${year}&month=${month}`,
-        { method: "DELETE" }
-      );
+      try {
+        const response = await fetch(
+          `/api/mandats/${mandateId}/payroll?year=${year}&month=${month}`,
+          { method: "DELETE" }
+        );
 
-      if (!response.ok) {
-        throw new Error("Erreur lors de la suppression");
+        if (!response.ok) {
+          throw new Error("Erreur lors de la suppression");
+        }
+
+        toast.success("Saisie supprimée avec succès");
+        fetchPayrollData(); // ✅ Utiliser la fonction mémorisée
+      } catch (error) {
+        console.error("Erreur:", error);
+        toast.error("Erreur lors de la suppression");
       }
+    },
+    [mandateId, fetchPayrollData]
+  ); // ✅ FIX: Dépendances correctes
 
-      toast.success("Saisie supprimée avec succès");
-      fetchPayrollData();
-    } catch (error) {
-      console.error("Erreur:", error);
-      toast.error("Erreur lors de la suppression");
-    }
-  };
-
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     setFormData({
       month: "",
       grossAmount: "",
@@ -237,38 +249,39 @@ export default function MandatePayrollPage() {
       notes: "",
     });
     setEditingEntry(null);
-  };
+  }, []); // ✅ FIX: Mémoriser pour éviter les re-renders
 
-  const openNewEntryDialog = () => {
+  const openNewEntryDialog = useCallback(() => {
     resetForm();
     setIsDialogOpen(true);
-  };
+  }, [resetForm]); // ✅ FIX: Dépendance correcte
 
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = useCallback((amount: number) => {
     return new Intl.NumberFormat("fr-CH", {
       style: "currency",
       currency: "CHF",
     }).format(amount);
-  };
+  }, []); // ✅ FIX: Mémoriser pour éviter les re-renders
 
-  const formatPercentage = (value: number | null) => {
+  const formatPercentage = useCallback((value: number | null) => {
     if (value === null) return "-";
     return `${value.toFixed(1)}%`;
-  };
+  }, []); // ✅ FIX: Mémoriser pour éviter les re-renders
 
-  const getRatioColor = (ratio: number | null) => {
+  const getRatioColor = useCallback((ratio: number | null) => {
     if (ratio === null) return "text-muted-foreground";
     if (ratio < 30) return "text-green-600";
     if (ratio < 50) return "text-yellow-600";
     return "text-red-600";
-  };
+  }, []); // ✅ FIX: Mémoriser pour éviter les re-renders
 
-  const getRatioIcon = (ratio: number | null) => {
+  const getRatioIcon = useCallback((ratio: number | null) => {
     if (ratio === null) return null;
     if (ratio < 35) return <TrendingDown className="h-4 w-4 text-green-600" />;
     return <TrendingUp className="h-4 w-4 text-red-600" />;
-  };
+  }, []); // ✅ FIX: Mémoriser pour éviter les re-renders
 
+  // ✅ FIX: Gestion de l'état de chargement initial
   if (loading) {
     return (
       <div className="space-y-6">
@@ -280,12 +293,16 @@ export default function MandatePayrollPage() {
     );
   }
 
+  // ✅ FIX: Gestion de l'erreur de chargement
   if (!payrollData) {
     return (
       <div className="space-y-6">
         <BackButton href="/dashboard/mandates" />
         <div className="text-center py-12">
           <p className="text-muted-foreground">Erreur lors du chargement</p>
+          <Button onClick={fetchPayrollData} className="mt-4">
+            Réessayer
+          </Button>
         </div>
       </div>
     );
@@ -307,7 +324,10 @@ export default function MandatePayrollPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Select value={selectedYear} onValueChange={setSelectedYear}>
+          <Select
+            value={selectedYear}
+            onValueChange={setSelectedYear} // ✅ FIX: Pas besoin de fonction wrapper
+          >
             <SelectTrigger className="w-32">
               <SelectValue />
             </SelectTrigger>
