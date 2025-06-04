@@ -280,6 +280,10 @@ model Mandate {
   timeEntries  TimeEntry[]
   payrollData  PayrollData[]
   
+  // Nouvelles relations pour la masse salariale manuelle
+  manualPayrollEntries ManualPayrollEntry[]
+  payrollSummaries     PayrollSummary[]
+  
   // Nouveaux champs pour la masse salariale
   totalPayrollCost Float @default(0) // Cache du coût total masse salariale
   lastPayrollCalculation DateTime? // Dernière fois que la masse salariale a été calculée
@@ -423,6 +427,59 @@ model GastrotimeImport {
 }
 
 // ==========================================
+// SYSTÈME DE MASSE SALARIALE MANUELLE
+// ==========================================
+
+model ManualPayrollEntry {
+  id              String       @id @default(cuid())
+  mandateId       String
+  year            Int
+  month           Int          // 1-12
+  grossAmount     Float        // Montant brut total
+  socialCharges   Float        @default(0) // Charges sociales
+  totalCost       Float        // Coût total employeur (brut + charges)
+  employeeCount   Int?         // Nombre d'employés (optionnel)
+  notes           String?      // Notes explicatives
+  createdBy       String       // ID de l'utilisateur qui a saisi
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  // Relations
+  mandate         Mandate      @relation(fields: [mandateId], references: [id], onDelete: Cascade)
+  
+  @@unique([mandateId, year, month])
+  @@index([mandateId, year])
+  @@index([year, month])
+  @@map("manual_payroll_entries")
+}
+
+model PayrollSummary {
+  id                    String   @id @default(cuid())
+  mandateId             String
+  year                  Int
+  month                 Int
+  
+  // Données CA (depuis DayValue)
+  totalRevenue          Float    @default(0)
+  revenueEntries        Int      @default(0)
+  
+  // Données masse salariale
+  manualPayrollAmount   Float?   // Saisie manuelle
+  calculatedPayrollAmount Float? // Calcul automatique
+  payrollSource         PayrollSource @default(MANUAL)
+  
+  // Ratios calculés
+  payrollToRevenueRatio Float?   // Ratio masse sal. / CA
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  mandate               Mandate  @relation(fields: [mandateId], references: [id], onDelete: Cascade)
+  
+  @@unique([mandateId, year, month])
+  @@map("payroll_summary")
+}
+
+// ==========================================
 // ENUMS SYSTÈME
 // ==========================================
 
@@ -474,4 +531,10 @@ enum ImportStatus {
   COMPLETED
   FAILED
   PARTIAL // Import partiel avec erreurs
+}
+
+enum PayrollSource {
+  MANUAL      // Saisie manuelle
+  CALCULATED  // Calcul automatique
+  BOTH        // Les deux disponibles
 }
