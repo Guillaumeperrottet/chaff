@@ -447,6 +447,14 @@ export default function EmployeesPage() {
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() =>
+                            router.push("/dashboard/employees/timesheet/create")
+                          }
+                        >
+                          <Clock className="mr-2 h-4 w-4" />
+                          Saisir heures
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() =>
                             router.push(
                               `/dashboard/employees/${employee.id}/timesheet`
                             )

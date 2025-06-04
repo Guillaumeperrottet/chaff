@@ -526,9 +526,10 @@ export default function DashboardPage() {
       {/* Header avec titre et actions */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Campus</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-3xl font-bold tracking-tight">
             Tableau de bord des valeurs journalières
+          </h1>
+          <p className="text-muted-foreground">
             {deletedItems.size > 0 && (
               <span className="ml-2">
                 <Badge variant="secondary" className="text-xs">
