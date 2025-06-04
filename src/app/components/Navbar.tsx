@@ -264,41 +264,8 @@ function ModernNavbar() {
             </Link>
           </div>
 
-          {/* Navigation principale et breadcrumbs au centre */}
-          <div className="hidden md:flex items-center space-x-6 flex-1 justify-center max-w-4xl">
-            {/* Navigation principale */}
-            <nav
-              aria-label="Navigation principale"
-              className="flex items-center space-x-4"
-            >
-              <Link
-                href="/dashboard/employees"
-                className={`flex items-center space-x-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                  pathname.startsWith("/dashboard/employees")
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
-                }`}
-              >
-                <Users className="h-4 w-4" />
-                <span>Employés</span>
-              </Link>
-              <Link
-                href="/dashboard/payroll"
-                className={`flex items-center space-x-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                  pathname.startsWith("/dashboard/payroll")
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
-                }`}
-              >
-                <DollarSign className="h-4 w-4" />
-                <span>Masse salariale</span>
-              </Link>
-            </nav>
-
-            {/* Séparateur */}
-            <div className="h-4 w-px bg-border"></div>
-
-            {/* Breadcrumbs */}
+          {/* Breadcrumbs au centre */}
+          <div className="hidden md:flex items-center flex-1 justify-center">
             <nav aria-label="Breadcrumb">
               <ol className="flex items-center space-x-1 text-sm text-muted-foreground">
                 {breadcrumbs.map((item, index) => (
@@ -418,6 +385,22 @@ function ModernNavbar() {
                     </p>
                   </div>
                 </div>
+
+                <DropdownMenuSeparator />
+
+                <DropdownMenuItem
+                  onClick={() => router.push("/dashboard/employees")}
+                >
+                  <Users className="mr-2 h-4 w-4" />
+                  <span>Employés</span>
+                </DropdownMenuItem>
+
+                <DropdownMenuItem
+                  onClick={() => router.push("/dashboard/payroll")}
+                >
+                  <DollarSign className="mr-2 h-4 w-4" />
+                  <span>Masse salariale</span>
+                </DropdownMenuItem>
 
                 <DropdownMenuSeparator />
 
