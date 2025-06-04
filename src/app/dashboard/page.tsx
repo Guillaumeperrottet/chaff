@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   Card,
   CardContent,
@@ -542,123 +543,79 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Barre de recherche et filtres modernisée */}
-      <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
-        <div className="flex items-center justify-between gap-6">
-          {/* Section de recherche et filtres */}
-          <div className="flex items-center gap-4 flex-1">
-            {/* Recherche principale */}
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <Input
-                placeholder="Rechercher un campus..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 h-10 border-slate-200 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-slate-50 hover:bg-white"
-              />
-            </div>
-
-            {/* Filtres avec labels */}
-            <div className="flex items-center gap-3">
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-slate-600 uppercase tracking-wide">
-                  Catégorie
-                </label>
-                <Select
-                  value={categoryFilter}
-                  onValueChange={setCategoryFilter}
-                >
-                  <SelectTrigger className="w-[160px] h-10 border-slate-200 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-slate-50 hover:bg-white transition-colors">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Toutes</SelectItem>
-                    <SelectItem value="hebergement">Hébergement</SelectItem>
-                    <SelectItem value="restauration">Restauration</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-slate-600 uppercase tracking-wide">
-                  Statut
-                </label>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-[130px] h-10 border-slate-200 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-slate-50 hover:bg-white transition-colors">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Tous</SelectItem>
-                    <SelectItem value="active">Actif</SelectItem>
-                    <SelectItem value="inactive">Inactif</SelectItem>
-                    <SelectItem value="new">Nouveau</SelectItem>
-                    <SelectItem value="warning">Attention</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-
-          {/* Indicateur de résultats avec style badge */}
-          <div className="flex items-center gap-2">
-            <Badge
-              variant="outline"
-              className="bg-blue-50 border-blue-200 text-blue-700 px-3 py-1.5"
-            >
-              <span className="font-semibold">{mergedData.length}</span>
-              <span className="ml-1">
-                campus trouvé{mergedData.length > 1 ? "s" : ""}
-              </span>
-            </Badge>
-
-            {/* Bouton de reset des filtres (si filtres actifs) */}
-            {(searchTerm ||
-              categoryFilter !== "all" ||
-              statusFilter !== "all") && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setSearchTerm("");
-                  setCategoryFilter("all");
-                  setStatusFilter("all");
-                }}
-                className="text-slate-500 hover:text-slate-700 hover:bg-slate-100"
-              >
-                <span className="text-xs">Effacer filtres</span>
-              </Button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Table principale simplifiée */}
+      {/* Table principale avec filtres intégrés dans le CardHeader */}
       <Card className="shadow-lg border-slate-200">
-        <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 border-b border-slate-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-xl font-bold text-slate-800">
+        <CardHeader className="bg-white border-b border-slate-200 py-2">
+          <div className="relative flex items-center min-h-[60px]">
+            {/* Titre parfaitement centré */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+              <CardTitle className="text-xl font-bold text-slate-800 mb-2">
                 Vue d&apos;ensemble du chiffre d&apos;affaires journalier
               </CardTitle>
               <CardDescription className="text-slate-600">
-                Chiffre d&apos;affaires journalier et ratios de masse salariale
-                par campus
+                <Link
+                  href="/dashboard/mandates"
+                  className="underline text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
+                >
+                  Index des mandats
+                </Link>
               </CardDescription>
             </div>
-            <div className="flex items-center gap-3">
-              <Badge
-                variant="secondary"
-                className="text-xs bg-blue-100 text-blue-700 border-blue-200"
-              >
-                {mergedData.length} campus
-              </Badge>
-              {payrollRatios && (
-                <Badge
-                  variant="outline"
-                  className="text-xs border-emerald-200 text-emerald-700"
+
+            {/* Filtres compacts à droite (position absolue) */}
+            <div className="absolute right-0 flex items-center gap-3">
+              {/* Recherche compacte */}
+              <div className="relative">
+                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                <Input
+                  placeholder="Rechercher..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-8 h-8 w-40 text-xs border-slate-200 focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 bg-white/80 placeholder:text-slate-400"
+                />
+              </div>
+
+              {/* Filtres compacts avec labels clairs */}
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="w-36 h-8 text-xs border-slate-200 focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 bg-white/80">
+                  <SelectValue placeholder="Catégorie" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Toutes catégories</SelectItem>
+                  <SelectItem value="hebergement">Hébergement</SelectItem>
+                  <SelectItem value="restauration">Restauration</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-28 h-8 text-xs border-slate-200 focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 bg-white/80">
+                  <SelectValue placeholder="Statut" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous statuts</SelectItem>
+                  <SelectItem value="active">Actif</SelectItem>
+                  <SelectItem value="inactive">Inactif</SelectItem>
+                  <SelectItem value="new">Nouveau</SelectItem>
+                  <SelectItem value="warning">Attention</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Bouton de reset des filtres (si filtres actifs) */}
+              {(searchTerm ||
+                categoryFilter !== "all" ||
+                statusFilter !== "all") && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setCategoryFilter("all");
+                    setStatusFilter("all");
+                  }}
+                  className="h-8 px-2 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100"
                 >
-                  {payrollRatios.summary.mandatesWithData} avec données MS
-                </Badge>
+                  ✕
+                </Button>
               )}
             </div>
           </div>
