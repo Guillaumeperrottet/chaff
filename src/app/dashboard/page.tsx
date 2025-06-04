@@ -33,7 +33,6 @@ import {
   Plus,
   Download,
   Upload,
-  Filter,
   Search,
   Calendar,
   Eye,
@@ -525,52 +524,76 @@ export default function DashboardPage() {
             Vue d&apos;ensemble CA et masse salariale
           </p>
         </div>
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => router.push("/dashboard/analytics")}
-          >
-            <BarChart3 className="mr-2 h-4 w-4" />
-            Analytics
-          </Button>
-          <Button variant="outline" size="sm">
-            <Calendar className="mr-2 h-4 w-4" />
-            Période
-          </Button>
-          <Button variant="outline" size="sm">
-            <Filter className="mr-2 h-4 w-4" />
-            Filtres
-          </Button>
-          <Button variant="outline" size="sm">
-            <Download className="mr-2 h-4 w-4" />
-            Exporter
-          </Button>
-          <Button variant="outline" size="sm">
-            <Upload className="mr-2 h-4 w-4" />
-            Import
-          </Button>
-          <Button size="sm">
-            <Plus className="mr-2 h-4 w-4" />
-            Ajouter
-          </Button>
+        <div className="flex items-center gap-3">
+          {/* Actions principales */}
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => router.push("/dashboard/analytics")}
+              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+            >
+              <BarChart3 className="mr-2 h-4 w-4" />
+              Analytics
+            </Button>
+
+            <Button
+              onClick={() => router.push("/dashboard/payroll")}
+              className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+            >
+              <Calculator className="mr-2 h-4 w-4" />
+              Masse salariale
+            </Button>
+          </div>
+
+          {/* Séparateur visuel */}
+          <div className="h-6 w-px bg-border"></div>
+
+          {/* Actions secondaires */}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-colors"
+              onClick={() => router.push("/dashboard/dayvalues/create")}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Ajouter une valeur
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-colors"
+            >
+              <Upload className="mr-2 h-4 w-4" />
+              Import
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-colors"
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Exporter
+            </Button>
+          </div>
         </div>
       </div>
 
       {/* Barre de recherche et filtres */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
+      <div className="flex items-center justify-between bg-white rounded-lg border border-slate-200 p-4 shadow-sm">
+        <div className="flex items-center space-x-4">
           <div className="relative">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
             <Input
               placeholder="Rechercher un campus..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-8 w-[300px]"
+              className="pl-10 w-[320px] border-slate-200 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
             />
           </div>
           <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-[180px] border-slate-200 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
               <SelectValue placeholder="Catégorie" />
             </SelectTrigger>
             <SelectContent>
@@ -580,7 +603,7 @@ export default function DashboardPage() {
             </SelectContent>
           </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[150px]">
+            <SelectTrigger className="w-[150px] border-slate-200 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
               <SelectValue placeholder="Statut" />
             </SelectTrigger>
             <SelectContent>
@@ -592,22 +615,43 @@ export default function DashboardPage() {
             </SelectContent>
           </Select>
         </div>
+
+        {/* Indicateur de résultats */}
+        <div className="text-sm text-slate-600">
+          <span className="font-medium">{mergedData.length}</span> campus trouvé
+          {mergedData.length > 1 ? "s" : ""}
+        </div>
       </div>
 
       {/* Table principale simplifiée */}
-      <Card>
-        <CardHeader>
+      <Card className="shadow-lg border-slate-200">
+        <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 border-b border-slate-200">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Vue d&apos;ensemble CA</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-xl font-bold text-slate-800">
+                Vue d&apos;ensemble CA
+              </CardTitle>
+              <CardDescription className="text-slate-600">
                 Chiffre d&apos;affaires journalier et ratios de masse salariale
                 par campus
               </CardDescription>
             </div>
-            <Badge variant="secondary" className="text-xs">
-              {mergedData.length} campus
-            </Badge>
+            <div className="flex items-center gap-3">
+              <Badge
+                variant="secondary"
+                className="text-xs bg-blue-100 text-blue-700 border-blue-200"
+              >
+                {mergedData.length} campus
+              </Badge>
+              {payrollRatios && (
+                <Badge
+                  variant="outline"
+                  className="text-xs border-emerald-200 text-emerald-700"
+                >
+                  {payrollRatios.summary.mandatesWithData} avec données MS
+                </Badge>
+              )}
+            </div>
           </div>
         </CardHeader>
         <CardContent>
