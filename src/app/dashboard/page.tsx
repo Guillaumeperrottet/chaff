@@ -411,57 +411,23 @@ export default function DashboardPage() {
     </TableRow>
   );
 
-  // Composant pour rendre une ligne de sous-total (SIMPLIFIÉ)
+  // Composant pour rendre une ligne de sous-total (SIMPLIFIÉ SANS RATIO ET COMPTEUR)
   const SubtotalRow = ({
     label,
     totals,
     bgColor,
     textColor,
-    groupData,
   }: {
     label: string;
     totals: Record<string, number>;
     bgColor: string;
     textColor: string;
-    groupData: Array<DashboardData & { payroll?: PayrollRatioData }>;
+    groupData?: Array<DashboardData & { payroll?: PayrollRatioData }>;
   }) => {
-    const groupRevenueTotal = Object.values(totals).reduce((a, b) => a + b, 0);
-
-    // Calculate monthly payroll total for ratio
-    const groupMonthlyPayrollTotal = groupData.reduce(
-      (sum, item) => sum + (item.payroll?.payrollAmount || 0),
-      0
-    );
-
-    const daysInMonth = new Date(
-      new Date().getFullYear(),
-      new Date().getMonth() + 1,
-      0
-    ).getDate();
-    const estimatedMonthlyRevenue = groupRevenueTotal * daysInMonth;
-
-    const groupRatio =
-      estimatedMonthlyRevenue > 0
-        ? (groupMonthlyPayrollTotal / estimatedMonthlyRevenue) * 100
-        : null;
-
-    const establishmentsCount = groupData.filter(
-      (item) => item.payroll?.employeeCount
-    ).length;
-
     return (
       <TableRow className={`${bgColor} hover:${bgColor} border-t-2`}>
-        <TableCell colSpan={3} className={`font-semibold ${textColor} py-3`}>
-          <div className="flex items-center justify-between">
-            <span>{label}</span>
-            <span className="text-sm font-normal opacity-80">
-              {establishmentsCount} établissement
-              {establishmentsCount > 1 ? "s" : ""}
-            </span>
-          </div>
-        </TableCell>
-        <TableCell className={`text-center font-semibold ${textColor} py-3`}>
-          <div className="text-lg">{formatPercentage(groupRatio)}</div>
+        <TableCell colSpan={4} className={`font-semibold ${textColor} py-3`}>
+          <span>{label}</span>
         </TableCell>
         {dashboardData?.columnLabels.map((col) => (
           <TableCell
@@ -774,7 +740,6 @@ export default function DashboardPage() {
                         totals={restaurationTotals}
                         bgColor="bg-orange-50"
                         textColor="text-orange-700"
-                        groupData={grouped.restauration}
                       />
                     )}
                   </>
@@ -808,27 +773,15 @@ export default function DashboardPage() {
                 )}
               </TableBody>
 
-              {/* Total général SIMPLIFIÉ */}
+              {/* Total général SIMPLIFIÉ SANS RATIO */}
               {mergedData.length > 0 && categoryFilter === "all" && (
                 <TableFooter>
                   <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-150 border-t-4 border-gray-300">
                     <TableCell
-                      colSpan={3}
+                      colSpan={4}
                       className="font-bold text-gray-900 py-4"
                     >
-                      <div className="flex items-center justify-between">
-                        <span className="text-lg">Total général</span>
-                        <span className="text-sm font-normal text-gray-600">
-                          {mergedData.length} établissement
-                          {mergedData.length > 1 ? "s" : ""}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center font-bold text-gray-900 py-4">
-                      <div className="text-xl">
-                        {payrollRatios &&
-                          formatPercentage(payrollRatios.summary.globalRatio)}
-                      </div>
+                      <span className="text-lg">Total général</span>
                     </TableCell>
                     {dashboardData.columnLabels.map((col) => (
                       <TableCell
@@ -846,127 +799,6 @@ export default function DashboardPage() {
               )}
             </Table>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Footer simplifié avec résumé */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {/* Résumé général */}
-            <div className="space-y-2">
-              <h4 className="font-medium text-sm text-muted-foreground">
-                RÉSUMÉ GÉNÉRAL
-              </h4>
-              <div className="space-y-1">
-                <div className="flex justify-between text-sm">
-                  <span>Campus affichés:</span>
-                  <span className="font-medium">{mergedData.length}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>Avec données payroll:</span>
-                  <span className="font-medium">
-                    {payrollRatios?.summary.mandatesWithData || 0}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* CA */}
-            <div className="space-y-2">
-              <h4 className="font-medium text-sm text-blue-700">
-                CHIFFRE D&apos;AFFAIRES
-              </h4>
-              <div className="space-y-1">
-                <div className="flex justify-between text-sm">
-                  <span>Total période:</span>
-                  <span className="font-medium text-blue-700">
-                    {formatCurrency(dashboardData.totals.totalRevenue)}
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>Moyenne/jour:</span>
-                  <span className="font-medium text-blue-700">
-                    {dashboardData.columnLabels.length > 0 &&
-                      formatCurrency(
-                        dashboardData.totals.totalRevenue /
-                          dashboardData.columnLabels.length
-                      )}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Masse salariale */}
-            <div className="space-y-2">
-              <h4 className="font-medium text-sm text-green-700">
-                MASSE SALARIALE
-              </h4>
-              <div className="space-y-1">
-                <div className="flex justify-between text-sm">
-                  <span>Total mois:</span>
-                  <span className="font-medium text-green-700">
-                    {payrollRatios
-                      ? formatCurrency(payrollRatios.summary.totalPayroll)
-                      : "-"}
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>Ratio moyen:</span>
-                  <span className="font-medium text-green-700">
-                    {payrollRatios
-                      ? formatPercentage(payrollRatios.summary.averageRatio)
-                      : "-"}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Indicateurs */}
-            <div className="space-y-2">
-              <h4 className="font-medium text-sm text-purple-700">
-                INDICATEURS
-              </h4>
-              <div className="space-y-1">
-                <div className="flex justify-between text-sm">
-                  <span>Ratios excellents:</span>
-                  <span className="font-medium text-green-600">
-                    {payrollRatios?.summary.ratioDistribution.excellent || 0}
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>Ratios critiques:</span>
-                  <span className="font-medium text-red-600">
-                    {payrollRatios?.summary.ratioDistribution.critical || 0}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Total général en bas SIMPLIFIÉ */}
-          {mergedData.length > 0 && dashboardData.columnLabels.length > 0 && (
-            <div className="mt-4 pt-4 border-t border-border">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-lg">PERFORMANCE GLOBALE:</span>
-                <div className="text-right">
-                  <div className="font-bold text-xl text-primary">
-                    {formatCurrency(
-                      Object.values(grandTotals).reduce((a, b) => a + b, 0)
-                    )}{" "}
-                    CA
-                  </div>
-                  <div
-                    className={`text-sm ${getRatioColor(payrollRatios?.summary.globalRatio || null)}`}
-                  >
-                    {payrollRatios &&
-                      formatPercentage(payrollRatios.summary.globalRatio)}{" "}
-                    ratio masse sal.
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
     </div>
