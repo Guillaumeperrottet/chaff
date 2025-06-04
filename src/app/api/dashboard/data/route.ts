@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
       mandates.map(async (mandate) => {
         const lastDayValue = await prisma.dayValue.findFirst({
           where: { mandateId: mandate.id },
-          orderBy: { date: "desc" }, // Trier par date CA
+          orderBy: { date: "desc" },
           select: {
             date: true,
             value: true,
@@ -90,12 +90,16 @@ export async function GET(request: NextRequest) {
           valuesByDate.set(dateKey, value.value);
         });
 
+        // SOLUTION: Stocker les valeurs avec un formatage simple sans apostrophes
         const values: Record<string, string> = {};
         dateColumns.forEach((dateKey) => {
           const value = valuesByDate.get(dateKey);
-          // CORRECTION: Stocker les valeurs numériques sans formatage
-          // pour permettre un calcul correct côté client
-          values[dateKey] = value ? value.toString() : "0";
+          if (value && value > 0) {
+            // Format simple avec virgule décimale seulement (pas d'apostrophes pour les milliers)
+            values[dateKey] = value.toFixed(2).replace(".", ",");
+          } else {
+            values[dateKey] = "0,00";
+          }
         });
 
         const lastEntryFormatted = lastDayValue
@@ -128,7 +132,7 @@ export async function GET(request: NextRequest) {
 
         const performance =
           maxValue > 0
-            ? `${formatCurrency(maxValue)} / ${formatDateSimple(maxValueDate || new Date())}`
+            ? `${formatCurrencyForDisplay(maxValue)} / ${formatDateSimple(maxValueDate || new Date())}`
             : "Aucune donnée";
 
         // Statut: Basé sur l'existence d'une dernière saisie
@@ -136,7 +140,7 @@ export async function GET(request: NextRequest) {
         if (!mandate.active) {
           status = "inactive";
         } else if (!lastDayValue) {
-          status = "new"; // Aucune saisie jamais
+          status = "new";
         }
 
         return {
@@ -157,24 +161,23 @@ export async function GET(request: NextRequest) {
     // Trier par dernière saisie (plus récente en premier)
     dashboardData.sort((a, b) => {
       if (!a.lastEntry && !b.lastEntry) return 0;
-      if (!a.lastEntry) return 1; // Les sans saisie à la fin
+      if (!a.lastEntry) return 1;
       if (!b.lastEntry) return -1;
 
       try {
-        // Comparer les dates (format DD.MM.YY ou DD.MM.YYYY)
         const dateA = parseSimpleDate(a.lastEntry);
         const dateB = parseSimpleDate(b.lastEntry);
-        return dateB.getTime() - dateA.getTime(); // Plus récent en premier
+        return dateB.getTime() - dateA.getTime();
       } catch {
         console.error("Erreur parsing dates pour tri:", {
           a: a.lastEntry,
           b: b.lastEntry,
         });
-        return 0; // En cas d'erreur, ne pas trier
+        return 0;
       }
     });
 
-    // CORRECTION MAJEURE: Calculer les totaux côté serveur correctement
+    // Calculer les totaux côté serveur avec les valeurs BRUTES (avant formatage)
     const totals = {
       totalRevenue: dashboardData.reduce(
         (sum, item) => sum + item.totalRevenue,
@@ -190,42 +193,35 @@ export async function GET(request: NextRequest) {
       },
     };
 
-    // CORRECTION: Calculer les totaux par jour correctement
+    // Calculer les totaux à partir des données brutes de la base
     dateColumns.forEach((dateKey) => {
-      totals.dailyTotals[dateKey] = 0;
-      totals.subtotalsByCategory.hebergement[dateKey] = 0;
-      totals.subtotalsByCategory.restauration[dateKey] = 0;
+      let dailyTotal = 0;
+      let hebergementTotal = 0;
+      let restaurationTotal = 0;
 
       dashboardData.forEach((item) => {
-        // CORRECTION: Parser les valeurs comme nombres
-        const valueStr = item.values[dateKey] || "0";
-        const numValue = parseFloat(valueStr);
+        // Reconvertir la valeur formatée en nombre
+        const valueStr = item.values[dateKey] || "0,00";
+        const numValue = parseFloat(valueStr.replace(",", "."));
 
-        if (!isNaN(numValue)) {
-          totals.dailyTotals[dateKey] += numValue;
+        if (!isNaN(numValue) && numValue > 0) {
+          dailyTotal += numValue;
 
           if (item.category === "Hébergement") {
-            totals.subtotalsByCategory.hebergement[dateKey] += numValue;
+            hebergementTotal += numValue;
           } else if (item.category === "Restauration") {
-            totals.subtotalsByCategory.restauration[dateKey] += numValue;
+            restaurationTotal += numValue;
           }
         }
       });
+
+      totals.dailyTotals[dateKey] = dailyTotal;
+      totals.subtotalsByCategory.hebergement[dateKey] = hebergementTotal;
+      totals.subtotalsByCategory.restauration[dateKey] = restaurationTotal;
     });
 
-    // CORRECTION: Formater les valeurs pour l'affichage APRÈS les calculs
-    const formattedData = dashboardData.map((item) => ({
-      ...item,
-      values: Object.fromEntries(
-        Object.entries(item.values).map(([key, value]) => [
-          key,
-          parseFloat(value) > 0 ? formatCurrency(parseFloat(value)) : "0.00",
-        ])
-      ),
-    }));
-
     return NextResponse.json({
-      data: formattedData,
+      data: dashboardData,
       totals,
       columnLabels,
       meta: {
@@ -254,26 +250,23 @@ function formatDateSimple(date: Date): string {
   return date.toLocaleDateString("fr-CH", {
     day: "2-digit",
     month: "2-digit",
-    year: "2-digit", // Format YY au lieu de YYYY
+    year: "2-digit",
   });
 }
 
 function parseSimpleDate(dateStr: string): Date {
   try {
-    // Format DD.MM.YY ou DD.MM.YYYY
     if (dateStr.includes(".")) {
       const [day, month, year] = dateStr.split(".");
       let fullYear = parseInt(year);
 
-      // Si année sur 2 chiffres
       if (fullYear < 100) {
-        fullYear += fullYear < 50 ? 2000 : 1900; // 22 = 2022, 25 = 2025, 50 = 1950
+        fullYear += fullYear < 50 ? 2000 : 1900;
       }
 
       return new Date(Date.UTC(fullYear, parseInt(month) - 1, parseInt(day)));
     }
 
-    // Format DD/MM/YY ou DD/MM/YYYY
     if (dateStr.includes("/")) {
       const [day, month, year] = dateStr.split("/");
       let fullYear = parseInt(year);
@@ -285,15 +278,15 @@ function parseSimpleDate(dateStr: string): Date {
       return new Date(Date.UTC(fullYear, parseInt(month) - 1, parseInt(day)));
     }
 
-    // Fallback
     return new Date(dateStr);
   } catch (error) {
     console.error("Erreur parsing date:", dateStr, error);
-    return new Date(0); // Date très ancienne en cas d'erreur
+    return new Date(0);
   }
 }
 
-function formatCurrency(amount: number): string {
+// Format pour affichage (avec apostrophes pour les milliers)
+function formatCurrencyForDisplay(amount: number): string {
   return new Intl.NumberFormat("fr-CH", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,

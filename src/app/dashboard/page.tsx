@@ -1,4 +1,3 @@
-// src/app/dashboard/page.tsx - Version corrigée
 "use client";
 
 import { useState, useEffect } from "react";
@@ -161,18 +160,26 @@ export default function DashboardPage() {
     return { hebergement, restauration };
   };
 
-  // CORRECTION MAJEURE: Calculer les totaux pour un groupe
+  // SOLUTION SIMPLIFIÉE: Calculer les totaux pour un groupe
   const calculateGroupTotals = (groupData: DashboardData[]) => {
     if (!dashboardData) return {};
 
     const totals: Record<string, number> = {};
     dashboardData.columnLabels.forEach((col) => {
       totals[col.key] = groupData.reduce((sum, item) => {
-        // CORRECTION: Parse correctement les valeurs avec virgules
-        const valueStr = item.values[col.key] || "0.00";
-        const value = parseFloat(
-          valueStr.replace(/[^\d.-]/g, "").replace(",", ".")
-        );
+        // SOLUTION: Parse simple avec virgule décimale seulement
+        const valueStr = item.values[col.key] || "0,00";
+        const value = parseFloat(valueStr.replace(",", "."));
+
+        // Debug
+        if (
+          process.env.NODE_ENV === "development" &&
+          !isNaN(value) &&
+          value > 0
+        ) {
+          console.log(`🔍 ${item.name} - ${col.key}: ${valueStr} -> ${value}`);
+        }
+
         return sum + (isNaN(value) ? 0 : value);
       }, 0);
     });
@@ -180,18 +187,16 @@ export default function DashboardPage() {
     return totals;
   };
 
-  // CORRECTION MAJEURE: Calculer le total général
+  // SOLUTION SIMPLIFIÉE: Calculer le total général
   const calculateGrandTotal = () => {
     if (!dashboardData) return {};
 
     const totals: Record<string, number> = {};
     dashboardData.columnLabels.forEach((col) => {
       totals[col.key] = filteredData.reduce((sum, item) => {
-        // CORRECTION: Parse correctement les valeurs avec virgules
-        const valueStr = item.values[col.key] || "0.00";
-        const value = parseFloat(
-          valueStr.replace(/[^\d.-]/g, "").replace(",", ".")
-        );
+        // SOLUTION: Parse simple avec virgule décimale seulement
+        const valueStr = item.values[col.key] || "0,00";
+        const value = parseFloat(valueStr.replace(",", "."));
         return sum + (isNaN(value) ? 0 : value);
       }, 0);
     });
