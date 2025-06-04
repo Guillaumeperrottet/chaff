@@ -1,4 +1,3 @@
-// src/app/dashboard/page.tsx - Version mise à jour avec intégration payroll
 "use client";
 
 import { useState, useEffect } from "react";
@@ -30,12 +29,6 @@ import {
   DropdownMenuTrigger,
 } from "@/app/components/ui/dropdown-menu";
 import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/app/components/ui/tabs";
-import {
   MoreHorizontal,
   Plus,
   Download,
@@ -47,11 +40,13 @@ import {
   Edit,
   Trash2,
   Loader2,
-  Undo2,
   Calculator,
   DollarSign,
   BarChart3,
   Users,
+  TrendingUp,
+  TrendingDown,
+  AlertCircle,
 } from "lucide-react";
 import { Input } from "@/app/components/ui/input";
 import {
@@ -63,9 +58,6 @@ import {
 } from "@/app/components/ui/select";
 import { toast } from "sonner";
 
-// Import du nouveau composant
-import PayrollRatioCard from "@/app/components/PayrollRatioCard";
-
 interface DashboardData {
   id: string;
   name: string;
@@ -76,6 +68,25 @@ interface DashboardData {
   category: string;
   status: string;
   totalRevenue: number;
+}
+
+interface PayrollRatioData {
+  mandateId: string;
+  mandateName: string;
+  mandateGroup: string;
+  year: number;
+  month: number;
+  monthName: string;
+  totalRevenue: number;
+  revenueEntries: number;
+  averageDailyRevenue: number;
+  payrollAmount: number | null;
+  payrollSource: "manual" | "calculated" | null;
+  employeeCount: number | null;
+  payrollToRevenueRatio: number | null;
+  ratioStatus: "excellent" | "good" | "warning" | "critical" | "no-data";
+  previousMonthRatio: number | null;
+  ratioTrend: "up" | "down" | "stable" | "no-data";
 }
 
 interface ColumnLabel {
@@ -105,43 +116,80 @@ interface DashboardResponse {
   };
 }
 
+interface PayrollRatiosResponse {
+  currentPeriod: {
+    year: number;
+    month: number;
+    monthName: string;
+  };
+  mandatesData: PayrollRatioData[];
+  summary: {
+    totalMandates: number;
+    mandatesWithData: number;
+    totalRevenue: number;
+    totalPayroll: number;
+    globalRatio: number | null;
+    averageRatio: number | null;
+    ratioDistribution: {
+      excellent: number;
+      good: number;
+      warning: number;
+      critical: number;
+      noData: number;
+    };
+  };
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const [dashboardData, setDashboardData] = useState<DashboardResponse | null>(
     null
   );
+  const [payrollRatios, setPayrollRatios] =
+    useState<PayrollRatiosResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [activeTab, setActiveTab] = useState("ca-overview");
 
   // État pour gérer les éléments supprimés (corbeille temporaire)
-  const [deletedItems, setDeletedItems] = useState<Map<string, DashboardData>>(
-    new Map()
-  );
+  // const [deletedItems, setDeletedItems] = useState<Map<string, DashboardData>>(new Map());
 
   // Charger les données du dashboard
   useEffect(() => {
-    fetchDashboardData();
+    Promise.all([fetchDashboardData(), fetchPayrollRatios()]).finally(() => {
+      setLoading(false);
+    });
   }, []);
 
   const fetchDashboardData = async () => {
     try {
-      setLoading(true);
       const response = await fetch("/api/dashboard/data");
-
-      if (!response.ok) {
-        throw new Error("Erreur lors du chargement des données");
-      }
-
+      if (!response.ok)
+        throw new Error("Erreur lors du chargement des données CA");
       const data = await response.json();
       setDashboardData(data);
     } catch (error) {
       console.error("Erreur:", error);
-      toast.error("Erreur lors du chargement des données du dashboard");
-    } finally {
-      setLoading(false);
+      toast.error("Erreur lors du chargement des données CA");
+    }
+  };
+
+  const fetchPayrollRatios = async () => {
+    try {
+      const currentDate = new Date();
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth() + 1;
+
+      const response = await fetch(
+        `/api/dashboard/payroll-ratios?year=${year}&month=${month}`
+      );
+      if (!response.ok) throw new Error("Erreur lors du chargement des ratios");
+      const data = await response.json();
+      setPayrollRatios(data);
+    } catch (error) {
+      console.error("Erreur:", error);
+      toast.error("Erreur lors du chargement des ratios masse salariale");
     }
   };
 
@@ -161,14 +209,90 @@ export default function DashboardPage() {
       return matchesSearch && matchesCategory && matchesStatus;
     }) || [];
 
+  // Fusionner les données CA et Payroll
+  const getMergedData = () => {
+    return filteredData.map((caData) => {
+      const payrollData = payrollRatios?.mandatesData.find(
+        (p) => p.mandateId === caData.id
+      );
+      return {
+        ...caData,
+        payroll: payrollData,
+      };
+    });
+  };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("fr-CH", {
+      style: "decimal",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value);
+  };
+
+  const formatPercentage = (value: number | null) => {
+    if (value === null) return "-";
+    return `${value.toFixed(1)}%`;
+  };
+
+  const getRatioColor = (ratio: number | null) => {
+    if (ratio === null) return "text-muted-foreground";
+    if (ratio < 25) return "text-green-600";
+    if (ratio < 35) return "text-yellow-600";
+    return "text-red-600";
+  };
+
+  const getRatioIcon = (trend: string | undefined) => {
+    if (trend === "up") return <TrendingUp className="h-3 w-3 text-red-600" />;
+    if (trend === "down")
+      return <TrendingDown className="h-3 w-3 text-green-600" />;
+    return null;
+  };
+
+  const getRatioStatusBadge = (status: string | undefined) => {
+    const statusConfig = {
+      excellent: {
+        variant: "default" as const,
+        color: "bg-green-600",
+        label: "Excellent",
+      },
+      good: { variant: "default" as const, color: "bg-blue-600", label: "Bon" },
+      warning: {
+        variant: "secondary" as const,
+        color: "bg-yellow-600",
+        label: "Attention",
+      },
+      critical: {
+        variant: "destructive" as const,
+        color: "bg-red-600",
+        label: "Critique",
+      },
+      "no-data": {
+        variant: "outline" as const,
+        color: "bg-gray-400",
+        label: "Pas de données",
+      },
+    };
+
+    if (!status || !(status in statusConfig)) return null;
+
+    const config = statusConfig[status as keyof typeof statusConfig];
+    return (
+      <Badge variant={config.variant} className="text-xs">
+        {config.label}
+      </Badge>
+    );
+  };
+
   // Grouper les données par catégorie et calculer les totaux
   const groupedData = () => {
     if (!dashboardData) return { hebergement: [], restauration: [] };
+    const mergedData = getMergedData();
 
-    const hebergement = filteredData.filter(
+    const hebergement = mergedData.filter(
       (item) => item.category === "Hébergement"
     );
-    const restauration = filteredData.filter(
+    const restauration = mergedData.filter(
       (item) => item.category === "Restauration"
     );
 
@@ -176,7 +300,9 @@ export default function DashboardPage() {
   };
 
   // Calculer les totaux pour un groupe
-  const calculateGroupTotals = (groupData: DashboardData[]) => {
+  const calculateGroupTotals = (
+    groupData: (DashboardData & { payroll?: PayrollRatioData })[]
+  ) => {
     if (!dashboardData) return {};
 
     const totals: Record<string, number> = {};
@@ -194,10 +320,11 @@ export default function DashboardPage() {
   // Calculer le total général
   const calculateGrandTotal = () => {
     if (!dashboardData) return {};
+    const mergedData = getMergedData();
 
     const totals: Record<string, number> = {};
     dashboardData.columnLabels.forEach((col) => {
-      totals[col.key] = filteredData.reduce((sum, item) => {
+      totals[col.key] = mergedData.reduce((sum, item) => {
         const valueStr = item.values[col.key] || "0,00";
         const value = parseFloat(valueStr.replace(",", "."));
         return sum + (isNaN(value) ? 0 : value);
@@ -207,187 +334,12 @@ export default function DashboardPage() {
     return totals;
   };
 
-  const handleExport = async () => {
-    try {
-      const response = await fetch("/api/export/valeurs");
-      if (!response.ok) throw new Error("Erreur lors de l'export");
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `dashboard_export_${new Date().toISOString().split("T")[0]}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-      toast.success("Export téléchargé avec succès");
-    } catch (error) {
-      console.error("Erreur:", error);
-      toast.error("Erreur lors de l'export");
-    }
-  };
-
-  const handleImport = () => {
-    router.push("/dashboard/import");
-  };
-
-  const handleAddValue = () => {
-    router.push("/dashboard/dayvalues/create");
-  };
-
-  const handleViewDetails = (mandateId: string) => {
-    router.push(`/dashboard/mandates/${mandateId}`);
-  };
-
-  const handleEditMandate = (mandateId: string) => {
-    router.push(`/dashboard/mandates/${mandateId}/edit`);
-  };
-
-  const handleDeleteMandate = async (
-    mandateId: string,
-    mandateName: string
-  ) => {
-    try {
-      const mandateResponse = await fetch(`/api/mandats/${mandateId}`);
-      if (!mandateResponse.ok)
-        throw new Error("Impossible de récupérer les données");
-
-      const mandateBackup = await mandateResponse.json();
-
-      const response = await fetch(`/api/mandats/${mandateId}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Erreur lors de la suppression");
-      }
-
-      const deletedItem = dashboardData?.data.find(
-        (item) => item.id === mandateId
-      );
-
-      if (deletedItem) {
-        setDeletedItems((prev) => new Map(prev).set(mandateId, deletedItem));
-
-        setDashboardData((prev) =>
-          prev
-            ? {
-                ...prev,
-                data: prev.data.filter((item) => item.id !== mandateId),
-              }
-            : null
-        );
-
-        toast.success("Mandat supprimé", {
-          description: `"${mandateName}" a été supprimé avec succès`,
-          duration: 15000,
-          action: {
-            label: "Annuler",
-            onClick: async () => {
-              await handleUndoDelete(mandateId, mandateBackup, deletedItem);
-            },
-          },
-        });
-
-        setTimeout(() => {
-          setDeletedItems((prev) => {
-            const newMap = new Map(prev);
-            newMap.delete(mandateId);
-            return newMap;
-          });
-        }, 15000);
-      }
-    } catch (error) {
-      console.error("Erreur:", error);
-      toast.error(
-        error instanceof Error ? error.message : "Erreur lors de la suppression"
-      );
-    }
-  };
-
-  interface MandateBackup {
-    id: string;
-    name: string;
-    group: string;
-    active: boolean;
-    // Add other fields as needed based on your API response
-  }
-
-  const handleUndoDelete = async (
-    mandateId: string,
-    mandateBackup: MandateBackup,
-    dashboardItem: DashboardData
-  ) => {
-    try {
-      const response = await fetch("/api/mandats", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          id: mandateBackup.id,
-          name: mandateBackup.name,
-          group: mandateBackup.group,
-          active: mandateBackup.active,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Erreur lors de la restauration");
-      }
-
-      setDashboardData((prev) =>
-        prev
-          ? {
-              ...prev,
-              data: [...prev.data, dashboardItem],
-            }
-          : null
-      );
-
-      setDeletedItems((prev) => {
-        const newMap = new Map(prev);
-        newMap.delete(mandateId);
-        return newMap;
-      });
-
-      toast.success("Mandat restauré", {
-        description: `"${mandateBackup.name}" a été restauré avec succès`,
-        icon: <Undo2 className="h-4 w-4" />,
-      });
-
-      setTimeout(() => {
-        fetchDashboardData();
-      }, 1000);
-    } catch (error) {
-      console.error("Erreur lors de la restauration:", error);
-      toast.error("Erreur lors de la restauration du mandat");
-    }
-  };
-
-  const handleEmptyTrash = () => {
-    if (deletedItems.size === 0) return;
-
-    toast.warning("Corbeille vidée", {
-      description: `${deletedItems.size} élément(s) définitivement supprimé(s)`,
-    });
-
-    setDeletedItems(new Map());
-  };
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("fr-CH", {
-      style: "decimal",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(value);
-  };
-
-  // Composant pour rendre une ligne de campus
-  const CampusRow = ({ campus }: { campus: DashboardData }) => (
+  // Composant pour rendre une ligne de campus avec données payroll
+  const CampusRow = ({
+    campus,
+  }: {
+    campus: DashboardData & { payroll?: PayrollRatioData };
+  }) => (
     <TableRow key={campus.id} className="hover:bg-muted/50">
       <TableCell>
         <div className="flex items-center space-x-2">
@@ -402,6 +354,8 @@ export default function DashboardPage() {
               >
                 {campus.category}
               </Badge>
+              {campus.payroll &&
+                getRatioStatusBadge(campus.payroll.ratioStatus)}
             </div>
           </div>
         </div>
@@ -418,11 +372,43 @@ export default function DashboardPage() {
       </TableCell>
       {dashboardData?.columnLabels.map((col) => (
         <TableCell key={col.key} className="text-center">
-          <div className="text-sm font-medium">
-            {campus.values[col.key] || "0.00"}
+          <div className="space-y-1">
+            {/* CA */}
+            <div className="text-sm font-medium">
+              {campus.values[col.key] || "0.00"}
+            </div>
+            {/* Masse salariale si disponible */}
+            {campus.payroll?.payrollAmount && (
+              <div className="text-xs text-muted-foreground border-t pt-1">
+                {formatCurrency(campus.payroll.payrollAmount / 30)}{" "}
+                {/* Approximation journalière */}
+              </div>
+            )}
           </div>
         </TableCell>
       ))}
+      {/* Nouvelle colonne Ratio */}
+      <TableCell className="text-center">
+        {campus.payroll ? (
+          <div className="space-y-1">
+            <div
+              className={`flex items-center justify-center gap-1 ${getRatioColor(campus.payroll.payrollToRevenueRatio)}`}
+            >
+              {getRatioIcon(campus.payroll.ratioTrend)}
+              <span className="font-medium text-sm">
+                {formatPercentage(campus.payroll.payrollToRevenueRatio)}
+              </span>
+            </div>
+            {campus.payroll.employeeCount && (
+              <div className="text-xs text-muted-foreground">
+                {campus.payroll.employeeCount} emp.
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="text-muted-foreground text-xs">-</div>
+        )}
+      </TableCell>
       <TableCell>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -432,13 +418,11 @@ export default function DashboardPage() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => handleViewDetails(campus.id)}>
+            <DropdownMenuItem
+              onClick={() => router.push(`/dashboard/mandates/${campus.id}`)}
+            >
               <Eye className="mr-2 h-4 w-4" />
-              Voir les détails
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleEditMandate(campus.id)}>
-              <Edit className="mr-2 h-4 w-4" />
-              Modifier
+              Voir les détails CA
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() =>
@@ -448,7 +432,14 @@ export default function DashboardPage() {
               <Calculator className="mr-2 h-4 w-4" />
               Masse salariale
             </DropdownMenuItem>
-
+            <DropdownMenuItem
+              onClick={() =>
+                router.push(`/dashboard/mandates/${campus.id}/edit`)
+              }
+            >
+              <Edit className="mr-2 h-4 w-4" />
+              Modifier
+            </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() =>
                 router.push(`/dashboard/employees?mandateId=${campus.id}`)
@@ -457,13 +448,8 @@ export default function DashboardPage() {
               <Users className="mr-2 h-4 w-4" />
               Voir employés
             </DropdownMenuItem>
-
             <DropdownMenuSeparator />
-
-            <DropdownMenuItem
-              className="text-red-600"
-              onClick={() => handleDeleteMandate(campus.id, campus.name)}
-            >
+            <DropdownMenuItem className="text-red-600">
               <Trash2 className="mr-2 h-4 w-4" />
               Supprimer
             </DropdownMenuItem>
@@ -479,27 +465,58 @@ export default function DashboardPage() {
     totals,
     bgColor,
     textColor,
+    groupData,
   }: {
     label: string;
     totals: Record<string, number>;
     bgColor: string;
     textColor: string;
-  }) => (
-    <TableRow className={`${bgColor} hover:${bgColor}`}>
-      <TableCell colSpan={3} className={`font-medium ${textColor}`}>
-        {label}
-      </TableCell>
-      {dashboardData?.columnLabels.map((col) => (
-        <TableCell
-          key={col.key}
-          className={`text-center font-medium ${textColor}`}
-        >
-          {formatCurrency(totals[col.key] || 0)}
+    groupData: Array<DashboardData & { payroll?: PayrollRatioData }>;
+  }) => {
+    // Calculer totaux payroll pour le groupe
+    const groupPayrollTotal = groupData.reduce(
+      (sum, item) => sum + (item.payroll?.payrollAmount || 0),
+      0
+    );
+    const groupRevenueTotal = Object.values(totals).reduce((a, b) => a + b, 0);
+    const groupRatio =
+      groupRevenueTotal > 0
+        ? (groupPayrollTotal / groupRevenueTotal) * 100
+        : null;
+
+    return (
+      <TableRow className={`${bgColor} hover:${bgColor}`}>
+        <TableCell colSpan={3} className={`font-medium ${textColor}`}>
+          {label}
         </TableCell>
-      ))}
-      <TableCell></TableCell>
-    </TableRow>
-  );
+        {dashboardData?.columnLabels.map((col) => (
+          <TableCell
+            key={col.key}
+            className={`text-center font-medium ${textColor}`}
+          >
+            <div className="space-y-1">
+              <div>{formatCurrency(totals[col.key] || 0)}</div>
+              <div className="text-xs opacity-75">
+                {formatCurrency(
+                  groupPayrollTotal / dashboardData.columnLabels.length || 0
+                )}
+              </div>
+            </div>
+          </TableCell>
+        ))}
+        <TableCell className={`text-center font-medium ${textColor}`}>
+          <div className="space-y-1">
+            <div>{formatPercentage(groupRatio)}</div>
+            <div className="text-xs opacity-75">
+              {groupData.filter((item) => item.payroll?.employeeCount).length}{" "}
+              étab.
+            </div>
+          </div>
+        </TableCell>
+        <TableCell></TableCell>
+      </TableRow>
+    );
+  };
 
   if (loading) {
     return (
@@ -518,7 +535,12 @@ export default function DashboardPage() {
           <p className="text-muted-foreground">
             Erreur lors du chargement des données
           </p>
-          <Button onClick={fetchDashboardData} className="mt-4">
+          <Button
+            onClick={() =>
+              Promise.all([fetchDashboardData(), fetchPayrollRatios()])
+            }
+            className="mt-4"
+          >
             Réessayer
           </Button>
         </div>
@@ -530,6 +552,7 @@ export default function DashboardPage() {
   const hebergementTotals = calculateGroupTotals(grouped.hebergement);
   const restaurationTotals = calculateGroupTotals(grouped.restauration);
   const grandTotals = calculateGrandTotal();
+  const mergedData = getMergedData();
 
   return (
     <div className="space-y-6">
@@ -538,29 +561,11 @@ export default function DashboardPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Tableau de bord</h1>
           <p className="text-muted-foreground">
-            Vue d&apos;ensemble de vos performances et ratios
-            {deletedItems.size > 0 && (
-              <span className="ml-2">
-                <Badge variant="secondary" className="text-xs">
-                  {deletedItems.size} élément(s) en corbeille
-                </Badge>
-              </span>
-            )}
+            Vue d&apos;ensemble CA et masse salariale
+            {/* Corbeille temporaire désactivée */}
           </p>
         </div>
         <div className="flex items-center space-x-2">
-          {deletedItems.size > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleEmptyTrash}
-              className="text-muted-foreground"
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Vider corbeille ({deletedItems.size})
-            </Button>
-          )}
-
           <Button variant="outline" size="sm">
             <Calendar className="mr-2 h-4 w-4" />
             Période
@@ -569,23 +574,23 @@ export default function DashboardPage() {
             <Filter className="mr-2 h-4 w-4" />
             Filtres
           </Button>
-          <Button variant="outline" size="sm" onClick={handleExport}>
+          <Button variant="outline" size="sm">
             <Download className="mr-2 h-4 w-4" />
             Exporter
           </Button>
-          <Button variant="outline" size="sm" onClick={handleImport}>
+          <Button variant="outline" size="sm">
             <Upload className="mr-2 h-4 w-4" />
             Import
           </Button>
-          <Button size="sm" onClick={handleAddValue}>
+          <Button size="sm">
             <Plus className="mr-2 h-4 w-4" />
             Ajouter
           </Button>
         </div>
       </div>
 
-      {/* Statistiques rapides */}
-      <div className="grid gap-4 md:grid-cols-4">
+      {/* Statistiques rapides - enrichies avec données payroll */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Mandats</CardTitle>
@@ -619,348 +624,384 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Hébergement</CardTitle>
-            <Users className="h-4 w-4 text-blue-600" />
+            <CardTitle className="text-sm font-medium">
+              Masse Salariale
+            </CardTitle>
+            <Calculator className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
-              {grouped.hebergement.length}
+            <div className="text-2xl font-bold">
+              {payrollRatios
+                ? new Intl.NumberFormat("fr-CH", {
+                    style: "currency",
+                    currency: "CHF",
+                  }).format(payrollRatios.summary.totalPayroll)
+                : "-"}
             </div>
-            <p className="text-xs text-muted-foreground">établissements</p>
+            <p className="text-xs text-muted-foreground">
+              {payrollRatios?.summary.mandatesWithData || 0} mandats avec
+              données
+            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Restauration</CardTitle>
-            <Users className="h-4 w-4 text-orange-600" />
+            <CardTitle className="text-sm font-medium">Ratio Global</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">
-              {grouped.restauration.length}
+            <div
+              className={`text-2xl font-bold ${getRatioColor(payrollRatios?.summary.globalRatio || null)}`}
+            >
+              {formatPercentage(payrollRatios?.summary.globalRatio || null)}
             </div>
-            <p className="text-xs text-muted-foreground">établissements</p>
+            <p className="text-xs text-muted-foreground">Masse sal. / CA</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Distribution</CardTitle>
+            <AlertCircle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {payrollRatios ? (
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs">
+                  <span className="text-green-600">Excellent:</span>
+                  <span>
+                    {payrollRatios.summary.ratioDistribution.excellent}
+                  </span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-yellow-600">Attention:</span>
+                  <span>{payrollRatios.summary.ratioDistribution.warning}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-red-600">Critique:</span>
+                  <span>
+                    {payrollRatios.summary.ratioDistribution.critical}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="text-sm text-muted-foreground">-</div>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Onglets pour organiser les différentes vues */}
-      <Tabs
-        defaultValue="ca-overview"
-        value={activeTab}
-        onValueChange={setActiveTab}
-      >
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="ca-overview">Vue d&apos;ensemble CA</TabsTrigger>
-          <TabsTrigger value="payroll-ratios">
-            Ratios Masse salariale
-          </TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
-        </TabsList>
+      {/* Barre de recherche et filtres */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <div className="relative">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Rechercher un campus..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-8 w-[300px]"
+            />
+          </div>
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Catégorie" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Toutes catégories</SelectItem>
+              <SelectItem value="hebergement">Hébergement</SelectItem>
+              <SelectItem value="restauration">Restauration</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[150px]">
+              <SelectValue placeholder="Statut" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tous</SelectItem>
+              <SelectItem value="active">Actif</SelectItem>
+              <SelectItem value="inactive">Inactif</SelectItem>
+              <SelectItem value="new">Nouveau</SelectItem>
+              <SelectItem value="warning">Attention</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
-        {/* Onglet CA Overview - contenu existant */}
-        <TabsContent value="ca-overview" className="space-y-4">
-          {/* Barre de recherche et filtres */}
+      {/* Table principale unifiée */}
+      <Card>
+        <CardHeader>
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Rechercher un campus..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-8 w-[300px]"
-                />
+            <div>
+              <CardTitle>Vue d&apos;ensemble unifiée</CardTitle>
+              <CardDescription>
+                CA journalier et ratios de masse salariale par campus
+              </CardDescription>
+            </div>
+            <Badge variant="secondary" className="text-xs">
+              {mergedData.length} campus
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="min-w-[150px]">Campus</TableHead>
+                  <TableHead className="min-w-[120px]">
+                    Dernière saisie
+                  </TableHead>
+                  <TableHead className="min-w-[150px]">Top</TableHead>
+                  {dashboardData.columnLabels.map((col) => (
+                    <TableHead
+                      key={col.key}
+                      className="text-center min-w-[100px]"
+                    >
+                      <div className="space-y-1">
+                        <div className="font-medium">{col.label}</div>
+                        <div className="text-xs text-muted-foreground font-normal">
+                          CA / Masse S.
+                        </div>
+                      </div>
+                    </TableHead>
+                  ))}
+                  <TableHead className="text-center min-w-[100px]">
+                    <div className="space-y-1">
+                      <div className="font-medium">Ratio %</div>
+                      <div className="text-xs text-muted-foreground font-normal">
+                        Employés
+                      </div>
+                    </div>
+                  </TableHead>
+                  <TableHead className="w-[50px]"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {/* Section Hébergement */}
+                {(categoryFilter === "all" ||
+                  categoryFilter === "hebergement") && (
+                  <>
+                    {grouped.hebergement.map((campus) => (
+                      <CampusRow key={campus.id} campus={campus} />
+                    ))}
+                    {grouped.hebergement.length > 0 && (
+                      <SubtotalRow
+                        label="Hébergement"
+                        totals={hebergementTotals}
+                        bgColor="bg-blue-50"
+                        textColor="text-blue-700"
+                        groupData={grouped.hebergement}
+                      />
+                    )}
+                  </>
+                )}
+
+                {/* Section Restauration */}
+                {(categoryFilter === "all" ||
+                  categoryFilter === "restauration") && (
+                  <>
+                    {grouped.restauration.map((campus) => (
+                      <CampusRow key={campus.id} campus={campus} />
+                    ))}
+                    {grouped.restauration.length > 0 && (
+                      <SubtotalRow
+                        label="Restauration"
+                        totals={restaurationTotals}
+                        bgColor="bg-orange-50"
+                        textColor="text-orange-700"
+                        groupData={grouped.restauration}
+                      />
+                    )}
+                  </>
+                )}
+
+                {/* Message si aucun campus */}
+                {mergedData.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8">
+                      <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold">
+                        Aucun campus trouvé
+                      </h3>
+                      <p className="text-muted-foreground mb-4">
+                        {dashboardData.data.length === 0
+                          ? "Commencez par créer votre premier mandat"
+                          : "Essayez de modifier vos filtres de recherche"}
+                      </p>
+                      {dashboardData.data.length === 0 && (
+                        <Button
+                          onClick={() =>
+                            router.push("/dashboard/mandates/create")
+                          }
+                        >
+                          <Plus className="mr-2 h-4 w-4" />
+                          Créer un mandat
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+
+              {/* Total général */}
+              {mergedData.length > 0 && categoryFilter === "all" && (
+                <TableFooter>
+                  <TableRow className="bg-gray-100 hover:bg-gray-100">
+                    <TableCell colSpan={3} className="font-bold text-gray-900">
+                      Total général
+                    </TableCell>
+                    {dashboardData.columnLabels.map((col) => (
+                      <TableCell
+                        key={col.key}
+                        className="text-center font-bold text-gray-900"
+                      >
+                        <div className="space-y-1">
+                          <div>{formatCurrency(grandTotals[col.key] || 0)}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {payrollRatios &&
+                              formatCurrency(
+                                payrollRatios.summary.totalPayroll /
+                                  dashboardData.columnLabels.length
+                              )}
+                          </div>
+                        </div>
+                      </TableCell>
+                    ))}
+                    <TableCell className="text-center font-bold text-gray-900">
+                      {payrollRatios &&
+                        formatPercentage(payrollRatios.summary.globalRatio)}
+                    </TableCell>
+                    <TableCell></TableCell>
+                  </TableRow>
+                </TableFooter>
+              )}
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Footer unifié avec résumé */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Résumé général */}
+            <div className="space-y-2">
+              <h4 className="font-medium text-sm text-muted-foreground">
+                RÉSUMÉ GÉNÉRAL
+              </h4>
+              <div className="space-y-1">
+                <div className="flex justify-between text-sm">
+                  <span>Campus affichés:</span>
+                  <span className="font-medium">{mergedData.length}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Avec données payroll:</span>
+                  <span className="font-medium">
+                    {payrollRatios?.summary.mandatesWithData || 0}
+                  </span>
+                </div>
               </div>
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Catégorie" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Toutes catégories</SelectItem>
-                  <SelectItem value="hebergement">Hébergement</SelectItem>
-                  <SelectItem value="restauration">Restauration</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder="Statut" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tous</SelectItem>
-                  <SelectItem value="active">Actif</SelectItem>
-                  <SelectItem value="inactive">Inactif</SelectItem>
-                  <SelectItem value="new">Nouveau</SelectItem>
-                  <SelectItem value="warning">Attention</SelectItem>
-                </SelectContent>
-              </Select>
+            </div>
+
+            {/* CA */}
+            <div className="space-y-2">
+              <h4 className="font-medium text-sm text-blue-700">
+                CHIFFRE D&apos;AFFAIRES
+              </h4>
+              <div className="space-y-1">
+                <div className="flex justify-between text-sm">
+                  <span>Total période:</span>
+                  <span className="font-medium text-blue-700">
+                    {formatCurrency(dashboardData.totals.totalRevenue)}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Moyenne/jour:</span>
+                  <span className="font-medium text-blue-700">
+                    {dashboardData.columnLabels.length > 0 &&
+                      formatCurrency(
+                        dashboardData.totals.totalRevenue /
+                          dashboardData.columnLabels.length
+                      )}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Masse salariale */}
+            <div className="space-y-2">
+              <h4 className="font-medium text-sm text-green-700">
+                MASSE SALARIALE
+              </h4>
+              <div className="space-y-1">
+                <div className="flex justify-between text-sm">
+                  <span>Total mois:</span>
+                  <span className="font-medium text-green-700">
+                    {payrollRatios
+                      ? formatCurrency(payrollRatios.summary.totalPayroll)
+                      : "-"}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Ratio moyen:</span>
+                  <span className="font-medium text-green-700">
+                    {payrollRatios
+                      ? formatPercentage(payrollRatios.summary.averageRatio)
+                      : "-"}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Indicateurs */}
+            <div className="space-y-2">
+              <h4 className="font-medium text-sm text-purple-700">
+                INDICATEURS
+              </h4>
+              <div className="space-y-1">
+                <div className="flex justify-between text-sm">
+                  <span>Ratios excellents:</span>
+                  <span className="font-medium text-green-600">
+                    {payrollRatios?.summary.ratioDistribution.excellent || 0}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Ratios critiques:</span>
+                  <span className="font-medium text-red-600">
+                    {payrollRatios?.summary.ratioDistribution.critical || 0}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Table principale CA */}
-          <Card>
-            <CardHeader>
+          {/* Total général en bas */}
+          {mergedData.length > 0 && dashboardData.columnLabels.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-border">
               <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Valeurs journalières</CardTitle>
-                  <CardDescription>
-                    Vue d&apos;ensemble des performances par campus
-                  </CardDescription>
-                </div>
-                <Badge variant="secondary" className="text-xs">
-                  {filteredData.length} campus
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="min-w-[150px]">Campus</TableHead>
-                      <TableHead className="min-w-[120px]">
-                        Dernière saisie
-                      </TableHead>
-                      <TableHead className="min-w-[150px]">Top</TableHead>
-                      {dashboardData.columnLabels.map((col) => (
-                        <TableHead
-                          key={col.key}
-                          className="text-center min-w-[100px]"
-                        >
-                          {col.label}
-                        </TableHead>
-                      ))}
-                      <TableHead className="w-[50px]"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {/* Section Hébergement */}
-                    {(categoryFilter === "all" ||
-                      categoryFilter === "hebergement") && (
-                      <>
-                        {grouped.hebergement.map((campus) => (
-                          <CampusRow key={campus.id} campus={campus} />
-                        ))}
-                        {grouped.hebergement.length > 0 && (
-                          <SubtotalRow
-                            label="Hébergement"
-                            totals={hebergementTotals}
-                            bgColor="bg-blue-50"
-                            textColor="text-blue-700"
-                          />
-                        )}
-                      </>
-                    )}
-
-                    {/* Section Restauration */}
-                    {(categoryFilter === "all" ||
-                      categoryFilter === "restauration") && (
-                      <>
-                        {grouped.restauration.map((campus) => (
-                          <CampusRow key={campus.id} campus={campus} />
-                        ))}
-                        {grouped.restauration.length > 0 && (
-                          <SubtotalRow
-                            label="Restauration"
-                            totals={restaurationTotals}
-                            bgColor="bg-orange-50"
-                            textColor="text-orange-700"
-                          />
-                        )}
-                      </>
-                    )}
-
-                    {/* Message si aucun campus */}
-                    {filteredData.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8">
-                          <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                          <h3 className="text-lg font-semibold">
-                            Aucun campus trouvé
-                          </h3>
-                          <p className="text-muted-foreground mb-4">
-                            {dashboardData.data.length === 0
-                              ? "Commencez par créer votre premier mandat"
-                              : "Essayez de modifier vos filtres de recherche"}
-                          </p>
-                          {dashboardData.data.length === 0 && (
-                            <Button
-                              onClick={() =>
-                                router.push("/dashboard/mandates/create")
-                              }
-                            >
-                              <Plus className="mr-2 h-4 w-4" />
-                              Créer un mandat
-                            </Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-
-                  {/* Total général */}
-                  {filteredData.length > 0 && categoryFilter === "all" && (
-                    <TableFooter>
-                      <TableRow className="bg-gray-100 hover:bg-gray-100">
-                        <TableCell
-                          colSpan={3}
-                          className="font-bold text-gray-900"
-                        >
-                          Total
-                        </TableCell>
-                        {dashboardData.columnLabels.map((col) => (
-                          <TableCell
-                            key={col.key}
-                            className="text-center font-bold text-gray-900"
-                          >
-                            {formatCurrency(grandTotals[col.key] || 0)}
-                          </TableCell>
-                        ))}
-                        <TableCell></TableCell>
-                      </TableRow>
-                    </TableFooter>
-                  )}
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Footer CA avec résumé */}
-          <Card>
-            <CardContent className="pt-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Résumé général */}
-                <div className="space-y-2">
-                  <h4 className="font-medium text-sm text-muted-foreground">
-                    RÉSUMÉ GÉNÉRAL
-                  </h4>
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-sm">
-                      <span>Campus affichés:</span>
-                      <span className="font-medium">{filteredData.length}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span>Total mandats:</span>
-                      <span className="font-medium">
-                        {dashboardData.totals.totalMandates}
-                      </span>
-                    </div>
+                <span className="font-bold text-lg">PERFORMANCE GLOBALE:</span>
+                <div className="text-right">
+                  <div className="font-bold text-xl text-primary">
+                    {formatCurrency(
+                      Object.values(grandTotals).reduce((a, b) => a + b, 0)
+                    )}{" "}
+                    CA
                   </div>
-                </div>
-
-                {/* Hébergement */}
-                <div className="space-y-2">
-                  <h4 className="font-medium text-sm text-blue-700">
-                    HÉBERGEMENT
-                  </h4>
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-sm">
-                      <span>Campus:</span>
-                      <span className="font-medium text-blue-700">
-                        {grouped.hebergement.length}
-                      </span>
-                    </div>
-                    {dashboardData.columnLabels.length > 0 && (
-                      <div className="flex justify-between text-sm">
-                        <span>Total semaine:</span>
-                        <span className="font-medium text-blue-700">
-                          {formatCurrency(
-                            Object.values(hebergementTotals).reduce(
-                              (a, b) => a + b,
-                              0
-                            )
-                          )}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Restauration */}
-                <div className="space-y-2">
-                  <h4 className="font-medium text-sm text-orange-700">
-                    RESTAURATION
-                  </h4>
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-sm">
-                      <span>Campus:</span>
-                      <span className="font-medium text-orange-700">
-                        {grouped.restauration.length}
-                      </span>
-                    </div>
-                    {dashboardData.columnLabels.length > 0 && (
-                      <div className="flex justify-between text-sm">
-                        <span>Total semaine:</span>
-                        <span className="font-medium text-orange-700">
-                          {formatCurrency(
-                            Object.values(restaurationTotals).reduce(
-                              (a, b) => a + b,
-                              0
-                            )
-                          )}
-                        </span>
-                      </div>
-                    )}
+                  <div
+                    className={`text-sm ${getRatioColor(payrollRatios?.summary.globalRatio || null)}`}
+                  >
+                    {payrollRatios &&
+                      formatPercentage(payrollRatios.summary.globalRatio)}{" "}
+                    ratio masse sal.
                   </div>
                 </div>
               </div>
-
-              {/* Total général en bas */}
-              {filteredData.length > 0 &&
-                dashboardData.columnLabels.length > 0 && (
-                  <div className="mt-4 pt-4 border-t border-border">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-lg">TOTAL PÉRIODE:</span>
-                      <span className="font-bold text-xl text-primary">
-                        {formatCurrency(
-                          Object.values(grandTotals).reduce((a, b) => a + b, 0)
-                        )}
-                      </span>
-                    </div>
-                  </div>
-                )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Onglet Ratios Masse salariale - nouveau contenu */}
-        <TabsContent value="payroll-ratios" className="space-y-4">
-          <PayrollRatioCard />
-        </TabsContent>
-
-        {/* Onglet Analytics - placeholder pour futures fonctionnalités */}
-        <TabsContent value="analytics" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5" />
-                Analytics avancées
-              </CardTitle>
-              <CardDescription>
-                Analyses détaillées et tableaux de bord personnalisés
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-12">
-                <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">
-                  Analytics avancées
-                </h3>
-                <p className="text-muted-foreground mb-4">
-                  Les outils d&apos;analyse avancée seront bientôt disponibles
-                  ici.
-                </p>
-                <Button
-                  onClick={() => router.push("/dashboard/analytics")}
-                  variant="outline"
-                >
-                  Accéder aux analytics
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
