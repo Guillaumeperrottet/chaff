@@ -490,12 +490,26 @@ export default function DashboardPage() {
             Vue d&apos;ensemble CA et masse salariale
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          {/* Actions principales */}
+        <div className="flex items-center gap-4">
+          {/* Action principale mise en avant */}
+          <Button
+            onClick={() => router.push("/dashboard/dayvalues/create")}
+            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-200 px-6 py-2.5 text-base font-semibold"
+            size="lg"
+          >
+            <Plus className="mr-2 h-5 w-5" />
+            Ajouter une valeur
+          </Button>
+
+          {/* Séparateur visuel */}
+          <div className="h-8 w-px bg-border"></div>
+
+          {/* Actions secondaires groupées */}
           <div className="flex items-center gap-2">
             <Button
               onClick={() => router.push("/dashboard/analytics")}
-              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+              variant="outline"
+              className="border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-colors"
             >
               <BarChart3 className="mr-2 h-4 w-4" />
               Analytics
@@ -503,26 +517,11 @@ export default function DashboardPage() {
 
             <Button
               onClick={() => router.push("/dashboard/payroll")}
-              className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+              variant="outline"
+              className="border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-colors"
             >
               <Calculator className="mr-2 h-4 w-4" />
               Masse salariale
-            </Button>
-          </div>
-
-          {/* Séparateur visuel */}
-          <div className="h-6 w-px bg-border"></div>
-
-          {/* Actions secondaires */}
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-colors"
-              onClick={() => router.push("/dashboard/dayvalues/create")}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Ajouter une valeur
             </Button>
 
             <Button
