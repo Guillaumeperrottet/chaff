@@ -11,6 +11,8 @@ import {
   ChevronRight,
   Bell,
   Search,
+  Users,
+  DollarSign,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -97,6 +99,8 @@ const generateBreadcrumbs = (pathname: string): BreadcrumbItem[] => {
     "/dashboard/mandates/create": "Créer un mandat",
     "/dashboard/dayvalues": "Valeurs journalières",
     "/dashboard/dayvalues/create": "Nouvelle valeur",
+    "/dashboard/employees": "Employés",
+    "/dashboard/payroll": "Masse salariale",
     "/dashboard/analytics": "Analytics",
     "/dashboard/profile": "Profil",
     "/dashboard/settings": "Paramètres",
@@ -260,8 +264,41 @@ function ModernNavbar() {
             </Link>
           </div>
 
-          {/* Breadcrumbs au centre */}
-          <div className="hidden md:flex items-center space-x-1 flex-1 justify-center max-w-2xl">
+          {/* Navigation principale et breadcrumbs au centre */}
+          <div className="hidden md:flex items-center space-x-6 flex-1 justify-center max-w-4xl">
+            {/* Navigation principale */}
+            <nav
+              aria-label="Navigation principale"
+              className="flex items-center space-x-4"
+            >
+              <Link
+                href="/dashboard/employees"
+                className={`flex items-center space-x-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  pathname.startsWith("/dashboard/employees")
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                }`}
+              >
+                <Users className="h-4 w-4" />
+                <span>Employés</span>
+              </Link>
+              <Link
+                href="/dashboard/payroll"
+                className={`flex items-center space-x-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  pathname.startsWith("/dashboard/payroll")
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                }`}
+              >
+                <DollarSign className="h-4 w-4" />
+                <span>Masse salariale</span>
+              </Link>
+            </nav>
+
+            {/* Séparateur */}
+            <div className="h-4 w-px bg-border"></div>
+
+            {/* Breadcrumbs */}
             <nav aria-label="Breadcrumb">
               <ol className="flex items-center space-x-1 text-sm text-muted-foreground">
                 {breadcrumbs.map((item, index) => (
