@@ -1,6 +1,7 @@
+// src/app/dashboard/mandates/create/page.tsx - Version sobre et moderne
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -21,14 +22,15 @@ import {
 } from "@/app/components/ui/select";
 import { Checkbox } from "@/app/components/ui/checkbox";
 import { BackButton } from "@/app/components/ui/BackButton";
-import { Building2, Plus } from "lucide-react";
+import { Building2, Plus, X, Loader2, MapPin, AlertCircle } from "lucide-react";
 
-// Types basés sur ton schema Prisma
+// Types basés sur le schema Prisma
 type MandateGroup = "HEBERGEMENT" | "RESTAURATION";
 
 export default function CreateMandatePage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   // État du formulaire
   const [formData, setFormData] = useState({
@@ -39,6 +41,17 @@ export default function CreateMandatePage() {
 
   // Gestion des erreurs
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Détection mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   // Validation du formulaire
   const validateForm = () => {
@@ -51,7 +64,7 @@ export default function CreateMandatePage() {
     }
 
     if (!formData.group) {
-      newErrors.group = "Veuillez sélectionner un groupe";
+      newErrors.group = "Veuillez sélectionner un type";
     }
 
     setErrors(newErrors);
@@ -63,7 +76,7 @@ export default function CreateMandatePage() {
     e.preventDefault();
 
     if (!validateForm()) {
-      toast.error("Veuillez corriger les erreurs dans le formulaire");
+      toast.error("Veuillez corriger les erreurs");
       return;
     }
 
@@ -85,10 +98,9 @@ export default function CreateMandatePage() {
       if (!response.ok) {
         const errorData = await response.json();
 
-        // Gérer l'erreur de nom unique
         if (errorData.code === "UNIQUE_CONSTRAINT_VIOLATION") {
-          setErrors({ name: "Un mandat avec ce nom existe déjà" });
-          toast.error("Un mandat avec ce nom existe déjà");
+          setErrors({ name: "Un établissement avec ce nom existe déjà" });
+          toast.error("Ce nom existe déjà");
           return;
         }
 
@@ -96,9 +108,7 @@ export default function CreateMandatePage() {
       }
 
       const newMandate = await response.json();
-      toast.success(`Mandat "${newMandate.name}" créé avec succès`);
-
-      // Redirection vers la liste des mandats
+      toast.success(`"${newMandate.name}" créé avec succès`);
       router.push("/dashboard/mandates");
     } catch (error) {
       console.error("Erreur:", error);
@@ -127,167 +137,197 @@ export default function CreateMandatePage() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Navigation */}
-      <BackButton
-        href="/dashboard/mandates"
-        label="Back to List"
-        loadingMessage="Retour à la liste..."
-      />
+    <div className="min-h-screen bg-slate-50">
+      <div className="container mx-auto px-4 py-8 max-w-2xl">
+        {/* Navigation */}
+        <BackButton
+          href="/dashboard/mandates"
+          label="Retour aux établissements"
+          className="mb-6"
+        />
 
-      {/* Header avec style similaire à ton image */}
-      <div className="border-b pb-4">
-        <h1 className="text-4xl font-bold tracking-tight text-gray-900">
-          Create
-        </h1>
-        <h2 className="text-2xl font-medium text-gray-700 mt-2">Mandate</h2>
-      </div>
-
-      {/* Formulaire avec style épuré comme ton image */}
-      <div className="max-w-2xl">
-        <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Champ Name */}
-          <div className="space-y-3">
-            <Label htmlFor="name" className="text-lg font-medium text-gray-900">
-              Name
-            </Label>
-            <Input
-              id="name"
-              type="text"
-              value={formData.name}
-              onChange={(e) => handleInputChange("name", e.target.value)}
-              className={`h-12 text-base ${errors.name ? "border-red-500" : "border-gray-300"}`}
-              placeholder="Entrez le nom du mandat..."
-              disabled={isLoading}
-            />
-            {errors.name && (
-              <p className="text-sm text-red-500 mt-1">{errors.name}</p>
-            )}
-          </div>
-
-          {/* Champ Group */}
-          <div className="space-y-3">
-            <Label
-              htmlFor="group"
-              className="text-lg font-medium text-gray-900"
-            >
-              Group
-            </Label>
-            <Select
-              value={formData.group}
-              onValueChange={(value) => handleInputChange("group", value)}
-              disabled={isLoading}
-            >
-              <SelectTrigger
-                className={`h-12 text-base ${errors.group ? "border-red-500" : "border-gray-300"}`}
-              >
-                <SelectValue placeholder="Sélectionnez un groupe..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="HEBERGEMENT">
-                  <div className="flex items-center">
-                    <Building2 className="mr-2 h-4 w-4" />
-                    Hébergement
-                  </div>
-                </SelectItem>
-                <SelectItem value="RESTAURATION">
-                  <div className="flex items-center">
-                    <Building2 className="mr-2 h-4 w-4" />
-                    Restauration
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-            {errors.group && (
-              <p className="text-sm text-red-500 mt-1">{errors.group}</p>
-            )}
-          </div>
-
-          {/* Checkbox Activ */}
-          <div className="flex items-center space-x-3">
-            <Checkbox
-              id="active"
-              checked={formData.active}
-              onCheckedChange={(checked) =>
-                handleInputChange("active", !!checked)
-              }
-              disabled={isLoading}
-              className="h-5 w-5"
-            />
-            <Label
-              htmlFor="active"
-              className="text-lg font-medium text-gray-900 cursor-pointer"
-            >
-              Activ
-            </Label>
-          </div>
-
-          {/* Boutons d'action avec style similaire à ton image */}
-          <div className="flex items-center space-x-4 pt-6">
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-base font-medium rounded-md min-w-[120px]"
-            >
-              {isLoading ? (
-                <div className="flex items-center">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Création...
-                </div>
-              ) : (
-                <>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create
-                </>
-              )}
-            </Button>
-
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => router.push("/dashboard/mandates")}
-              disabled={isLoading}
-              className="px-8 py-3 text-base"
-            >
-              Annuler
-            </Button>
-          </div>
-        </form>
-
-        {/* Lien "Back to List" avec style de ton image */}
-        <div className="mt-8 pt-6 border-t">
-          <Button
-            variant="link"
-            onClick={() => router.push("/dashboard/mandates")}
-            className="text-blue-600 hover:text-blue-700 p-0 h-auto font-normal text-base"
-          >
-            Back to List
-          </Button>
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">
+            Nouvel établissement
+          </h1>
+          <p className="text-slate-600">
+            Créez un nouveau mandat pour suivre son activité
+          </p>
         </div>
-      </div>
 
-      {/* Section d'aide (optionnelle) */}
-      <Card className="max-w-2xl bg-blue-50 border-blue-200">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base text-blue-900">
-            💡 Information
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-sm text-blue-800 space-y-1">
-            <p>
-              • <strong>Name :</strong> Le nom doit être unique et descriptif
-            </p>
-            <p>
-              • <strong>Group :</strong> Choisissez entre Hébergement ou
-              Restauration
-            </p>
-            <p>
-              • <strong>Activ :</strong> Décochez pour créer un mandat inactif
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+        {/* Formulaire */}
+        <Card className="shadow-lg border-slate-200">
+          <CardHeader>
+            <CardTitle className="text-xl text-slate-900">
+              Informations
+            </CardTitle>
+          </CardHeader>
+
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Nom */}
+              <div className="space-y-3">
+                <Label
+                  htmlFor="name"
+                  className="text-base font-medium text-slate-900"
+                >
+                  Nom <span className="text-red-500">*</span>
+                </Label>
+
+                <Input
+                  id="name"
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => handleInputChange("name", e.target.value)}
+                  className={`h-12 text-base transition-all duration-200 ${
+                    errors.name
+                      ? "border-red-300 focus:border-red-500 focus:ring-red-500/20"
+                      : "border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                  }`}
+                  placeholder="Nom de l'établissement"
+                  disabled={isLoading}
+                />
+
+                {errors.name && (
+                  <div className="flex items-center gap-2 text-sm text-red-600">
+                    <AlertCircle className="h-4 w-4" />
+                    {errors.name}
+                  </div>
+                )}
+              </div>
+
+              {/* Type */}
+              <div className="space-y-3">
+                <Label
+                  htmlFor="group"
+                  className="text-base font-medium text-slate-900"
+                >
+                  Type <span className="text-red-500">*</span>
+                </Label>
+
+                <Select
+                  value={formData.group}
+                  onValueChange={(value) => handleInputChange("group", value)}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger
+                    className={`h-12 text-base transition-all duration-200 ${
+                      errors.group
+                        ? "border-red-300 focus:border-red-500 focus:ring-red-500/20"
+                        : "border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                    }`}
+                  >
+                    <SelectValue placeholder="Sélectionnez le type d'établissement" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-80 overflow-y-auto">
+                    <SelectItem value="HEBERGEMENT">
+                      <div className="flex items-center gap-3 py-2">
+                        <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                          <Building2 className="h-4 w-4 text-blue-600" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-medium text-slate-900">
+                            Hébergement
+                          </div>
+                          <div className="text-sm text-slate-500">
+                            Hôtels, auberges, gîtes • Suivi des nuitées et
+                            revenus
+                          </div>
+                        </div>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="RESTAURATION">
+                      <div className="flex items-center gap-3 py-2">
+                        <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+                          <MapPin className="h-4 w-4 text-orange-600" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-medium text-slate-900">
+                            Restauration
+                          </div>
+                          <div className="text-sm text-slate-500">
+                            Restaurants, bars, cafés • Suivi des ventes et
+                            revenus
+                          </div>
+                        </div>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {errors.group && (
+                  <div className="flex items-center gap-2 text-sm text-red-600">
+                    <AlertCircle className="h-4 w-4" />
+                    {errors.group}
+                  </div>
+                )}
+              </div>
+
+              {/* Statut actif */}
+              <div className="flex items-center space-x-3">
+                <Checkbox
+                  id="active"
+                  checked={formData.active}
+                  onCheckedChange={(checked) =>
+                    handleInputChange("active", !!checked)
+                  }
+                  disabled={isLoading}
+                  className="h-5 w-5"
+                />
+                <Label
+                  htmlFor="active"
+                  className="text-base font-medium text-slate-900 cursor-pointer"
+                >
+                  Établissement actif
+                </Label>
+              </div>
+
+              {/* Actions */}
+              <div
+                className={`pt-6 ${
+                  isMobile
+                    ? "flex flex-col gap-3"
+                    : "flex items-center justify-between"
+                }`}
+              >
+                <Button
+                  type="submit"
+                  disabled={isLoading}
+                  className={`bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 ${
+                    isMobile ? "w-full h-11 order-2" : "px-8 py-2.5"
+                  }`}
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="animate-spin h-4 w-4 mr-2" />
+                      Création...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Créer
+                    </>
+                  )}
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => router.push("/dashboard/mandates")}
+                  disabled={isLoading}
+                  className={`border-slate-300 hover:bg-slate-50 ${
+                    isMobile ? "w-full h-11 order-1" : "px-8 py-2.5"
+                  }`}
+                >
+                  <X className="mr-2 h-4 w-4" />
+                  Annuler
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
