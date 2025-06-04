@@ -159,9 +159,6 @@ export default function DashboardPage() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
 
-  // État pour gérer les éléments supprimés (corbeille temporaire)
-  // const [deletedItems, setDeletedItems] = useState<Map<string, DashboardData>>(new Map());
-
   // Charger les données du dashboard
   useEffect(() => {
     Promise.all([fetchDashboardData(), fetchPayrollRatios()]).finally(() => {
@@ -242,22 +239,6 @@ export default function DashboardPage() {
     return `${value.toFixed(1)}%`;
   };
 
-  // Fonction utilitaire pour calculer la masse salariale journalière
-  const getDailyPayrollAmount = (
-    monthlyAmount: number,
-    year?: number,
-    month?: number
-  ) => {
-    const currentDate = new Date();
-    const targetYear = year || currentDate.getFullYear();
-    const targetMonth = month !== undefined ? month : currentDate.getMonth();
-
-    // Obtenir le nombre de jours dans le mois
-    const daysInMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
-
-    return monthlyAmount / daysInMonth;
-  };
-
   const getRatioColor = (ratio: number | null) => {
     if (ratio === null) return "text-muted-foreground";
     if (ratio < 25) return "text-green-600";
@@ -287,7 +268,7 @@ export default function DashboardPage() {
     return { hebergement, restauration };
   };
 
-  // Calculer les totaux pour un groupe
+  // Calculer les totaux pour un groupe (SIMPLIFIÉ - Seulement CA)
   const calculateGroupTotals = (
     groupData: (DashboardData & { payroll?: PayrollRatioData })[]
   ) => {
@@ -309,20 +290,7 @@ export default function DashboardPage() {
     return totals;
   };
 
-  // Fonction séparée pour les totaux de masse salariale journalière
-  const calculateGroupPayrollTotals = (
-    groupData: (DashboardData & { payroll?: PayrollRatioData })[]
-  ) => {
-    return groupData.reduce((sum, item) => {
-      if (item.payroll?.payrollAmount) {
-        // Convertir en montant journalier
-        return sum + getDailyPayrollAmount(item.payroll.payrollAmount);
-      }
-      return sum;
-    }, 0);
-  };
-
-  // Calculer le total général
+  // Calculer le total général (SIMPLIFIÉ - Seulement CA)
   const calculateGrandTotal = () => {
     if (!dashboardData) return {};
     const mergedData = getMergedData();
@@ -339,7 +307,7 @@ export default function DashboardPage() {
     return totals;
   };
 
-  // Composant pour rendre une ligne de campus avec données payroll
+  // Composant pour rendre une ligne de campus (SIMPLIFIÉ)
   const CampusRow = ({
     campus,
   }: {
@@ -373,7 +341,7 @@ export default function DashboardPage() {
           {campus.performance}
         </div>
       </TableCell>
-      {/* COLONNE RATIO NETTOYÉE - Sans badges ni nombre d'employés */}
+      {/* COLONNE RATIO SIMPLIFIÉE */}
       <TableCell className="text-center">
         {campus.payroll ? (
           <div
@@ -388,20 +356,11 @@ export default function DashboardPage() {
           <div className="text-muted-foreground text-xs">-</div>
         )}
       </TableCell>
-      {/* Colonnes CA journalières */}
+      {/* Colonnes CA journalières SIMPLIFIÉES (seulement CA) */}
       {dashboardData?.columnLabels.map((col) => (
         <TableCell key={col.key} className="text-center">
-          <div className="space-y-1">
-            <div className="text-sm font-medium">
-              {campus.values[col.key] || "0.00"}
-            </div>
-            {campus.payroll?.payrollAmount && (
-              <div className="text-xs text-muted-foreground border-t pt-1">
-                {formatCurrency(
-                  getDailyPayrollAmount(campus.payroll.payrollAmount)
-                )}
-              </div>
-            )}
+          <div className="text-sm font-medium">
+            {campus.values[col.key] || "0.00"}
           </div>
         </TableCell>
       ))}
@@ -455,7 +414,7 @@ export default function DashboardPage() {
     </TableRow>
   );
 
-  // Composant pour rendre une ligne de sous-total
+  // Composant pour rendre une ligne de sous-total (SIMPLIFIÉ)
   const SubtotalRow = ({
     label,
     totals,
@@ -469,7 +428,6 @@ export default function DashboardPage() {
     textColor: string;
     groupData: Array<DashboardData & { payroll?: PayrollRatioData }>;
   }) => {
-    const groupDailyPayrollTotal = calculateGroupPayrollTotals(groupData);
     const groupRevenueTotal = Object.values(totals).reduce((a, b) => a + b, 0);
 
     // Calculate monthly payroll total for ratio
@@ -513,13 +471,8 @@ export default function DashboardPage() {
             key={col.key}
             className={`text-center font-semibold ${textColor} py-3`}
           >
-            <div className="space-y-1">
-              <div className="text-lg">
-                {formatCurrency(totals[col.key] || 0)}
-              </div>
-              <div className="text-xs opacity-70 font-normal">
-                MS: {formatCurrency(groupDailyPayrollTotal)}
-              </div>
+            <div className="text-lg">
+              {formatCurrency(totals[col.key] || 0)}
             </div>
           </TableCell>
         ))}
@@ -572,7 +525,6 @@ export default function DashboardPage() {
           <h1 className="text-3xl font-bold tracking-tight">Tableau de bord</h1>
           <p className="text-muted-foreground">
             Vue d&apos;ensemble CA et masse salariale
-            {/* Corbeille temporaire désactivée */}
           </p>
         </div>
         <div className="flex items-center space-x-2">
@@ -739,14 +691,15 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Table principale unifiée */}
+      {/* Table principale simplifiée */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Vue d&apos;ensemble unifiée</CardTitle>
+              <CardTitle>Vue d&apos;ensemble CA</CardTitle>
               <CardDescription>
-                CA journalier et ratios de masse salariale par campus
+                Chiffre d&apos;affaires journalier et ratios de masse salariale
+                par campus
               </CardDescription>
             </div>
             <Badge variant="secondary" className="text-xs">
@@ -764,7 +717,7 @@ export default function DashboardPage() {
                     Dernière saisie
                   </TableHead>
                   <TableHead className="min-w-[150px]">Top</TableHead>
-                  {/* COLONNE RATIO AVEC TOOLTIP */}
+                  {/* COLONNE RATIO AVEC TOOLTIP SIMPLIFIÉ */}
                   <TableHead className="text-center min-w-[120px]">
                     <TooltipProvider>
                       <Tooltip>
@@ -829,21 +782,15 @@ export default function DashboardPage() {
                       </Tooltip>
                     </TooltipProvider>
                   </TableHead>
-                  {/* Colonnes des jours */}
+                  {/* Colonnes des jours SIMPLIFIÉES */}
                   {dashboardData.columnLabels.map((col) => (
                     <TableHead
                       key={col.key}
                       className="text-center min-w-[100px]"
                     >
-                      <div className="space-y-1">
-                        <div className="font-medium">{col.label}</div>
-                        <div className="text-xs text-muted-foreground font-normal">
-                          CA / Masse S.
-                        </div>
-                      </div>
+                      <div className="font-medium">{col.label}</div>
                     </TableHead>
                   ))}
-                  {/* SUPPRIMÉ : Ancienne colonne Ratio qui était ici */}
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -914,7 +861,7 @@ export default function DashboardPage() {
                 )}
               </TableBody>
 
-              {/* Total général */}
+              {/* Total général SIMPLIFIÉ */}
               {mergedData.length > 0 && categoryFilter === "all" && (
                 <TableFooter>
                   <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-150 border-t-4 border-gray-300">
@@ -941,19 +888,8 @@ export default function DashboardPage() {
                         key={col.key}
                         className="text-center font-bold text-gray-900 py-4"
                       >
-                        <div className="space-y-1">
-                          <div className="text-xl">
-                            {formatCurrency(grandTotals[col.key] || 0)}
-                          </div>
-                          <div className="text-xs text-gray-600 font-normal">
-                            MS:{" "}
-                            {payrollRatios &&
-                              formatCurrency(
-                                getDailyPayrollAmount(
-                                  payrollRatios.summary.totalPayroll
-                                )
-                              )}
-                          </div>
+                        <div className="text-xl">
+                          {formatCurrency(grandTotals[col.key] || 0)}
                         </div>
                       </TableCell>
                     ))}
@@ -966,7 +902,7 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      {/* Footer unifié avec résumé */}
+      {/* Footer simplifié avec résumé */}
       <Card>
         <CardContent className="pt-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -1061,7 +997,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Total général en bas */}
+          {/* Total général en bas SIMPLIFIÉ */}
           {mergedData.length > 0 && dashboardData.columnLabels.length > 0 && (
             <div className="mt-4 pt-4 border-t border-border">
               <div className="flex items-center justify-between">
