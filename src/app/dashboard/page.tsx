@@ -486,9 +486,6 @@ export default function DashboardPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Tableau de bord</h1>
-          <p className="text-muted-foreground">
-            Vue d&apos;ensemble CA et masse salariale
-          </p>
         </div>
         <div className="flex items-center gap-4">
           {/* Action principale mise en avant */}
@@ -498,7 +495,7 @@ export default function DashboardPage() {
             size="lg"
           >
             <Plus className="mr-2 h-5 w-5" />
-            Ajouter une valeur
+            Ajouter un CA
           </Button>
 
           {/* Séparateur visuel */}
@@ -641,7 +638,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="text-xl font-bold text-slate-800">
-                Vue d&apos;ensemble CA
+                Vue d&apos;ensemble du chiffre d&apos;affaires journalier
               </CardTitle>
               <CardDescription className="text-slate-600">
                 Chiffre d&apos;affaires journalier et ratios de masse salariale
