@@ -47,6 +47,7 @@ import {
   TrendingUp,
   TrendingDown,
   AlertCircle,
+  Info,
 } from "lucide-react";
 import { Input } from "@/app/components/ui/input";
 import {
@@ -56,6 +57,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/app/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/app/components/ui/tooltip";
 import { toast } from "sonner";
 
 interface DashboardData {
@@ -265,41 +272,6 @@ export default function DashboardPage() {
     return null;
   };
 
-  const getRatioStatusBadge = (status: string | undefined) => {
-    const statusConfig = {
-      excellent: {
-        variant: "default" as const,
-        color: "bg-green-600",
-        label: "Excellent",
-      },
-      good: { variant: "default" as const, color: "bg-blue-600", label: "Bon" },
-      warning: {
-        variant: "secondary" as const,
-        color: "bg-yellow-600",
-        label: "Attention",
-      },
-      critical: {
-        variant: "destructive" as const,
-        color: "bg-red-600",
-        label: "Critique",
-      },
-      "no-data": {
-        variant: "outline" as const,
-        color: "bg-gray-400",
-        label: "Pas de données",
-      },
-    };
-
-    if (!status || !(status in statusConfig)) return null;
-
-    const config = statusConfig[status as keyof typeof statusConfig];
-    return (
-      <Badge variant={config.variant} className="text-xs">
-        {config.label}
-      </Badge>
-    );
-  };
-
   // Grouper les données par catégorie et calculer les totaux
   const groupedData = () => {
     if (!dashboardData) return { hebergement: [], restauration: [] };
@@ -387,7 +359,6 @@ export default function DashboardPage() {
               >
                 {campus.category}
               </Badge>
-              {/* SUPPRIMÉ : getRatioStatusBadge - maintenant dans colonne séparée */}
             </div>
           </div>
         </div>
@@ -402,25 +373,16 @@ export default function DashboardPage() {
           {campus.performance}
         </div>
       </TableCell>
-      {/* NOUVELLE COLONNE RATIO - Après "Performance" */}
+      {/* COLONNE RATIO NETTOYÉE - Sans badges ni nombre d'employés */}
       <TableCell className="text-center">
         {campus.payroll ? (
-          <div className="space-y-1">
-            <div
-              className={`flex items-center justify-center gap-1 ${getRatioColor(campus.payroll.payrollToRevenueRatio)}`}
-            >
-              {getRatioIcon(campus.payroll.ratioTrend)}
-              <span className="font-medium text-sm">
-                {formatPercentage(campus.payroll.payrollToRevenueRatio)}
-              </span>
-            </div>
-            {/* Badge de statut déplacé ici */}
-            {getRatioStatusBadge(campus.payroll.ratioStatus)}
-            {campus.payroll.employeeCount && (
-              <div className="text-xs text-muted-foreground">
-                {campus.payroll.employeeCount} emp.
-              </div>
-            )}
+          <div
+            className={`flex items-center justify-center gap-1 ${getRatioColor(campus.payroll.payrollToRevenueRatio)}`}
+          >
+            {getRatioIcon(campus.payroll.ratioTrend)}
+            <span className="font-medium text-sm">
+              {formatPercentage(campus.payroll.payrollToRevenueRatio)}
+            </span>
           </div>
         ) : (
           <div className="text-muted-foreground text-xs">-</div>
@@ -430,14 +392,11 @@ export default function DashboardPage() {
       {dashboardData?.columnLabels.map((col) => (
         <TableCell key={col.key} className="text-center">
           <div className="space-y-1">
-            {/* CA */}
             <div className="text-sm font-medium">
               {campus.values[col.key] || "0.00"}
             </div>
-            {/* Masse salariale si disponible */}
             {campus.payroll?.payrollAmount && (
               <div className="text-xs text-muted-foreground border-t pt-1">
-                {/* CORRECTION : Diviser par le nombre de jours du mois actuel */}
                 {formatCurrency(
                   getDailyPayrollAmount(campus.payroll.payrollAmount)
                 )}
@@ -446,7 +405,6 @@ export default function DashboardPage() {
           </div>
         </TableCell>
       ))}
-      {/* SUPPRIMÉ : Ancienne colonne Ratio qui était à la fin */}
       <TableCell>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -511,17 +469,15 @@ export default function DashboardPage() {
     textColor: string;
     groupData: Array<DashboardData & { payroll?: PayrollRatioData }>;
   }) => {
-    // CORRECTION : Calculer le total journalier de masse salariale
     const groupDailyPayrollTotal = calculateGroupPayrollTotals(groupData);
     const groupRevenueTotal = Object.values(totals).reduce((a, b) => a + b, 0);
 
-    // Pour le ratio, utiliser les montants mensuels
+    // Calculate monthly payroll total for ratio
     const groupMonthlyPayrollTotal = groupData.reduce(
       (sum, item) => sum + (item.payroll?.payrollAmount || 0),
       0
     );
 
-    // Multiplier le CA journalier par le nombre de jours pour avoir le mensuel
     const daysInMonth = new Date(
       new Date().getFullYear(),
       new Date().getMonth() + 1,
@@ -534,37 +490,39 @@ export default function DashboardPage() {
         ? (groupMonthlyPayrollTotal / estimatedMonthlyRevenue) * 100
         : null;
 
+    const establishmentsCount = groupData.filter(
+      (item) => item.payroll?.employeeCount
+    ).length;
+
     return (
-      <TableRow className={`${bgColor} hover:${bgColor}`}>
-        <TableCell colSpan={3} className={`font-medium ${textColor}`}>
-          {label}
-        </TableCell>
-        {/* NOUVELLE COLONNE RATIO dans sous-total */}
-        <TableCell className={`text-center font-medium ${textColor}`}>
-          <div className="space-y-1">
-            <div>{formatPercentage(groupRatio)}</div>
-            <div className="text-xs opacity-75">
-              {groupData.filter((item) => item.payroll?.employeeCount).length}{" "}
-              étab.
-            </div>
+      <TableRow className={`${bgColor} hover:${bgColor} border-t-2`}>
+        <TableCell colSpan={3} className={`font-semibold ${textColor} py-3`}>
+          <div className="flex items-center justify-between">
+            <span>{label}</span>
+            <span className="text-sm font-normal opacity-80">
+              {establishmentsCount} établissement
+              {establishmentsCount > 1 ? "s" : ""}
+            </span>
           </div>
         </TableCell>
-        {/* Colonnes des jours */}
+        <TableCell className={`text-center font-semibold ${textColor} py-3`}>
+          <div className="text-lg">{formatPercentage(groupRatio)}</div>
+        </TableCell>
         {dashboardData?.columnLabels.map((col) => (
           <TableCell
             key={col.key}
-            className={`text-center font-medium ${textColor}`}
+            className={`text-center font-semibold ${textColor} py-3`}
           >
             <div className="space-y-1">
-              <div>{formatCurrency(totals[col.key] || 0)}</div>
-              {/* CORRECTION : Afficher le montant journalier */}
-              <div className="text-xs opacity-75">
-                {formatCurrency(groupDailyPayrollTotal)}
+              <div className="text-lg">
+                {formatCurrency(totals[col.key] || 0)}
+              </div>
+              <div className="text-xs opacity-70 font-normal">
+                MS: {formatCurrency(groupDailyPayrollTotal)}
               </div>
             </div>
           </TableCell>
         ))}
-        {/* SUPPRIMÉ : Ancienne colonne ratio */}
         <TableCell></TableCell>
       </TableRow>
     );
@@ -806,14 +764,63 @@ export default function DashboardPage() {
                     Dernière saisie
                   </TableHead>
                   <TableHead className="min-w-[150px]">Top</TableHead>
-                  {/* NOUVELLE COLONNE RATIO - Ajoutée ici */}
+                  {/* COLONNE RATIO AVEC TOOLTIP */}
                   <TableHead className="text-center min-w-[120px]">
-                    <div className="space-y-1">
-                      <div className="font-medium">Ratio %</div>
-                      <div className="text-xs text-muted-foreground font-normal">
-                        Statut / Employés
-                      </div>
-                    </div>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center justify-center gap-1 cursor-help">
+                            <span className="font-medium">Ratio %</span>
+                            <Info className="h-3 w-3 text-muted-foreground opacity-60 hover:opacity-100 transition-opacity" />
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent
+                          side="top"
+                          className="max-w-xs p-3 text-sm"
+                          sideOffset={5}
+                        >
+                          <div className="space-y-2">
+                            <div className="font-medium text-xs text-primary">
+                              📊 Calcul du ratio masse salariale
+                            </div>
+                            <div className="text-xs">
+                              <div className="mb-1">
+                                <span className="font-medium">Formule :</span>
+                              </div>
+                              <div className="bg-muted/50 p-2 rounded text-center font-mono text-xs">
+                                (Masse Salariale ÷ Chiffre d&apos;Affaires) ×
+                                100
+                              </div>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              <div className="mb-1">
+                                <span className="font-medium">
+                                  Interprétation :
+                                </span>
+                              </div>
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                  <span>&lt; 25% : Excellent</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                  <span>25-35% : Bon</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                                  <span>35-50% : Attention</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                                  <span>&gt; 50% : Critique</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </TableHead>
                   {/* Colonnes des jours */}
                   {dashboardData.columnLabels.map((col) => (
@@ -903,25 +910,36 @@ export default function DashboardPage() {
               {/* Total général */}
               {mergedData.length > 0 && categoryFilter === "all" && (
                 <TableFooter>
-                  <TableRow className="bg-gray-100 hover:bg-gray-100">
-                    <TableCell colSpan={3} className="font-bold text-gray-900">
-                      Total général
+                  <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-150 border-t-4 border-gray-300">
+                    <TableCell
+                      colSpan={3}
+                      className="font-bold text-gray-900 py-4"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-lg">Total général</span>
+                        <span className="text-sm font-normal text-gray-600">
+                          {mergedData.length} établissement
+                          {mergedData.length > 1 ? "s" : ""}
+                        </span>
+                      </div>
                     </TableCell>
-                    {/* NOUVELLE COLONNE RATIO dans total */}
-                    <TableCell className="text-center font-bold text-gray-900">
-                      {payrollRatios &&
-                        formatPercentage(payrollRatios.summary.globalRatio)}
+                    <TableCell className="text-center font-bold text-gray-900 py-4">
+                      <div className="text-xl">
+                        {payrollRatios &&
+                          formatPercentage(payrollRatios.summary.globalRatio)}
+                      </div>
                     </TableCell>
-                    {/* Colonnes des jours */}
                     {dashboardData.columnLabels.map((col) => (
                       <TableCell
                         key={col.key}
-                        className="text-center font-bold text-gray-900"
+                        className="text-center font-bold text-gray-900 py-4"
                       >
                         <div className="space-y-1">
-                          <div>{formatCurrency(grandTotals[col.key] || 0)}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {/* CORRECTION : Calculer le montant journalier total */}
+                          <div className="text-xl">
+                            {formatCurrency(grandTotals[col.key] || 0)}
+                          </div>
+                          <div className="text-xs text-gray-600 font-normal">
+                            MS:{" "}
                             {payrollRatios &&
                               formatCurrency(
                                 getDailyPayrollAmount(
@@ -932,7 +950,6 @@ export default function DashboardPage() {
                         </div>
                       </TableCell>
                     ))}
-                    {/* SUPPRIMÉ : Ancienne colonne ratio */}
                     <TableCell></TableCell>
                   </TableRow>
                 </TableFooter>
