@@ -1,3 +1,4 @@
+// src/app/dashboard/page.tsx - Version corrigée
 "use client";
 
 import { useState, useEffect } from "react";
@@ -146,7 +147,7 @@ export default function DashboardPage() {
       return matchesSearch && matchesCategory && matchesStatus;
     }) || [];
 
-  // Grouper les données par catégorie et calculer les totaux
+  // Grouper les données par catégorie et calculer les totaux CORRIGÉS
   const groupedData = () => {
     if (!dashboardData) return { hebergement: [], restauration: [] };
 
@@ -160,30 +161,38 @@ export default function DashboardPage() {
     return { hebergement, restauration };
   };
 
-  // Calculer les totaux pour un groupe
+  // CORRECTION MAJEURE: Calculer les totaux pour un groupe
   const calculateGroupTotals = (groupData: DashboardData[]) => {
     if (!dashboardData) return {};
 
     const totals: Record<string, number> = {};
     dashboardData.columnLabels.forEach((col) => {
       totals[col.key] = groupData.reduce((sum, item) => {
-        const value = parseFloat(item.values[col.key] || "0");
-        return sum + value;
+        // CORRECTION: Parse correctement les valeurs avec virgules
+        const valueStr = item.values[col.key] || "0.00";
+        const value = parseFloat(
+          valueStr.replace(/[^\d.-]/g, "").replace(",", ".")
+        );
+        return sum + (isNaN(value) ? 0 : value);
       }, 0);
     });
 
     return totals;
   };
 
-  // Calculer le total général
+  // CORRECTION MAJEURE: Calculer le total général
   const calculateGrandTotal = () => {
     if (!dashboardData) return {};
 
     const totals: Record<string, number> = {};
     dashboardData.columnLabels.forEach((col) => {
       totals[col.key] = filteredData.reduce((sum, item) => {
-        const value = parseFloat(item.values[col.key] || "0");
-        return sum + value;
+        // CORRECTION: Parse correctement les valeurs avec virgules
+        const valueStr = item.values[col.key] || "0.00";
+        const value = parseFloat(
+          valueStr.replace(/[^\d.-]/g, "").replace(",", ".")
+        );
+        return sum + (isNaN(value) ? 0 : value);
       }, 0);
     });
 
@@ -380,78 +389,30 @@ export default function DashboardPage() {
     }).format(value);
   };
 
-  // Composant pour rendre une ligne de campus
+  // COMPOSANT CORRIGÉ : Rendre une ligne de campus (badges supprimés)
   const CampusRow = ({ campus }: { campus: DashboardData }) => (
     <TableRow key={campus.id} className="hover:bg-muted/50">
       <TableCell>
         <div className="flex items-center space-x-2">
           <div>
             <div className="font-medium">{campus.name}</div>
-            <div className="text-sm text-muted-foreground flex items-center gap-2">
+            <div className="text-sm text-muted-foreground">
               <Badge
                 variant={
-                  campus.status === "active"
-                    ? "default"
-                    : campus.status === "new"
-                      ? "secondary"
-                      : campus.status === "warning"
-                        ? "destructive"
-                        : "outline"
+                  campus.category === "Hébergement" ? "default" : "secondary"
                 }
                 className="text-xs"
               >
                 {campus.category}
               </Badge>
-
-              {campus.daysSinceLastEntry !== null &&
-                campus.daysSinceLastEntry > 7 && (
-                  <Badge variant="destructive" className="text-xs">
-                    {campus.daysSinceLastEntry > 30
-                      ? `⚠️ ${Math.floor(campus.daysSinceLastEntry / 30)}M`
-                      : `⚠️ ${campus.daysSinceLastEntry}J`}
-                  </Badge>
-                )}
-
-              {campus.status === "new" && (
-                <Badge variant="secondary" className="text-xs">
-                  🆕 Nouveau
-                </Badge>
-              )}
             </div>
           </div>
         </div>
       </TableCell>
       <TableCell>
-        <div className="flex flex-col">
-          <div className="text-sm font-medium">
-            {campus.lastEntry || "Jamais"}
-          </div>
-          {campus.daysSinceLastEntry !== null && (
-            <div
-              className={`text-xs ${
-                campus.daysSinceLastEntry === 0
-                  ? "text-green-600"
-                  : campus.daysSinceLastEntry <= 3
-                    ? "text-blue-600"
-                    : campus.daysSinceLastEntry <= 7
-                      ? "text-yellow-600"
-                      : campus.daysSinceLastEntry <= 30
-                        ? "text-orange-600"
-                        : "text-red-600"
-              }`}
-            >
-              {campus.daysSinceLastEntry === 0 && "🟢 Aujourd'hui"}
-              {campus.daysSinceLastEntry === 1 && "🟡 Hier"}
-              {campus.daysSinceLastEntry > 1 &&
-                campus.daysSinceLastEntry <= 7 &&
-                `🟡 ${campus.daysSinceLastEntry} jours`}
-              {campus.daysSinceLastEntry > 7 &&
-                campus.daysSinceLastEntry <= 30 &&
-                `🟠 ${campus.daysSinceLastEntry} jours`}
-              {campus.daysSinceLastEntry > 30 &&
-                `🔴 ${Math.floor(campus.daysSinceLastEntry / 30)} mois`}
-            </div>
-          )}
+        {/* CORRECTION: Affichage simplifié sans badges temporels */}
+        <div className="text-sm font-medium">
+          {campus.lastEntry || "Jamais"}
         </div>
       </TableCell>
       <TableCell>
@@ -645,6 +606,24 @@ export default function DashboardPage() {
           </Select>
         </div>
       </div>
+
+      {/* DEBUG: Afficher les totaux calculés pour vérifier */}
+      {process.env.NODE_ENV === "development" && (
+        <Card className="bg-yellow-50 border-yellow-200">
+          <CardHeader>
+            <CardTitle className="text-sm">
+              🔧 DEBUG - Totaux calculés
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-xs space-y-1">
+              <div>Hébergement: {JSON.stringify(hebergementTotals)}</div>
+              <div>Restauration: {JSON.stringify(restaurationTotals)}</div>
+              <div>Total: {JSON.stringify(grandTotals)}</div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Table principale avec totaux intégrés */}
       <Card>

@@ -1,4 +1,3 @@
-// src/app/api/dashboard/data/route.ts - Version simplifiée
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
@@ -7,8 +6,8 @@ import { headers } from "next/headers";
 interface DashboardData {
   id: string;
   name: string;
-  lastEntry: string | null; // Format simple: "01.06.25" ou null
-  daysSinceLastEntry: number | null; // Nombre de jours depuis la dernière saisie
+  lastEntry: string | null;
+  daysSinceLastEntry: number | null;
   performance: string;
   values: Record<string, string>;
   category: string;
@@ -94,14 +93,16 @@ export async function GET(request: NextRequest) {
         const values: Record<string, string> = {};
         dateColumns.forEach((dateKey) => {
           const value = valuesByDate.get(dateKey);
-          values[dateKey] = value ? formatCurrency(value) : "0.00";
+          // CORRECTION: Stocker les valeurs numériques sans formatage
+          // pour permettre un calcul correct côté client
+          values[dateKey] = value ? value.toString() : "0";
         });
 
         const lastEntryFormatted = lastDayValue
-          ? formatDateSimple(lastDayValue.date) // Utiliser la date CA
+          ? formatDateSimple(lastDayValue.date)
           : null;
 
-        // Calculer les jours depuis la dernière saisie (pas depuis la date CA)
+        // Calculer les jours depuis la dernière saisie
         let daysSinceLastEntry = null;
         if (lastDayValue) {
           const today = new Date();
@@ -112,28 +113,6 @@ export async function GET(request: NextRequest) {
 
           const diffTime = today.getTime() - lastSaisieDate.getTime();
           daysSinceLastEntry = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-        }
-
-        // 🐛 DEBUG TEMPORAIRE - À retirer après vérification
-        if (mandate.name === "Camping Lac") {
-          console.log(`🔍 DEBUG ${mandate.name}:`);
-          console.log(`  lastDayValue:`, lastDayValue);
-          console.log(`  date brute:`, lastDayValue?.date);
-          console.log(`  date formatée:`, lastEntryFormatted);
-          console.log(`  vraies dates en DB pour ce mandat:`);
-
-          // Voir les 3 dernières vraies dates
-          const debugDates = await prisma.dayValue.findMany({
-            where: { mandateId: mandate.id },
-            orderBy: { date: "desc" },
-            take: 3,
-            select: { date: true, value: true },
-          });
-          debugDates.forEach((d, i) => {
-            console.log(
-              `    ${i + 1}. ${d.date.toISOString().split("T")[0]} (${d.value})`
-            );
-          });
         }
 
         // Calculer la performance (record)
@@ -152,7 +131,7 @@ export async function GET(request: NextRequest) {
             ? `${formatCurrency(maxValue)} / ${formatDateSimple(maxValueDate || new Date())}`
             : "Aucune donnée";
 
-        // 🔥 STATUT: Basé sur l'existence d'une dernière saisie
+        // Statut: Basé sur l'existence d'une dernière saisie
         let status = "active";
         if (!mandate.active) {
           status = "inactive";
@@ -164,7 +143,7 @@ export async function GET(request: NextRequest) {
           id: mandate.id,
           name: mandate.name,
           lastEntry: lastEntryFormatted,
-          daysSinceLastEntry, // Ajouter cette ligne
+          daysSinceLastEntry,
           performance,
           values,
           category:
@@ -195,7 +174,7 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // Calculer les totaux (code existant...)
+    // CORRECTION MAJEURE: Calculer les totaux côté serveur correctement
     const totals = {
       totalRevenue: dashboardData.reduce(
         (sum, item) => sum + item.totalRevenue,
@@ -211,28 +190,42 @@ export async function GET(request: NextRequest) {
       },
     };
 
-    // Calculer les totaux par jour
+    // CORRECTION: Calculer les totaux par jour correctement
     dateColumns.forEach((dateKey) => {
       totals.dailyTotals[dateKey] = 0;
       totals.subtotalsByCategory.hebergement[dateKey] = 0;
       totals.subtotalsByCategory.restauration[dateKey] = 0;
 
       dashboardData.forEach((item) => {
-        const value = item.values[dateKey];
-        const numValue = value ? parseFloat(value.replace(/[^\d.-]/g, "")) : 0;
+        // CORRECTION: Parser les valeurs comme nombres
+        const valueStr = item.values[dateKey] || "0";
+        const numValue = parseFloat(valueStr);
 
-        totals.dailyTotals[dateKey] += numValue;
+        if (!isNaN(numValue)) {
+          totals.dailyTotals[dateKey] += numValue;
 
-        if (item.category === "Hébergement") {
-          totals.subtotalsByCategory.hebergement[dateKey] += numValue;
-        } else if (item.category === "Restauration") {
-          totals.subtotalsByCategory.restauration[dateKey] += numValue;
+          if (item.category === "Hébergement") {
+            totals.subtotalsByCategory.hebergement[dateKey] += numValue;
+          } else if (item.category === "Restauration") {
+            totals.subtotalsByCategory.restauration[dateKey] += numValue;
+          }
         }
       });
     });
 
+    // CORRECTION: Formater les valeurs pour l'affichage APRÈS les calculs
+    const formattedData = dashboardData.map((item) => ({
+      ...item,
+      values: Object.fromEntries(
+        Object.entries(item.values).map(([key, value]) => [
+          key,
+          parseFloat(value) > 0 ? formatCurrency(parseFloat(value)) : "0.00",
+        ])
+      ),
+    }));
+
     return NextResponse.json({
-      data: dashboardData,
+      data: formattedData,
       totals,
       columnLabels,
       meta: {
@@ -256,7 +249,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// 🔥 FONCTIONS DE FORMATAGE SIMPLIFIÉES
+// Fonctions de formatage
 function formatDateSimple(date: Date): string {
   return date.toLocaleDateString("fr-CH", {
     day: "2-digit",
