@@ -19,15 +19,40 @@ import {
   SelectValue,
 } from "@/app/components/ui/select";
 import { Button } from "@/app/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/app/components/ui/card";
+import { Badge } from "@/app/components/ui/badge";
 import { BackButton } from "@/app/components/ui/BackButton";
-import { CalendarIcon, Download, Loader2 } from "lucide-react";
+import {
+  CalendarIcon,
+  Download,
+  Loader2,
+  TrendingUp,
+  TrendingDown,
+  Calculator,
+  DollarSign,
+  BarChart3,
+} from "lucide-react";
 import { toast } from "sonner";
 
-// Types pour les données CA
+// Types pour les données CA améliorées
 interface DayCAData {
   date: string;
   value: number;
   formattedDate: string;
+}
+
+interface PayrollData {
+  year: number;
+  month: number;
+  grossAmount: number;
+  socialCharges: number;
+  totalCost: number;
+  employeeCount?: number;
 }
 
 interface PeriodData {
@@ -39,6 +64,19 @@ interface PeriodData {
   averageDaily: number;
   daysWithData: number;
   cumulativeTotal?: number;
+  cumulativePayroll?: number;
+
+  // Nouvelles données masse salariale
+  payrollData?: PayrollData;
+  payrollToRevenueRatio?: number;
+
+  // Données comparaison année précédente
+  yearOverYear: {
+    previousYearRevenue: number;
+    previousYearPayroll?: number;
+    revenueGrowth: number | null;
+    payrollGrowth: number | null;
+  };
 }
 
 interface Comparison {
@@ -46,6 +84,12 @@ interface Comparison {
   comparison: {
     previous: number;
     percentage: number | null;
+  };
+  yearOverYear: {
+    previousYearRevenue: number;
+    previousYearPayroll?: number;
+    revenueGrowth: number | null;
+    payrollGrowth: number | null;
   };
 }
 
@@ -63,6 +107,16 @@ interface CAResponse {
     averagePerPeriod: number;
     bestPeriod: PeriodData;
     worstPeriod: PeriodData;
+
+    // Nouveaux indicateurs
+    totalPayrollCost: number;
+    globalPayrollRatio: number | null;
+
+    // Comparaisons annuelles
+    yearOverYearGrowth: {
+      revenue: number | null;
+      payroll: number | null;
+    };
   };
   meta: {
     year: number;
@@ -81,8 +135,15 @@ export default function MandateCAPage() {
   const [selectedYear, setSelectedYear] = useState(
     new Date().getFullYear().toString()
   );
-  const [startMonth, setStartMonth] = useState("7"); // Juillet par défaut
-  const [period, setPeriod] = useState("6months");
+
+  // Nouveau: commencer par le mois actuel ou janvier selon la période de l'année
+  const currentDate = new Date();
+  const currentMonth = currentDate.getMonth() + 1;
+
+  // Si on est avant juillet, commencer en janvier, sinon commencer en juillet
+  const defaultStartMonth = currentMonth < 7 ? "1" : "7";
+  const [startMonth, setStartMonth] = useState(defaultStartMonth);
+  const [period, setPeriod] = useState("12months"); // 12 mois par défaut
 
   // Charger les données CA depuis l'API
   useEffect(() => {
@@ -147,15 +208,25 @@ export default function MandateCAPage() {
     }).format(amount);
   };
 
-  const formatPercentage = (value: number | null) => {
+  const formatPercentage = (value: number | null, showSign = true) => {
     if (value === null) return "-";
-    const formatted = Math.abs(value).toFixed(2);
+    const formatted = Math.abs(value).toFixed(1);
+    const sign = value >= 0 ? "+" : "-";
     const color = value >= 0 ? "text-green-600" : "text-red-600";
     return (
       <span className={color}>
-        {value >= 0 ? "+" : "-"}
+        {showSign && sign}
         {formatted}%
       </span>
+    );
+  };
+
+  const getGrowthIcon = (value: number | null) => {
+    if (value === null) return null;
+    return value >= 0 ? (
+      <TrendingUp className="h-4 w-4 text-green-600" />
+    ) : (
+      <TrendingDown className="h-4 w-4 text-red-600" />
     );
   };
 
@@ -185,7 +256,8 @@ export default function MandateCAPage() {
 
   // Créer la structure de données pour le tableau
   const tableData = () => {
-    if (!caData) return { rows: [], totals: {}, comparisons: {} };
+    if (!caData)
+      return { rows: [], totals: {}, comparisons: {}, payrollTotals: {} };
 
     // Obtenir tous les jours uniques
     const allDays = new Set<number>();
@@ -212,19 +284,23 @@ export default function MandateCAPage() {
       return { day, values };
     });
 
-    // Calculer les totaux
+    // Calculer les totaux CA
     const totals: Record<string, number> = {};
     const averages: Record<string, number> = {};
+    const payrollTotals: Record<string, number> = {};
+    const ratios: Record<string, number> = {};
 
     caData.periods.forEach((period, index) => {
       totals[`period_${index}`] = period.totalValue;
       averages[`period_${index}`] = period.averageDaily;
+      payrollTotals[`period_${index}`] = period.payrollData?.totalCost || 0;
+      ratios[`period_${index}`] = period.payrollToRevenueRatio || 0;
     });
 
-    return { rows, totals, averages };
+    return { rows, totals, averages, payrollTotals, ratios };
   };
 
-  const { rows, totals, averages } = tableData();
+  const { rows, totals } = tableData();
 
   return (
     <div className="space-y-6">
@@ -241,18 +317,102 @@ export default function MandateCAPage() {
             Tableau de bord
           </Link>
           <span className="text-gray-400">|</span>
-          <Link href="/dashboard/dayvalues" className="hover:underline">
-            Valeurs journalières
-          </Link>
-          <span className="text-gray-400">|</span>
           <Link href="/dashboard/mandates" className="hover:underline">
             Mandants
           </Link>
         </nav>
 
-        <h1 className="text-2xl font-bold text-gray-900">
-          {caData.mandate.name}
-        </h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-gray-900">
+            {caData.mandate.name}
+          </h1>
+          <Badge
+            variant={
+              caData.mandate.group === "HEBERGEMENT" ? "default" : "secondary"
+            }
+          >
+            {caData.mandate.group === "HEBERGEMENT"
+              ? "Hébergement"
+              : "Restauration"}
+          </Badge>
+        </div>
+      </div>
+
+      {/* Indicateurs de performance */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">CA Total</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {formatCurrency(caData.summary.grandTotal)}
+            </div>
+            {caData.summary.yearOverYearGrowth.revenue !== null && (
+              <div className="flex items-center text-xs">
+                {getGrowthIcon(caData.summary.yearOverYearGrowth.revenue)}
+                <span className="ml-1">
+                  {formatPercentage(caData.summary.yearOverYearGrowth.revenue)}{" "}
+                  vs {parseInt(selectedYear) - 1}
+                </span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Masse Salariale
+            </CardTitle>
+            <Calculator className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {formatCurrency(caData.summary.totalPayrollCost)}
+            </div>
+            {caData.summary.yearOverYearGrowth.payroll !== null && (
+              <div className="flex items-center text-xs">
+                {getGrowthIcon(caData.summary.yearOverYearGrowth.payroll)}
+                <span className="ml-1">
+                  {formatPercentage(caData.summary.yearOverYearGrowth.payroll)}{" "}
+                  vs {parseInt(selectedYear) - 1}
+                </span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Ratio Global</CardTitle>
+            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {caData.summary.globalPayrollRatio
+                ? formatPercentage(caData.summary.globalPayrollRatio, false)
+                : "-"}
+            </div>
+            <p className="text-xs text-muted-foreground">Masse sal. / CA</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Meilleur Mois</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {formatCurrency(caData.summary.bestPeriod.totalValue)}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {caData.summary.bestPeriod.label}
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Filtres */}
@@ -278,8 +438,16 @@ export default function MandateCAPage() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="1">Janvier</SelectItem>
-            <SelectItem value="7">Juillet</SelectItem>
+            {Array.from({ length: 12 }, (_, i) => {
+              const month = i + 1;
+              return (
+                <SelectItem key={month} value={month.toString()}>
+                  {new Date(0, i).toLocaleDateString("fr-CH", {
+                    month: "long",
+                  })}
+                </SelectItem>
+              );
+            })}
           </SelectContent>
         </Select>
 
@@ -299,7 +467,7 @@ export default function MandateCAPage() {
         </Button>
       </div>
 
-      {/* Table des données */}
+      {/* Table des données avec CA et masse salariale */}
       <div className="overflow-x-auto border rounded-lg">
         <Table>
           <TableHeader>
@@ -310,11 +478,13 @@ export default function MandateCAPage() {
               {caData.periods.map((period, index) => (
                 <TableHead
                   key={index}
-                  className="text-center min-w-[120px] border-r"
+                  className="text-center min-w-[140px] border-r"
                 >
-                  <div className="font-medium">{period.label}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {period.year}
+                  <div className="space-y-1">
+                    <div className="font-medium">{period.label}</div>
+                    <div className="text-xs text-muted-foreground">
+                      CA / MS / Ratio
+                    </div>
                   </div>
                 </TableHead>
               ))}
@@ -328,62 +498,130 @@ export default function MandateCAPage() {
                 </TableCell>
                 {caData.periods.map((_, index) => (
                   <TableCell key={index} className="text-center border-r">
-                    {row.values[`period_${index}`] > 0
-                      ? formatCurrency(row.values[`period_${index}`])
-                      : "-"}
+                    <div className="space-y-1">
+                      {/* CA journalier */}
+                      <div className="font-medium">
+                        {row.values[`period_${index}`] > 0
+                          ? formatCurrency(row.values[`period_${index}`])
+                          : "-"}
+                      </div>
+                    </div>
                   </TableCell>
                 ))}
               </TableRow>
             ))}
 
-            {/* Ligne des totaux */}
-            <TableRow className="bg-gray-100 font-medium">
-              <TableCell className="sticky left-0 bg-gray-100 border-r">
-                Total
-              </TableCell>
-              {caData.periods.map((_, index) => (
-                <TableCell key={index} className="text-center border-r">
-                  {formatCurrency(
-                    totals[`period_${index}` as keyof typeof totals] || 0
-                  )}
-                </TableCell>
-              ))}
-            </TableRow>
-
-            {/* Ligne moyenne */}
-            <TableRow className="bg-gray-50">
-              <TableCell className="sticky left-0 bg-gray-50 border-r">
-                Moyenne
-              </TableCell>
-              {caData.periods.map((_, index) => (
-                <TableCell key={index} className="text-center border-r">
-                  {formatCurrency(
-                    averages?.[`period_${index}` as keyof typeof averages] || 0
-                  )}
-                </TableCell>
-              ))}
-            </TableRow>
-
-            {/* Ligne comparaison */}
-            <TableRow className="bg-blue-50">
+            {/* Ligne des totaux CA */}
+            <TableRow className="bg-blue-50 font-medium">
               <TableCell className="sticky left-0 bg-blue-50 border-r">
-                Évolution
+                Total CA
               </TableCell>
-              {caData.comparisons.map((comp, index) => (
+              {caData.periods.map((_, index) => (
                 <TableCell key={index} className="text-center border-r">
-                  {formatPercentage(comp.comparison.percentage)}
+                  {formatCurrency(
+                    (totals as Record<string, number>)[`period_${index}`] || 0
+                  )}
+                </TableCell>
+              ))}
+            </TableRow>
+
+            {/* Ligne masse salariale */}
+            <TableRow className="bg-green-50 font-medium">
+              <TableCell className="sticky left-0 bg-green-50 border-r">
+                Masse Sal.
+              </TableCell>
+              {caData.periods.map((period, index) => (
+                <TableCell key={index} className="text-center border-r">
+                  {period.payrollData ? (
+                    <div className="space-y-1">
+                      <div>{formatCurrency(period.payrollData.totalCost)}</div>
+                      {period.payrollData.employeeCount && (
+                        <div className="text-xs text-muted-foreground">
+                          {period.payrollData.employeeCount} emp.
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    "-"
+                  )}
+                </TableCell>
+              ))}
+            </TableRow>
+
+            {/* Ligne ratio */}
+            <TableRow className="bg-yellow-50 font-medium">
+              <TableCell className="sticky left-0 bg-yellow-50 border-r">
+                Ratio %
+              </TableCell>
+              {caData.periods.map((period, index) => (
+                <TableCell key={index} className="text-center border-r">
+                  {period.payrollToRevenueRatio ? (
+                    <span
+                      className={`font-medium ${
+                        period.payrollToRevenueRatio < 30
+                          ? "text-green-600"
+                          : period.payrollToRevenueRatio < 50
+                            ? "text-yellow-600"
+                            : "text-red-600"
+                      }`}
+                    >
+                      {formatPercentage(period.payrollToRevenueRatio, false)}
+                    </span>
+                  ) : (
+                    "-"
+                  )}
+                </TableCell>
+              ))}
+            </TableRow>
+
+            {/* Ligne croissance vs année précédente */}
+            <TableRow className="bg-purple-50 font-medium">
+              <TableCell className="sticky left-0 bg-purple-50 border-r">
+                vs {parseInt(selectedYear) - 1}
+              </TableCell>
+              {caData.periods.map((period, index) => (
+                <TableCell key={index} className="text-center border-r">
+                  <div className="space-y-1">
+                    {/* Croissance CA */}
+                    <div className="flex items-center justify-center gap-1">
+                      {getGrowthIcon(period.yearOverYear.revenueGrowth)}
+                      <span className="text-xs">
+                        CA:{" "}
+                        {formatPercentage(period.yearOverYear.revenueGrowth)}
+                      </span>
+                    </div>
+                    {/* Croissance masse salariale */}
+                    {period.yearOverYear.payrollGrowth !== null && (
+                      <div className="flex items-center justify-center gap-1">
+                        {getGrowthIcon(period.yearOverYear.payrollGrowth)}
+                        <span className="text-xs">
+                          MS:{" "}
+                          {formatPercentage(period.yearOverYear.payrollGrowth)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </TableCell>
               ))}
             </TableRow>
 
             {/* Ligne cumul */}
-            <TableRow className="bg-yellow-50 font-medium">
-              <TableCell className="sticky left-0 bg-yellow-50 border-r">
+            <TableRow className="bg-gray-100 font-medium">
+              <TableCell className="sticky left-0 bg-gray-100 border-r">
                 Cumul
               </TableCell>
               {caData.periods.map((period, index) => (
                 <TableCell key={index} className="text-center border-r">
-                  {formatCurrency(period.cumulativeTotal || 0)}
+                  <div className="space-y-1">
+                    <div className="text-blue-700">
+                      {formatCurrency(period.cumulativeTotal || 0)}
+                    </div>
+                    {period.cumulativePayroll && (
+                      <div className="text-green-700 text-xs">
+                        MS: {formatCurrency(period.cumulativePayroll)}
+                      </div>
+                    )}
+                  </div>
                 </TableCell>
               ))}
             </TableRow>
@@ -391,44 +629,104 @@ export default function MandateCAPage() {
         </Table>
       </div>
 
-      {/* Résumé */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <div className="bg-white p-4 rounded-lg border">
-          <div className="text-sm text-gray-600">Total période</div>
-          <div className="text-2xl font-bold">
-            {formatCurrency(caData.summary.grandTotal)}
-          </div>
-          <div className="text-xs text-muted-foreground">
-            {caData.summary.totalPeriods} mois
-          </div>
-        </div>
+      {/* Résumé enrichi */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Période analysée</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="text-2xl font-bold">
+                {caData.summary.totalPeriods} mois
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Moyenne mensuelle:{" "}
+                {formatCurrency(caData.summary.averagePerPeriod)}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-        <div className="bg-white p-4 rounded-lg border">
-          <div className="text-sm text-gray-600">Meilleure période</div>
-          <div className="text-2xl font-bold">
-            {formatCurrency(caData.summary.bestPeriod.totalValue)}
-          </div>
-          <div className="text-xs text-muted-foreground">
-            {caData.summary.bestPeriod.label}
-          </div>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Performance CA</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="text-sm text-green-600">
+                Meilleur: {formatCurrency(caData.summary.bestPeriod.totalValue)}
+              </div>
+              <div className="text-sm text-red-600">
+                Plus faible:{" "}
+                {formatCurrency(caData.summary.worstPeriod.totalValue)}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                Écart:{" "}
+                {formatCurrency(
+                  caData.summary.bestPeriod.totalValue -
+                    caData.summary.worstPeriod.totalValue
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-        <div className="bg-white p-4 rounded-lg border">
-          <div className="text-sm text-gray-600">Moyenne mensuelle</div>
-          <div className="text-2xl font-bold">
-            {formatCurrency(caData.summary.averagePerPeriod)}
-          </div>
-          <div className="text-xs text-muted-foreground">
-            Sur {caData.summary.totalPeriods} mois
-          </div>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Masse Salariale</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="text-2xl font-bold">
+                {formatCurrency(caData.summary.totalPayrollCost)}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Ratio global:{" "}
+                {caData.summary.globalPayrollRatio
+                  ? formatPercentage(caData.summary.globalPayrollRatio, false)
+                  : "-"}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Évolution annuelle</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                {getGrowthIcon(caData.summary.yearOverYearGrowth.revenue)}
+                <span className="text-sm">
+                  CA:{" "}
+                  {formatPercentage(caData.summary.yearOverYearGrowth.revenue)}
+                </span>
+              </div>
+              {caData.summary.yearOverYearGrowth.payroll !== null && (
+                <div className="flex items-center gap-2">
+                  {getGrowthIcon(caData.summary.yearOverYearGrowth.payroll)}
+                  <span className="text-sm">
+                    MS:{" "}
+                    {formatPercentage(
+                      caData.summary.yearOverYearGrowth.payroll
+                    )}
+                  </span>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Informations supplémentaires */}
       <div className="text-sm text-gray-600">
         <p>
           Données générées le{" "}
-          {new Date(caData.meta.generatedAt).toLocaleString("fr-CH")}
+          {new Date(caData.meta.generatedAt).toLocaleString("fr-CH")} |
+          Comparaisons avec {parseInt(selectedYear) - 1} | Ratios masse
+          salariale inclus
         </p>
       </div>
     </div>

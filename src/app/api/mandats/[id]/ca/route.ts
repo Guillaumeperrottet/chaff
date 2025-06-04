@@ -30,8 +30,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const year = parseInt(
       searchParams.get("year") || new Date().getFullYear().toString()
     );
-    const startMonth = parseInt(searchParams.get("startMonth") || "7"); // Juillet par défaut
-    const period = searchParams.get("period") || "6months"; // 6 mois par défaut
+
+    // Nouveau: par défaut 12 mois à partir du mois courant
+    const currentMonth = new Date().getMonth() + 1;
+    const startMonth = parseInt(
+      searchParams.get("startMonth") || currentMonth.toString()
+    );
+    const period = searchParams.get("period") || "12months"; // 12 mois par défaut
 
     // Vérifier que le mandat existe
     const mandate = await prisma.mandate.findUnique({
@@ -51,12 +56,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // Calculer les périodes à récupérer
     const periods = generatePeriods(year, startMonth, period);
 
-    // Récupérer les données pour chaque période
+    // Récupérer les données pour chaque période (année courante + année précédente)
     const caData = await Promise.all(
       periods.map(async (periodInfo) => {
         const startDate = new Date(periodInfo.year, periodInfo.month - 1, 1);
-        const endDate = new Date(periodInfo.year, periodInfo.month, 0); // Dernier jour du mois
+        const endDate = new Date(periodInfo.year, periodInfo.month, 0);
 
+        // Données CA année courante
         const dayValues = await prisma.dayValue.findMany({
           where: {
             mandateId: id,
@@ -66,6 +72,50 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             },
           },
           orderBy: { date: "asc" },
+        });
+
+        // Données CA année précédente (même période)
+        const previousYearStart = new Date(
+          periodInfo.year - 1,
+          periodInfo.month - 1,
+          1
+        );
+        const previousYearEnd = new Date(
+          periodInfo.year - 1,
+          periodInfo.month,
+          0
+        );
+
+        const previousYearValues = await prisma.dayValue.findMany({
+          where: {
+            mandateId: id,
+            date: {
+              gte: previousYearStart,
+              lte: previousYearEnd,
+            },
+          },
+        });
+
+        // Données masse salariale année courante
+        const payrollEntry = await prisma.manualPayrollEntry.findUnique({
+          where: {
+            mandateId_year_month: {
+              mandateId: id,
+              year: periodInfo.year,
+              month: periodInfo.month,
+            },
+          },
+        });
+
+        // Données masse salariale année précédente
+        const previousYearPayroll = await prisma.manualPayrollEntry.findUnique({
+          where: {
+            mandateId_year_month: {
+              mandateId: id,
+              year: periodInfo.year - 1,
+              month: periodInfo.month,
+            },
+          },
         });
 
         // Traiter les données par jour
@@ -87,6 +137,28 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
         const totalValue = dayValues.reduce((sum, v) => sum + v.value, 0);
         const daysWithData = dayValues.length;
+        const previousYearRevenue = previousYearValues.reduce(
+          (sum, v) => sum + v.value,
+          0
+        );
+
+        // Calculs ratio et croissance
+        const payrollToRevenueRatio =
+          totalValue > 0 && payrollEntry
+            ? (payrollEntry.totalCost / totalValue) * 100
+            : undefined;
+
+        const revenueGrowth =
+          previousYearRevenue > 0
+            ? ((totalValue - previousYearRevenue) / previousYearRevenue) * 100
+            : null;
+
+        const payrollGrowth =
+          previousYearPayroll && payrollEntry
+            ? ((payrollEntry.totalCost - previousYearPayroll.totalCost) /
+                previousYearPayroll.totalCost) *
+              100
+            : null;
 
         return {
           year: periodInfo.year,
@@ -96,11 +168,32 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           dailyValues,
           averageDaily: daysWithData > 0 ? totalValue / daysWithData : 0,
           daysWithData,
+
+          // Nouvelles données masse salariale
+          payrollData: payrollEntry
+            ? {
+                year: payrollEntry.year,
+                month: payrollEntry.month,
+                grossAmount: payrollEntry.grossAmount,
+                socialCharges: payrollEntry.socialCharges,
+                totalCost: payrollEntry.totalCost,
+                employeeCount: payrollEntry.employeeCount || undefined,
+              }
+            : undefined,
+          payrollToRevenueRatio,
+
+          // Données comparaison année précédente
+          yearOverYear: {
+            previousYearRevenue,
+            previousYearPayroll: previousYearPayroll?.totalCost,
+            revenueGrowth,
+            payrollGrowth,
+          },
         };
       })
     );
 
-    // Calculer les comparaisons
+    // Calculer les comparaisons mois précédent
     const comparisons = caData.map((current, index) => {
       const previous = index > 0 ? caData[index - 1] : null;
       let comparisonPercentage = null;
@@ -117,18 +210,38 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           previous: previous?.totalValue || 0,
           percentage: comparisonPercentage,
         },
+        yearOverYear: current.yearOverYear,
       };
     });
 
     // Calculer les totaux cumulés
     let cumulativeTotal = 0;
+    let cumulativePayroll = 0;
     const cumulativeData = caData.map((period) => {
       cumulativeTotal += period.totalValue;
+      if (period.payrollData) {
+        cumulativePayroll += period.payrollData.totalCost;
+      }
       return {
         ...period,
         cumulativeTotal,
+        cumulativePayroll,
       };
     });
+
+    // Calculs pour le résumé
+    const totalPayrollCost = caData.reduce(
+      (sum, p) => sum + (p.payrollData?.totalCost || 0),
+      0
+    );
+    const totalPreviousYearRevenue = caData.reduce(
+      (sum, p) => sum + p.yearOverYear.previousYearRevenue,
+      0
+    );
+    const totalPreviousYearPayroll = caData.reduce(
+      (sum, p) => sum + (p.yearOverYear.previousYearPayroll || 0),
+      0
+    );
 
     return NextResponse.json({
       mandate: {
@@ -148,6 +261,29 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         worstPeriod: caData.reduce((worst, current) =>
           current.totalValue < worst.totalValue ? current : worst
         ),
+
+        // Nouveaux indicateurs
+        totalPayrollCost,
+        globalPayrollRatio:
+          cumulativeTotal > 0 && totalPayrollCost > 0
+            ? (totalPayrollCost / cumulativeTotal) * 100
+            : null,
+
+        // Comparaisons annuelles
+        yearOverYearGrowth: {
+          revenue:
+            totalPreviousYearRevenue > 0
+              ? ((cumulativeTotal - totalPreviousYearRevenue) /
+                  totalPreviousYearRevenue) *
+                100
+              : null,
+          payroll:
+            totalPreviousYearPayroll > 0 && totalPayrollCost > 0
+              ? ((totalPayrollCost - totalPreviousYearPayroll) /
+                  totalPreviousYearPayroll) *
+                100
+              : null,
+        },
       },
       meta: {
         year,
@@ -171,9 +307,14 @@ function generatePeriods(year: number, startMonth: number, period: string) {
   const periodsCount = period === "6months" ? 6 : 12;
 
   for (let i = 0; i < periodsCount; i++) {
-    const monthOffset = startMonth - 1 + i;
-    const periodYear = year + Math.floor(monthOffset / 12);
-    const periodMonth = (monthOffset % 12) + 1;
+    let periodYear = year;
+    let periodMonth = startMonth + i;
+
+    // Gestion du passage à l'année suivante
+    if (periodMonth > 12) {
+      periodYear += Math.floor((periodMonth - 1) / 12);
+      periodMonth = ((periodMonth - 1) % 12) + 1;
+    }
 
     periods.push({
       year: periodYear,
