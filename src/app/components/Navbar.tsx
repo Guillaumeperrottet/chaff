@@ -101,6 +101,7 @@ const generateBreadcrumbs = (pathname: string): BreadcrumbItem[] => {
     "/dashboard/dayvalues/create": "Nouvelle valeur",
     "/dashboard/employees": "Employés",
     "/dashboard/payroll": "Masse salariale",
+    "/dashboard/payroll/import": "Import Gastrotime",
     "/dashboard/analytics": "Analytics",
     "/dashboard/profile": "Profil",
     "/dashboard/settings": "Paramètres",

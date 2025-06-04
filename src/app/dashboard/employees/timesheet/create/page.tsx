@@ -112,6 +112,55 @@ export default function CreateTimesheetPage() {
 
   // Recalculer les heures quand les horaires changent
   useEffect(() => {
+    const calculateHours = () => {
+      if (!formData.clockIn || !formData.clockOut) {
+        setCalculatedHours(0);
+        setEstimatedCost(0);
+        return;
+      }
+
+      try {
+        const [inHour, inMin] = formData.clockIn.split(":").map(Number);
+        const [outHour, outMin] = formData.clockOut.split(":").map(Number);
+
+        const clockInMinutes = inHour * 60 + inMin;
+        const clockOutMinutes = outHour * 60 + outMin;
+
+        if (clockOutMinutes <= clockInMinutes) {
+          setCalculatedHours(0);
+          setEstimatedCost(0);
+          return;
+        }
+
+        const totalMinutes = clockOutMinutes - clockInMinutes;
+        const breakMinutes = parseInt(formData.breakMinutes) || 0;
+        const workedMinutes = Math.max(0, totalMinutes - breakMinutes);
+        const workedHours = workedMinutes / 60;
+
+        setCalculatedHours(workedHours);
+
+        // Calculer le coût estimé
+        const hourlyRate = parseFloat(formData.hourlyRate) || 0;
+        if (hourlyRate > 0) {
+          let cost = workedHours * hourlyRate;
+
+          // Ajouter majoration heures sup si > 8h
+          if (workedHours > 8) {
+            const overtimeHours = workedHours - 8;
+            const overtimeBonus = overtimeHours * hourlyRate * 0.25; // 25% de majoration
+            cost += overtimeBonus;
+          }
+
+          setEstimatedCost(cost);
+        } else {
+          setEstimatedCost(0);
+        }
+      } catch {
+        setCalculatedHours(0);
+        setEstimatedCost(0);
+      }
+    };
+
     calculateHours();
   }, [
     formData.clockIn,
@@ -119,55 +168,6 @@ export default function CreateTimesheetPage() {
     formData.breakMinutes,
     formData.hourlyRate,
   ]);
-
-  const calculateHours = () => {
-    if (!formData.clockIn || !formData.clockOut) {
-      setCalculatedHours(0);
-      setEstimatedCost(0);
-      return;
-    }
-
-    try {
-      const [inHour, inMin] = formData.clockIn.split(":").map(Number);
-      const [outHour, outMin] = formData.clockOut.split(":").map(Number);
-
-      const clockInMinutes = inHour * 60 + inMin;
-      const clockOutMinutes = outHour * 60 + outMin;
-
-      if (clockOutMinutes <= clockInMinutes) {
-        setCalculatedHours(0);
-        setEstimatedCost(0);
-        return;
-      }
-
-      const totalMinutes = clockOutMinutes - clockInMinutes;
-      const breakMinutes = parseInt(formData.breakMinutes) || 0;
-      const workedMinutes = Math.max(0, totalMinutes - breakMinutes);
-      const workedHours = workedMinutes / 60;
-
-      setCalculatedHours(workedHours);
-
-      // Calculer le coût estimé
-      const hourlyRate = parseFloat(formData.hourlyRate) || 0;
-      if (hourlyRate > 0) {
-        let cost = workedHours * hourlyRate;
-
-        // Ajouter majoration heures sup si > 8h
-        if (workedHours > 8) {
-          const overtimeHours = workedHours - 8;
-          const overtimeBonus = overtimeHours * hourlyRate * 0.25; // 25% de majoration
-          cost += overtimeBonus;
-        }
-
-        setEstimatedCost(cost);
-      } else {
-        setEstimatedCost(0);
-      }
-    } catch {
-      setCalculatedHours(0);
-      setEstimatedCost(0);
-    }
-  };
 
   // Validation du formulaire
   const validateForm = () => {
