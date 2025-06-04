@@ -769,51 +769,58 @@ export default function DashboardPage() {
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <div className="flex items-center justify-center gap-1 cursor-help">
+                          <div className="flex items-center justify-center gap-1 cursor-help group">
                             <span className="font-medium">Ratio %</span>
-                            <Info className="h-3 w-3 text-muted-foreground opacity-60 hover:opacity-100 transition-opacity" />
+                            <Info className="h-3 w-3 text-muted-foreground/40 group-hover:text-muted-foreground/60 transition-colors" />
                           </div>
                         </TooltipTrigger>
                         <TooltipContent
                           side="top"
-                          className="max-w-xs p-3 text-sm"
-                          sideOffset={5}
+                          className="max-w-xs bg-white border border-gray-200 shadow-sm p-3"
+                          sideOffset={8}
                         >
-                          <div className="space-y-2">
-                            <div className="font-medium text-xs text-primary">
-                              📊 Calcul du ratio masse salariale
-                            </div>
-                            <div className="text-xs">
-                              <div className="mb-1">
-                                <span className="font-medium">Formule :</span>
+                          <div className="space-y-2.5 text-xs">
+                            {/* Formule */}
+                            <div>
+                              <div className="text-gray-600 mb-1">
+                                Formule :
                               </div>
-                              <div className="bg-muted/50 p-2 rounded text-center font-mono text-xs">
-                                (Masse Salariale ÷ Chiffre d&apos;Affaires) ×
-                                100
+                              <div className="font-mono text-gray-900 bg-gray-50 px-2 py-1 rounded text-center">
+                                (Masse Salariale ÷ CA) × 100
                               </div>
                             </div>
-                            <div className="text-xs text-muted-foreground">
-                              <div className="mb-1">
-                                <span className="font-medium">
-                                  Interprétation :
-                                </span>
+
+                            {/* Seuils */}
+                            <div>
+                              <div className="text-gray-600 mb-1.5">
+                                Seuils :
                               </div>
                               <div className="space-y-1">
-                                <div className="flex items-center gap-2">
-                                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                  <span>&lt; 25% : Excellent</span>
+                                <div className="flex items-center gap-2 text-gray-700">
+                                  <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+                                  <span>&lt; 25%</span>
+                                  <span className="text-gray-500">
+                                    Excellent
+                                  </span>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                  <span>25-35% : Bon</span>
+                                <div className="flex items-center gap-2 text-gray-700">
+                                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                                  <span>25-35%</span>
+                                  <span className="text-gray-500">Bon</span>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                  <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                                  <span>35-50% : Attention</span>
+                                <div className="flex items-center gap-2 text-gray-700">
+                                  <div className="w-1.5 h-1.5 bg-amber-500 rounded-full"></div>
+                                  <span>35-50%</span>
+                                  <span className="text-gray-500">
+                                    Attention
+                                  </span>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                                  <span>&gt; 50% : Critique</span>
+                                <div className="flex items-center gap-2 text-gray-700">
+                                  <div className="w-1.5 h-1.5 bg-red-500 rounded-full"></div>
+                                  <span>&gt; 50%</span>
+                                  <span className="text-gray-500">
+                                    Critique
+                                  </span>
                                 </div>
                               </div>
                             </div>
