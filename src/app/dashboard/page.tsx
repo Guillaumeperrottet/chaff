@@ -41,12 +41,10 @@ import {
   Trash2,
   Loader2,
   Calculator,
-  DollarSign,
   BarChart3,
   Users,
   TrendingUp,
   TrendingDown,
-  AlertCircle,
   Info,
 } from "lucide-react";
 import { Input } from "@/app/components/ui/input";
@@ -528,6 +526,14 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="flex items-center space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => router.push("/dashboard/analytics")}
+          >
+            <BarChart3 className="mr-2 h-4 w-4" />
+            Analytics
+          </Button>
           <Button variant="outline" size="sm">
             <Calendar className="mr-2 h-4 w-4" />
             Période
@@ -549,109 +555,6 @@ export default function DashboardPage() {
             Ajouter
           </Button>
         </div>
-      </div>
-
-      {/* Statistiques rapides - enrichies avec données payroll */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Mandats</CardTitle>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {dashboardData.totals.totalMandates}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {dashboardData.totals.activeMandates} actifs
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">CA Total</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {new Intl.NumberFormat("fr-CH", {
-                style: "currency",
-                currency: "CHF",
-              }).format(dashboardData.totals.totalRevenue)}
-            </div>
-            <p className="text-xs text-muted-foreground">Période courante</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Masse Salariale
-            </CardTitle>
-            <Calculator className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {payrollRatios
-                ? new Intl.NumberFormat("fr-CH", {
-                    style: "currency",
-                    currency: "CHF",
-                  }).format(payrollRatios.summary.totalPayroll)
-                : "-"}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {payrollRatios?.summary.mandatesWithData || 0} mandats avec
-              données
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ratio Global</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div
-              className={`text-2xl font-bold ${getRatioColor(payrollRatios?.summary.globalRatio || null)}`}
-            >
-              {formatPercentage(payrollRatios?.summary.globalRatio || null)}
-            </div>
-            <p className="text-xs text-muted-foreground">Masse sal. / CA</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Distribution</CardTitle>
-            <AlertCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {payrollRatios ? (
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs">
-                  <span className="text-green-600">Excellent:</span>
-                  <span>
-                    {payrollRatios.summary.ratioDistribution.excellent}
-                  </span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-yellow-600">Attention:</span>
-                  <span>{payrollRatios.summary.ratioDistribution.warning}</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-red-600">Critique:</span>
-                  <span>
-                    {payrollRatios.summary.ratioDistribution.critical}
-                  </span>
-                </div>
-              </div>
-            ) : (
-              <div className="text-sm text-muted-foreground">-</div>
-            )}
-          </CardContent>
-        </Card>
       </div>
 
       {/* Barre de recherche et filtres */}
