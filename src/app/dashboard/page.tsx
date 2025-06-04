@@ -235,6 +235,22 @@ export default function DashboardPage() {
     return `${value.toFixed(1)}%`;
   };
 
+  // Fonction utilitaire pour calculer la masse salariale journalière
+  const getDailyPayrollAmount = (
+    monthlyAmount: number,
+    year?: number,
+    month?: number
+  ) => {
+    const currentDate = new Date();
+    const targetYear = year || currentDate.getFullYear();
+    const targetMonth = month !== undefined ? month : currentDate.getMonth();
+
+    // Obtenir le nombre de jours dans le mois
+    const daysInMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+
+    return monthlyAmount / daysInMonth;
+  };
+
   const getRatioColor = (ratio: number | null) => {
     if (ratio === null) return "text-muted-foreground";
     if (ratio < 25) return "text-green-600";
@@ -306,15 +322,32 @@ export default function DashboardPage() {
     if (!dashboardData) return {};
 
     const totals: Record<string, number> = {};
+
     dashboardData.columnLabels.forEach((col) => {
-      totals[col.key] = groupData.reduce((sum, item) => {
+      // Total CA pour cette colonne/jour
+      const dailyCATotal = groupData.reduce((sum, item) => {
         const valueStr = item.values[col.key] || "0,00";
         const value = parseFloat(valueStr.replace(",", "."));
         return sum + (isNaN(value) ? 0 : value);
       }, 0);
+
+      totals[col.key] = dailyCATotal;
     });
 
     return totals;
+  };
+
+  // Fonction séparée pour les totaux de masse salariale journalière
+  const calculateGroupPayrollTotals = (
+    groupData: (DashboardData & { payroll?: PayrollRatioData })[]
+  ) => {
+    return groupData.reduce((sum, item) => {
+      if (item.payroll?.payrollAmount) {
+        // Convertir en montant journalier
+        return sum + getDailyPayrollAmount(item.payroll.payrollAmount);
+      }
+      return sum;
+    }, 0);
   };
 
   // Calculer le total général
@@ -354,8 +387,7 @@ export default function DashboardPage() {
               >
                 {campus.category}
               </Badge>
-              {campus.payroll &&
-                getRatioStatusBadge(campus.payroll.ratioStatus)}
+              {/* SUPPRIMÉ : getRatioStatusBadge - maintenant dans colonne séparée */}
             </div>
           </div>
         </div>
@@ -370,24 +402,7 @@ export default function DashboardPage() {
           {campus.performance}
         </div>
       </TableCell>
-      {dashboardData?.columnLabels.map((col) => (
-        <TableCell key={col.key} className="text-center">
-          <div className="space-y-1">
-            {/* CA */}
-            <div className="text-sm font-medium">
-              {campus.values[col.key] || "0.00"}
-            </div>
-            {/* Masse salariale si disponible */}
-            {campus.payroll?.payrollAmount && (
-              <div className="text-xs text-muted-foreground border-t pt-1">
-                {formatCurrency(campus.payroll.payrollAmount / 30)}{" "}
-                {/* Approximation journalière */}
-              </div>
-            )}
-          </div>
-        </TableCell>
-      ))}
-      {/* Nouvelle colonne Ratio */}
+      {/* NOUVELLE COLONNE RATIO - Après "Performance" */}
       <TableCell className="text-center">
         {campus.payroll ? (
           <div className="space-y-1">
@@ -399,6 +414,8 @@ export default function DashboardPage() {
                 {formatPercentage(campus.payroll.payrollToRevenueRatio)}
               </span>
             </div>
+            {/* Badge de statut déplacé ici */}
+            {getRatioStatusBadge(campus.payroll.ratioStatus)}
             {campus.payroll.employeeCount && (
               <div className="text-xs text-muted-foreground">
                 {campus.payroll.employeeCount} emp.
@@ -409,6 +426,27 @@ export default function DashboardPage() {
           <div className="text-muted-foreground text-xs">-</div>
         )}
       </TableCell>
+      {/* Colonnes CA journalières */}
+      {dashboardData?.columnLabels.map((col) => (
+        <TableCell key={col.key} className="text-center">
+          <div className="space-y-1">
+            {/* CA */}
+            <div className="text-sm font-medium">
+              {campus.values[col.key] || "0.00"}
+            </div>
+            {/* Masse salariale si disponible */}
+            {campus.payroll?.payrollAmount && (
+              <div className="text-xs text-muted-foreground border-t pt-1">
+                {/* CORRECTION : Diviser par le nombre de jours du mois actuel */}
+                {formatCurrency(
+                  getDailyPayrollAmount(campus.payroll.payrollAmount)
+                )}
+              </div>
+            )}
+          </div>
+        </TableCell>
+      ))}
+      {/* SUPPRIMÉ : Ancienne colonne Ratio qui était à la fin */}
       <TableCell>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -473,15 +511,27 @@ export default function DashboardPage() {
     textColor: string;
     groupData: Array<DashboardData & { payroll?: PayrollRatioData }>;
   }) => {
-    // Calculer totaux payroll pour le groupe
-    const groupPayrollTotal = groupData.reduce(
+    // CORRECTION : Calculer le total journalier de masse salariale
+    const groupDailyPayrollTotal = calculateGroupPayrollTotals(groupData);
+    const groupRevenueTotal = Object.values(totals).reduce((a, b) => a + b, 0);
+
+    // Pour le ratio, utiliser les montants mensuels
+    const groupMonthlyPayrollTotal = groupData.reduce(
       (sum, item) => sum + (item.payroll?.payrollAmount || 0),
       0
     );
-    const groupRevenueTotal = Object.values(totals).reduce((a, b) => a + b, 0);
+
+    // Multiplier le CA journalier par le nombre de jours pour avoir le mensuel
+    const daysInMonth = new Date(
+      new Date().getFullYear(),
+      new Date().getMonth() + 1,
+      0
+    ).getDate();
+    const estimatedMonthlyRevenue = groupRevenueTotal * daysInMonth;
+
     const groupRatio =
-      groupRevenueTotal > 0
-        ? (groupPayrollTotal / groupRevenueTotal) * 100
+      estimatedMonthlyRevenue > 0
+        ? (groupMonthlyPayrollTotal / estimatedMonthlyRevenue) * 100
         : null;
 
     return (
@@ -489,21 +539,7 @@ export default function DashboardPage() {
         <TableCell colSpan={3} className={`font-medium ${textColor}`}>
           {label}
         </TableCell>
-        {dashboardData?.columnLabels.map((col) => (
-          <TableCell
-            key={col.key}
-            className={`text-center font-medium ${textColor}`}
-          >
-            <div className="space-y-1">
-              <div>{formatCurrency(totals[col.key] || 0)}</div>
-              <div className="text-xs opacity-75">
-                {formatCurrency(
-                  groupPayrollTotal / dashboardData.columnLabels.length || 0
-                )}
-              </div>
-            </div>
-          </TableCell>
-        ))}
+        {/* NOUVELLE COLONNE RATIO dans sous-total */}
         <TableCell className={`text-center font-medium ${textColor}`}>
           <div className="space-y-1">
             <div>{formatPercentage(groupRatio)}</div>
@@ -513,6 +549,22 @@ export default function DashboardPage() {
             </div>
           </div>
         </TableCell>
+        {/* Colonnes des jours */}
+        {dashboardData?.columnLabels.map((col) => (
+          <TableCell
+            key={col.key}
+            className={`text-center font-medium ${textColor}`}
+          >
+            <div className="space-y-1">
+              <div>{formatCurrency(totals[col.key] || 0)}</div>
+              {/* CORRECTION : Afficher le montant journalier */}
+              <div className="text-xs opacity-75">
+                {formatCurrency(groupDailyPayrollTotal)}
+              </div>
+            </div>
+          </TableCell>
+        ))}
+        {/* SUPPRIMÉ : Ancienne colonne ratio */}
         <TableCell></TableCell>
       </TableRow>
     );
@@ -754,6 +806,16 @@ export default function DashboardPage() {
                     Dernière saisie
                   </TableHead>
                   <TableHead className="min-w-[150px]">Top</TableHead>
+                  {/* NOUVELLE COLONNE RATIO - Ajoutée ici */}
+                  <TableHead className="text-center min-w-[120px]">
+                    <div className="space-y-1">
+                      <div className="font-medium">Ratio %</div>
+                      <div className="text-xs text-muted-foreground font-normal">
+                        Statut / Employés
+                      </div>
+                    </div>
+                  </TableHead>
+                  {/* Colonnes des jours */}
                   {dashboardData.columnLabels.map((col) => (
                     <TableHead
                       key={col.key}
@@ -767,14 +829,7 @@ export default function DashboardPage() {
                       </div>
                     </TableHead>
                   ))}
-                  <TableHead className="text-center min-w-[100px]">
-                    <div className="space-y-1">
-                      <div className="font-medium">Ratio %</div>
-                      <div className="text-xs text-muted-foreground font-normal">
-                        Employés
-                      </div>
-                    </div>
-                  </TableHead>
+                  {/* SUPPRIMÉ : Ancienne colonne Ratio qui était ici */}
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -852,6 +907,12 @@ export default function DashboardPage() {
                     <TableCell colSpan={3} className="font-bold text-gray-900">
                       Total général
                     </TableCell>
+                    {/* NOUVELLE COLONNE RATIO dans total */}
+                    <TableCell className="text-center font-bold text-gray-900">
+                      {payrollRatios &&
+                        formatPercentage(payrollRatios.summary.globalRatio)}
+                    </TableCell>
+                    {/* Colonnes des jours */}
                     {dashboardData.columnLabels.map((col) => (
                       <TableCell
                         key={col.key}
@@ -860,19 +921,18 @@ export default function DashboardPage() {
                         <div className="space-y-1">
                           <div>{formatCurrency(grandTotals[col.key] || 0)}</div>
                           <div className="text-xs text-muted-foreground">
+                            {/* CORRECTION : Calculer le montant journalier total */}
                             {payrollRatios &&
                               formatCurrency(
-                                payrollRatios.summary.totalPayroll /
-                                  dashboardData.columnLabels.length
+                                getDailyPayrollAmount(
+                                  payrollRatios.summary.totalPayroll
+                                )
                               )}
                           </div>
                         </div>
                       </TableCell>
                     ))}
-                    <TableCell className="text-center font-bold text-gray-900">
-                      {payrollRatios &&
-                        formatPercentage(payrollRatios.summary.globalRatio)}
-                    </TableCell>
+                    {/* SUPPRIMÉ : Ancienne colonne ratio */}
                     <TableCell></TableCell>
                   </TableRow>
                 </TableFooter>
