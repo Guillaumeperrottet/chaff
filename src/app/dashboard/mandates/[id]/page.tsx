@@ -61,6 +61,7 @@ interface PeriodData {
   label: string;
   totalValue: number;
   dailyValues: DayCAData[];
+  previousYearDailyValues: DayCAData[]; // Nouvelles données journalières année précédente
   averageDaily: number;
   daysWithData: number;
   cumulativeTotal?: number;
@@ -254,7 +255,7 @@ export default function MandateCAPage() {
     );
   }
 
-  // Créer la structure de données pour le tableau
+  // Créer la structure de données pour le tableau avec comparaison annuelle
   const tableData = () => {
     if (!caData)
       return { rows: [], totals: {}, comparisons: {}, payrollTotals: {} };
@@ -266,41 +267,75 @@ export default function MandateCAPage() {
         const day = new Date(dv.date).getDate();
         allDays.add(day);
       });
+      // Ajouter aussi les jours de l'année précédente
+      period.previousYearDailyValues?.forEach((dv) => {
+        const day = new Date(dv.date).getDate();
+        allDays.add(day);
+      });
     });
 
     const sortedDays = Array.from(allDays).sort((a, b) => a - b);
 
-    // Construire les lignes du tableau
+    // Construire les lignes du tableau avec données année courante et précédente
     const rows = sortedDays.map((day) => {
-      const values: Record<string, number> = {};
+      const values: Record<string, { current: number; previous: number }> = {};
 
       caData.periods.forEach((period, index) => {
+        // Année courante
         const dayValue = period.dailyValues.find(
           (dv) => new Date(dv.date).getDate() === day
         );
-        values[`period_${index}`] = dayValue?.value || 0;
+
+        // Année précédente
+        const previousDayValue = period.previousYearDailyValues?.find(
+          (dv) => new Date(dv.date).getDate() === day
+        );
+
+        values[`period_${index}`] = {
+          current: dayValue?.value || 0,
+          previous: previousDayValue?.value || 0,
+        };
       });
 
       return { day, values };
     });
 
-    // Calculer les totaux CA
-    const totals: Record<string, number> = {};
-    const averages: Record<string, number> = {};
-    const payrollTotals: Record<string, number> = {};
-    const ratios: Record<string, number> = {};
+    // Calculer les totaux pour année courante et précédente
+    const totals: Record<string, { current: number; previous: number }> = {};
+    const payrollTotals: Record<string, { current: number; previous: number }> =
+      {};
+    const ratios: Record<string, { current: number; previous: number }> = {};
 
     caData.periods.forEach((period, index) => {
-      totals[`period_${index}`] = period.totalValue;
-      averages[`period_${index}`] = period.averageDaily;
-      payrollTotals[`period_${index}`] = period.payrollData?.totalCost || 0;
-      ratios[`period_${index}`] = period.payrollToRevenueRatio || 0;
+      totals[`period_${index}`] = {
+        current: period.totalValue,
+        previous: period.yearOverYear.previousYearRevenue,
+      };
+
+      payrollTotals[`period_${index}`] = {
+        current: period.payrollData?.totalCost || 0,
+        previous: period.yearOverYear.previousYearPayroll || 0,
+      };
+
+      const currentRatio = period.payrollToRevenueRatio || 0;
+      const previousRatio =
+        period.yearOverYear.previousYearRevenue > 0 &&
+        period.yearOverYear.previousYearPayroll
+          ? (period.yearOverYear.previousYearPayroll /
+              period.yearOverYear.previousYearRevenue) *
+            100
+          : 0;
+
+      ratios[`period_${index}`] = {
+        current: currentRatio,
+        previous: previousRatio,
+      };
     });
 
-    return { rows, totals, averages, payrollTotals, ratios };
+    return { rows, totals, payrollTotals, ratios };
   };
 
-  const { rows, totals } = tableData();
+  const { rows, totals, payrollTotals, ratios } = tableData();
 
   return (
     <div className="space-y-6">
@@ -467,7 +502,7 @@ export default function MandateCAPage() {
         </Button>
       </div>
 
-      {/* Table des données avec CA et masse salariale */}
+      {/* Table des données avec comparaison année courante vs précédente */}
       <div className="overflow-x-auto border rounded-lg">
         <Table>
           <TableHeader>
@@ -478,12 +513,13 @@ export default function MandateCAPage() {
               {caData.periods.map((period, index) => (
                 <TableHead
                   key={index}
-                  className="text-center min-w-[140px] border-r"
+                  className="text-center min-w-[200px] border-r"
                 >
                   <div className="space-y-1">
                     <div className="font-medium">{period.label}</div>
-                    <div className="text-xs text-muted-foreground">
-                      CA / MS / Ratio
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>{period.year}</span>
+                      <span>{period.year - 1}</span>
                     </div>
                   </div>
                 </TableHead>
@@ -497,12 +533,22 @@ export default function MandateCAPage() {
                   {row.day.toString().padStart(2, "0")}
                 </TableCell>
                 {caData.periods.map((_, index) => (
-                  <TableCell key={index} className="text-center border-r">
-                    <div className="space-y-1">
-                      {/* CA journalier */}
-                      <div className="font-medium">
-                        {row.values[`period_${index}`] > 0
-                          ? formatCurrency(row.values[`period_${index}`])
+                  <TableCell key={index} className="text-center border-r p-2">
+                    <div className="flex justify-between items-center space-x-2">
+                      {/* Année courante */}
+                      <div className="flex-1 text-left">
+                        {row.values[`period_${index}`]?.current > 0
+                          ? formatCurrency(
+                              row.values[`period_${index}`].current
+                            )
+                          : "-"}
+                      </div>
+                      {/* Année précédente */}
+                      <div className="flex-1 text-right text-muted-foreground">
+                        {row.values[`period_${index}`]?.previous > 0
+                          ? formatCurrency(
+                              row.values[`period_${index}`].previous
+                            )
                           : "-"}
                       </div>
                     </div>
@@ -517,10 +563,29 @@ export default function MandateCAPage() {
                 Total CA
               </TableCell>
               {caData.periods.map((_, index) => (
-                <TableCell key={index} className="text-center border-r">
-                  {formatCurrency(
-                    (totals as Record<string, number>)[`period_${index}`] || 0
-                  )}
+                <TableCell key={index} className="text-center border-r p-2">
+                  <div className="flex justify-between items-center space-x-2">
+                    <div className="flex-1 text-left font-bold text-blue-700">
+                      {formatCurrency(
+                        (
+                          totals as Record<
+                            string,
+                            { current: number; previous: number }
+                          >
+                        )[`period_${index}`]?.current || 0
+                      )}
+                    </div>
+                    <div className="flex-1 text-right text-blue-600">
+                      {formatCurrency(
+                        (
+                          totals as Record<
+                            string,
+                            { current: number; previous: number }
+                          >
+                        )[`period_${index}`]?.previous || 0
+                      )}
+                    </div>
+                  </div>
                 </TableCell>
               ))}
             </TableRow>
@@ -531,19 +596,42 @@ export default function MandateCAPage() {
                 Masse Sal.
               </TableCell>
               {caData.periods.map((period, index) => (
-                <TableCell key={index} className="text-center border-r">
-                  {period.payrollData ? (
-                    <div className="space-y-1">
-                      <div>{formatCurrency(period.payrollData.totalCost)}</div>
-                      {period.payrollData.employeeCount && (
-                        <div className="text-xs text-muted-foreground">
-                          {period.payrollData.employeeCount} emp.
+                <TableCell key={index} className="text-center border-r p-2">
+                  <div className="flex justify-between items-center space-x-2">
+                    <div className="flex-1 text-left">
+                      {period.payrollData ? (
+                        <div className="space-y-1">
+                          <div className="font-bold text-green-700">
+                            {formatCurrency(period.payrollData.totalCost)}
+                          </div>
+                          {period.payrollData.employeeCount && (
+                            <div className="text-xs text-green-600">
+                              {period.payrollData.employeeCount} emp.
+                            </div>
+                          )}
                         </div>
+                      ) : (
+                        "-"
                       )}
                     </div>
-                  ) : (
-                    "-"
-                  )}
+                    <div className="flex-1 text-right text-green-600">
+                      {(
+                        payrollTotals as Record<
+                          string,
+                          { current: number; previous: number }
+                        >
+                      )[`period_${index}`]?.previous > 0
+                        ? formatCurrency(
+                            (
+                              payrollTotals as Record<
+                                string,
+                                { current: number; previous: number }
+                              >
+                            )[`period_${index}`].previous
+                          )
+                        : "-"}
+                    </div>
+                  </div>
                 </TableCell>
               ))}
             </TableRow>
@@ -554,47 +642,94 @@ export default function MandateCAPage() {
                 Ratio %
               </TableCell>
               {caData.periods.map((period, index) => (
-                <TableCell key={index} className="text-center border-r">
-                  {period.payrollToRevenueRatio ? (
-                    <span
-                      className={`font-medium ${
-                        period.payrollToRevenueRatio < 30
-                          ? "text-green-600"
-                          : period.payrollToRevenueRatio < 50
-                            ? "text-yellow-600"
-                            : "text-red-600"
-                      }`}
-                    >
-                      {formatPercentage(period.payrollToRevenueRatio, false)}
-                    </span>
-                  ) : (
-                    "-"
-                  )}
+                <TableCell key={index} className="text-center border-r p-2">
+                  <div className="flex justify-between items-center space-x-2">
+                    <div className="flex-1 text-left">
+                      {period.payrollToRevenueRatio ? (
+                        <span
+                          className={`font-medium ${
+                            period.payrollToRevenueRatio < 30
+                              ? "text-green-700"
+                              : period.payrollToRevenueRatio < 50
+                                ? "text-yellow-700"
+                                : "text-red-700"
+                          }`}
+                        >
+                          {formatPercentage(
+                            period.payrollToRevenueRatio,
+                            false
+                          )}
+                        </span>
+                      ) : (
+                        "-"
+                      )}
+                    </div>
+                    <div className="flex-1 text-right">
+                      {((
+                        ratios as Record<
+                          string,
+                          { current: number; previous: number }
+                        >
+                      )[`period_${index}`]?.previous || 0) > 0 ? (
+                        <span
+                          className={`${
+                            ((
+                              ratios as Record<
+                                string,
+                                { current: number; previous: number }
+                              >
+                            )[`period_${index}`]?.previous || 0) < 30
+                              ? "text-green-600"
+                              : ((
+                                    ratios as Record<
+                                      string,
+                                      { current: number; previous: number }
+                                    >
+                                  )[`period_${index}`]?.previous || 0) < 50
+                                ? "text-yellow-600"
+                                : "text-red-600"
+                          }`}
+                        >
+                          {formatPercentage(
+                            (
+                              ratios as Record<
+                                string,
+                                { current: number; previous: number }
+                              >
+                            )[`period_${index}`]?.previous || 0,
+                            false
+                          )}
+                        </span>
+                      ) : (
+                        "-"
+                      )}
+                    </div>
+                  </div>
                 </TableCell>
               ))}
             </TableRow>
 
-            {/* Ligne croissance vs année précédente */}
+            {/* Ligne évolution */}
             <TableRow className="bg-purple-50 font-medium">
               <TableCell className="sticky left-0 bg-purple-50 border-r">
-                vs {parseInt(selectedYear) - 1}
+                Évolution
               </TableCell>
               {caData.periods.map((period, index) => (
-                <TableCell key={index} className="text-center border-r">
+                <TableCell key={index} className="text-center border-r p-2">
                   <div className="space-y-1">
-                    {/* Croissance CA */}
+                    {/* Évolution CA */}
                     <div className="flex items-center justify-center gap-1">
                       {getGrowthIcon(period.yearOverYear.revenueGrowth)}
-                      <span className="text-xs">
+                      <span className="text-xs font-medium">
                         CA:{" "}
                         {formatPercentage(period.yearOverYear.revenueGrowth)}
                       </span>
                     </div>
-                    {/* Croissance masse salariale */}
+                    {/* Évolution masse salariale */}
                     {period.yearOverYear.payrollGrowth !== null && (
                       <div className="flex items-center justify-center gap-1">
                         {getGrowthIcon(period.yearOverYear.payrollGrowth)}
-                        <span className="text-xs">
+                        <span className="text-xs font-medium">
                           MS:{" "}
                           {formatPercentage(period.yearOverYear.payrollGrowth)}
                         </span>
@@ -606,21 +741,44 @@ export default function MandateCAPage() {
             </TableRow>
 
             {/* Ligne cumul */}
-            <TableRow className="bg-gray-100 font-medium">
+            <TableRow className="bg-gray-100 font-bold">
               <TableCell className="sticky left-0 bg-gray-100 border-r">
                 Cumul
               </TableCell>
               {caData.periods.map((period, index) => (
-                <TableCell key={index} className="text-center border-r">
-                  <div className="space-y-1">
-                    <div className="text-blue-700">
-                      {formatCurrency(period.cumulativeTotal || 0)}
-                    </div>
-                    {period.cumulativePayroll && (
-                      <div className="text-green-700 text-xs">
-                        MS: {formatCurrency(period.cumulativePayroll)}
+                <TableCell key={index} className="text-center border-r p-2">
+                  <div className="flex justify-between items-center space-x-2">
+                    <div className="flex-1 text-left">
+                      <div className="text-blue-700 font-bold">
+                        {formatCurrency(period.cumulativeTotal || 0)}
                       </div>
-                    )}
+                      {period.cumulativePayroll && (
+                        <div className="text-green-700 text-xs">
+                          MS: {formatCurrency(period.cumulativePayroll)}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 text-right text-muted-foreground">
+                      <div className="text-blue-600">
+                        {/* Cumul année précédente calculé */}
+                        {caData.periods
+                          .slice(0, index + 1)
+                          .reduce(
+                            (sum, p) =>
+                              sum + p.yearOverYear.previousYearRevenue,
+                            0
+                          ) > 0 &&
+                          formatCurrency(
+                            caData.periods
+                              .slice(0, index + 1)
+                              .reduce(
+                                (sum, p) =>
+                                  sum + p.yearOverYear.previousYearRevenue,
+                                0
+                              )
+                          )}
+                      </div>
+                    </div>
                   </div>
                 </TableCell>
               ))}

@@ -135,6 +135,27 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           });
         }
 
+        // Traiter les données par jour pour l'année précédente
+        const previousYearDailyValues: DayCAData[] = [];
+        const previousYearDaysInMonth = previousYearEnd.getDate();
+
+        for (let day = 1; day <= previousYearDaysInMonth; day++) {
+          const dayDate = new Date(
+            periodInfo.year - 1,
+            periodInfo.month - 1,
+            day
+          );
+          const dayValue = previousYearValues.find(
+            (v) => v.date.toDateString() === dayDate.toDateString()
+          );
+
+          previousYearDailyValues.push({
+            date: dayDate.toISOString().split("T")[0],
+            value: dayValue?.value || 0,
+            formattedDate: formatDate(dayDate),
+          });
+        }
+
         const totalValue = dayValues.reduce((sum, v) => sum + v.value, 0);
         const daysWithData = dayValues.length;
         const previousYearRevenue = previousYearValues.reduce(
@@ -166,6 +187,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           label: periodInfo.label,
           totalValue,
           dailyValues,
+          previousYearDailyValues, // Nouvelles données journalières année précédente
           averageDaily: daysWithData > 0 ? totalValue / daysWithData : 0,
           daysWithData,
 
