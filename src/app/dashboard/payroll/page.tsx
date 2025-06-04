@@ -1,4 +1,3 @@
-// src/app/dashboard/payroll/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -11,6 +10,7 @@ import {
   CardTitle,
 } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
+import { Input } from "@/app/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/app/components/ui/select";
+import { Badge } from "@/app/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -25,194 +26,103 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-  TableFooter,
 } from "@/app/components/ui/table";
-import { Badge } from "@/app/components/ui/badge";
-import { Progress } from "@/app/components/ui/progress";
 import {
   Calculator,
-  Download,
+  Building2,
+  MapPin,
+  Search,
   Upload,
-  DollarSign,
-  Users,
-  Clock,
-  TrendingUp,
-  Loader2,
   BarChart3,
+  DollarSign,
+  Calendar,
+  Loader2,
+  Filter,
 } from "lucide-react";
 import { toast } from "sonner";
-
-interface PayrollCalculationResult {
-  success: boolean;
-  period: {
-    start: string;
-    end: string;
-    type: "WEEKLY" | "MONTHLY";
-  };
-  mandateResults: Array<{
-    mandateId: string;
-    mandateName: string;
-    employeeCount: number;
-    totalHours: number;
-    totalRegularHours: number;
-    totalOvertimeHours: number;
-    totalGrossPay: number;
-    totalSocialCharges: number;
-    totalCost: number;
-    employeeDetails: Array<{
-      employeeName: string;
-      employeeId: string;
-      totalHours: number;
-      regularHours: number;
-      overtimeHours: number;
-      totalGross: number;
-      socialCharges: number;
-      totalCost: number;
-    }>;
-  }>;
-  globalTotals: {
-    totalEmployees: number;
-    totalHours: number;
-    totalRegularHours: number;
-    totalOvertimeHours: number;
-    totalGrossPay: number;
-    totalSocialCharges: number;
-    totalCost: number;
-  };
-  calculatedAt: string;
-}
 
 interface Mandate {
   id: string;
   name: string;
-  group: string;
+  group: "HEBERGEMENT" | "RESTAURATION";
+  active: boolean;
+  totalRevenue: number;
+  lastEntry: Date | null;
+
+  // Données spécifiques à la masse salariale
+  hasPayrollData?: boolean;
+  lastPayrollEntry?: Date | null;
+  currentMonthRatio?: number | null;
+  employeeCount?: number;
 }
 
-export default function PayrollDashboard() {
+interface PayrollSummary {
+  totalMandates: number;
+  mandatesWithData: number;
+  totalEmployees: number;
+  globalRatio: number | null;
+  averageRatio: number | null;
+}
+
+export default function PayrollIndexPage() {
   const router = useRouter();
   const [mandates, setMandates] = useState<Mandate[]>([]);
-  const [selectedMandateId, setSelectedMandateId] = useState<string>("all");
-  const [periodType, setPeriodType] = useState<"WEEKLY" | "MONTHLY">("MONTHLY");
-  const [periodStart, setPeriodStart] = useState(() => {
-    const date = new Date();
-    date.setDate(1); // Premier du mois
-    return date.toISOString().split("T")[0];
-  });
-  const [periodEnd, setPeriodEnd] = useState(() => {
-    const date = new Date();
-    date.setMonth(date.getMonth() + 1, 0); // Dernier jour du mois
-    return date.toISOString().split("T")[0];
-  });
+  const [summary, setSummary] = useState<PayrollSummary | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const [calculating, setCalculating] = useState(false);
-  const [payrollData, setPayrollData] =
-    useState<PayrollCalculationResult | null>(null);
-  const [expandedMandates, setExpandedMandates] = useState<Set<string>>(
-    new Set()
-  );
+  // Filtres
+  const [searchTerm, setSearchTerm] = useState("");
+  const [groupFilter, setGroupFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   useEffect(() => {
-    fetchMandates();
+    fetchData();
   }, []);
 
-  const fetchMandates = async () => {
+  const fetchData = async () => {
     try {
-      const response = await fetch("/api/mandats");
+      setLoading(true);
+
+      // Charger les mandats avec données de masse salariale
+      const response = await fetch("/api/mandats?includePayrollStats=true");
       if (!response.ok) throw new Error("Erreur lors du chargement");
 
       const data = await response.json();
-      setMandates(data);
+      setMandates(data.mandates || []);
+      setSummary(data.summary || null);
     } catch (error) {
       console.error("Erreur:", error);
-      toast.error("Erreur lors du chargement des mandats");
-    }
-  };
-
-  const handleCalculatePayroll = async () => {
-    if (!periodStart || !periodEnd) {
-      toast.error("Veuillez sélectionner une période");
-      return;
-    }
-
-    setCalculating(true);
-
-    try {
-      const requestData = {
-        mandateId: selectedMandateId === "all" ? undefined : selectedMandateId,
-        periodStart,
-        periodEnd,
-        periodType,
-        recalculate: true,
-      };
-
-      const response = await fetch("/api/payroll/calculate", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestData),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Erreur lors du calcul");
-      }
-
-      const result = await response.json();
-      setPayrollData(result);
-      toast.success("Calcul de la masse salariale terminé");
-    } catch (error) {
-      console.error("Erreur:", error);
-      toast.error(
-        error instanceof Error ? error.message : "Erreur lors du calcul"
-      );
+      toast.error("Erreur lors du chargement des données");
     } finally {
-      setCalculating(false);
+      setLoading(false);
     }
   };
 
-  const handleExportPayroll = async () => {
-    if (!payrollData) {
-      toast.error("Aucune donnée à exporter");
-      return;
-    }
+  // Filtrer les mandats
+  const filteredMandates = mandates.filter((mandate) => {
+    const matchesSearch = mandate.name
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
+    const matchesGroup =
+      groupFilter === "all" ||
+      (groupFilter === "hebergement" && mandate.group === "HEBERGEMENT") ||
+      (groupFilter === "restauration" && mandate.group === "RESTAURATION");
+    const matchesStatus =
+      statusFilter === "all" ||
+      (statusFilter === "with-data" && mandate.hasPayrollData) ||
+      (statusFilter === "no-data" && !mandate.hasPayrollData) ||
+      (statusFilter === "active" && mandate.active) ||
+      (statusFilter === "inactive" && !mandate.active);
 
-    try {
-      const queryParams = new URLSearchParams({
-        mandateId: selectedMandateId === "all" ? "" : selectedMandateId,
-        periodStart,
-        periodEnd,
-        periodType,
-      });
+    return matchesSearch && matchesGroup && matchesStatus;
+  });
 
-      const response = await fetch(`/api/export/payroll?${queryParams}`);
-      if (!response.ok) throw new Error("Erreur lors de l'export");
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `payroll_${periodStart}_${periodEnd}.xlsx`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-      toast.success("Export téléchargé avec succès");
-    } catch (error) {
-      console.error("Erreur:", error);
-      toast.error("Erreur lors de l'export");
-    }
+  const handleViewPayroll = (mandateId: string) => {
+    router.push(`/dashboard/mandates/${mandateId}/payroll`);
   };
 
-  const toggleMandateExpansion = (mandateId: string) => {
-    const newExpanded = new Set(expandedMandates);
-    if (newExpanded.has(mandateId)) {
-      newExpanded.delete(mandateId);
-    } else {
-      newExpanded.add(mandateId);
-    }
-    setExpandedMandates(newExpanded);
+  const handleImportData = () => {
+    router.push("/dashboard/payroll/import");
   };
 
   const formatCurrency = (amount: number) => {
@@ -222,9 +132,46 @@ export default function PayrollDashboard() {
     }).format(amount);
   };
 
-  const formatHours = (hours: number) => {
-    return `${hours.toFixed(1)}h`;
+  const formatDate = (date: Date | null) => {
+    if (!date) return "Jamais";
+    return new Date(date).toLocaleDateString("fr-CH", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
   };
+
+  const formatPercentage = (value: number | null) => {
+    if (value === null) return "-";
+    return `${value.toFixed(1)}%`;
+  };
+
+  const getRatioColor = (ratio: number | null) => {
+    if (ratio === null) return "text-muted-foreground";
+    if (ratio < 25) return "text-green-600";
+    if (ratio < 35) return "text-yellow-600";
+    return "text-red-600";
+  };
+
+  const getRatioStatus = (ratio: number | null) => {
+    if (ratio === null)
+      return { label: "Pas de données", variant: "outline" as const };
+    if (ratio < 25) return { label: "Excellent", variant: "default" as const };
+    if (ratio < 35) return { label: "Bon", variant: "secondary" as const };
+    if (ratio < 50)
+      return { label: "Attention", variant: "destructive" as const };
+    return { label: "Critique", variant: "destructive" as const };
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -233,403 +180,321 @@ export default function PayrollDashboard() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Masse salariale</h1>
           <p className="text-muted-foreground">
-            Calcul et analyse des coûts de personnel
+            Gestion et analyse de la masse salariale par établissement
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={() => router.push("/dashboard/payroll/import")}
-          >
+          <Button variant="outline" onClick={handleImportData}>
             <Upload className="mr-2 h-4 w-4" />
             Import Gastrotime
           </Button>
-          {payrollData && (
-            <Button variant="outline" onClick={handleExportPayroll}>
-              <Download className="mr-2 h-4 w-4" />
-              Exporter
-            </Button>
-          )}
+          <Button onClick={() => router.push("/dashboard/analytics")}>
+            <BarChart3 className="mr-2 h-4 w-4" />
+            Analytics
+          </Button>
         </div>
       </div>
 
-      {/* Contrôles de calcul */}
+      {/* Vue d'ensemble */}
+      {summary && (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Établissements
+              </CardTitle>
+              <Building2 className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{summary.totalMandates}</div>
+              <p className="text-xs text-muted-foreground">
+                {summary.mandatesWithData} avec données MS
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Employés total
+              </CardTitle>
+              <Calculator className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{summary.totalEmployees}</div>
+              <p className="text-xs text-muted-foreground">
+                Tous établissements
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Ratio global
+              </CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div
+                className={`text-2xl font-bold ${getRatioColor(summary.globalRatio)}`}
+              >
+                {formatPercentage(summary.globalRatio)}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Masse sal. / CA total
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Ratio moyen</CardTitle>
+              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div
+                className={`text-2xl font-bold ${getRatioColor(summary.averageRatio)}`}
+              >
+                {formatPercentage(summary.averageRatio)}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Moyenne établissements
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Liste des établissements */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calculator className="h-5 w-5" />
-            Paramètres de calcul
-          </CardTitle>
-          <CardDescription>
-            Configurez la période et l&apos;établissement pour le calcul de la
-            masse salariale
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
-            {/* Sélection de l'établissement */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Établissement</label>
-              <Select
-                value={selectedMandateId}
-                onValueChange={setSelectedMandateId}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Tous les établissements" />
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Établissements</CardTitle>
+              <CardDescription>
+                Sélectionnez un établissement pour gérer sa masse salariale
+              </CardDescription>
+            </div>
+
+            {/* Filtres */}
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Rechercher..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 w-64"
+                />
+              </div>
+
+              <Select value={groupFilter} onValueChange={setGroupFilter}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Tous les établissements</SelectItem>
-                  {mandates.map((mandate) => (
-                    <SelectItem key={mandate.id} value={mandate.id}>
-                      {mandate.name}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="all">Tous</SelectItem>
+                  <SelectItem value="hebergement">Hébergement</SelectItem>
+                  <SelectItem value="restauration">Restauration</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
 
-            {/* Type de période */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Type de période</label>
-              <Select
-                value={periodType}
-                onValueChange={(value: "WEEKLY" | "MONTHLY") =>
-                  setPeriodType(value)
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Statut" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="WEEKLY">Hebdomadaire</SelectItem>
-                  <SelectItem value="MONTHLY">Mensuel</SelectItem>
+                  <SelectItem value="all">Tous</SelectItem>
+                  <SelectItem value="with-data">Avec données MS</SelectItem>
+                  <SelectItem value="no-data">Sans données MS</SelectItem>
+                  <SelectItem value="active">Actifs</SelectItem>
+                  <SelectItem value="inactive">Inactifs</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
 
-            {/* Date de début */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Date de début</label>
-              <input
-                type="date"
-                value={periodStart}
-                onChange={(e) => setPeriodStart(e.target.value)}
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors"
-              />
-            </div>
-
-            {/* Date de fin */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Date de fin</label>
-              <input
-                type="date"
-                value={periodEnd}
-                onChange={(e) => setPeriodEnd(e.target.value)}
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors"
-              />
-            </div>
-
-            {/* Bouton de calcul */}
-            <Button
-              onClick={handleCalculatePayroll}
-              disabled={calculating}
-              className="h-9"
-            >
-              {calculating ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Calcul...
-                </>
-              ) : (
-                <>
-                  <Calculator className="mr-2 h-4 w-4" />
-                  Calculer
-                </>
+              {(searchTerm ||
+                groupFilter !== "all" ||
+                statusFilter !== "all") && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setGroupFilter("all");
+                    setStatusFilter("all");
+                  }}
+                >
+                  <Filter className="h-4 w-4" />
+                </Button>
               )}
-            </Button>
+            </div>
           </div>
+        </CardHeader>
 
-          {calculating && (
-            <div className="mt-4">
-              <Progress value={50} className="h-2" />
-              <p className="text-xs text-center text-muted-foreground mt-2">
-                Calcul en cours...
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Établissement</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead className="text-right">CA Total</TableHead>
+                <TableHead className="text-center">Employés</TableHead>
+                <TableHead className="text-center">Ratio actuel</TableHead>
+                <TableHead className="text-center">Status MS</TableHead>
+                <TableHead>Dernière saisie MS</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredMandates.map((mandate) => {
+                const ratioStatus = getRatioStatus(
+                  mandate.currentMonthRatio ?? null
+                );
+                return (
+                  <TableRow key={mandate.id} className="hover:bg-muted/50">
+                    <TableCell>
+                      <div className="font-medium">{mandate.name}</div>
+                      {!mandate.active && (
+                        <Badge variant="secondary" className="text-xs mt-1">
+                          Inactif
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          mandate.group === "HEBERGEMENT"
+                            ? "default"
+                            : "secondary"
+                        }
+                      >
+                        {mandate.group === "HEBERGEMENT" ? (
+                          <>
+                            <Building2 className="mr-1 h-3 w-3" />
+                            Hébergement
+                          </>
+                        ) : (
+                          <>
+                            <MapPin className="mr-1 h-3 w-3" />
+                            Restauration
+                          </>
+                        )}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right font-mono">
+                      {formatCurrency(mandate.totalRevenue)}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {mandate.employeeCount || "-"}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <div
+                        className={getRatioColor(
+                          mandate.currentMonthRatio ?? null
+                        )}
+                      >
+                        {formatPercentage(mandate.currentMonthRatio ?? null)}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Badge variant={ratioStatus.variant}>
+                        {ratioStatus.label}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1 text-muted-foreground">
+                        <Calendar className="h-3 w-3" />
+                        {formatDate(mandate.lastPayrollEntry ?? null)}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        onClick={() => handleViewPayroll(mandate.id)}
+                        size="sm"
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        <Calculator className="mr-2 h-4 w-4" />
+                        Gérer MS
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+
+          {filteredMandates.length === 0 && (
+            <div className="text-center py-8">
+              <Calculator className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold">
+                Aucun établissement trouvé
+              </h3>
+              <p className="text-muted-foreground mb-4">
+                {mandates.length === 0
+                  ? "Commencez par créer votre premier établissement"
+                  : "Essayez de modifier vos filtres de recherche"}
               </p>
+              {mandates.length === 0 && (
+                <Button
+                  onClick={() => router.push("/dashboard/mandates/create")}
+                >
+                  <Building2 className="mr-2 h-4 w-4" />
+                  Créer un établissement
+                </Button>
+              )}
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Résultats globaux */}
-      {payrollData && (
-        <>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Employés</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {payrollData.globalTotals.totalEmployees}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {payrollData.mandateResults.length} établissement(s)
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Heures totales
-                </CardTitle>
-                <Clock className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {formatHours(payrollData.globalTotals.totalHours)}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  dont{" "}
-                  {formatHours(payrollData.globalTotals.totalOvertimeHours)}{" "}
-                  supplémentaires
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Salaire brut
-                </CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {formatCurrency(payrollData.globalTotals.totalGrossPay)}
-                </div>
-                <div className="flex items-center text-xs">
-                  <TrendingUp className="h-3 w-3 text-green-600 mr-1" />
-                  <span className="text-green-600">
-                    +2.3% vs mois précédent
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Coût total
-                </CardTitle>
-                <BarChart3 className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-primary">
-                  {formatCurrency(payrollData.globalTotals.totalCost)}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  +{formatCurrency(payrollData.globalTotals.totalSocialCharges)}{" "}
-                  charges sociales
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Détail par établissement */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Détail par établissement</CardTitle>
-              <CardDescription>
-                Masse salariale détaillée pour la période du{" "}
-                {new Date(payrollData.period.start).toLocaleDateString("fr-CH")}{" "}
-                au{" "}
-                {new Date(payrollData.period.end).toLocaleDateString("fr-CH")}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Établissement</TableHead>
-                    <TableHead className="text-right">Employés</TableHead>
-                    <TableHead className="text-right">Heures</TableHead>
-                    <TableHead className="text-right">H. Sup.</TableHead>
-                    <TableHead className="text-right">Salaire brut</TableHead>
-                    <TableHead className="text-right">Charges</TableHead>
-                    <TableHead className="text-right">Coût total</TableHead>
-                    <TableHead className="w-[50px]"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {payrollData.mandateResults.map((mandateResult) => (
-                    <>
-                      <TableRow
-                        key={mandateResult.mandateId}
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() =>
-                          toggleMandateExpansion(mandateResult.mandateId)
-                        }
-                      >
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <div className="font-medium">
-                              {mandateResult.mandateName}
-                            </div>
-                            <Badge variant="outline" className="text-xs">
-                              {mandates.find(
-                                (m) => m.id === mandateResult.mandateId
-                              )?.group === "HEBERGEMENT"
-                                ? "Hébergement"
-                                : "Restauration"}
-                            </Badge>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {mandateResult.employeeCount}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {formatHours(mandateResult.totalHours)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {formatHours(mandateResult.totalOvertimeHours)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {formatCurrency(mandateResult.totalGrossPay)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {formatCurrency(mandateResult.totalSocialCharges)}
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          {formatCurrency(mandateResult.totalCost)}
-                        </TableCell>
-                        <TableCell>
-                          <Button variant="ghost" size="sm">
-                            {expandedMandates.has(mandateResult.mandateId)
-                              ? "−"
-                              : "+"}
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-
-                      {/* Détail des employés */}
-                      {expandedMandates.has(mandateResult.mandateId) && (
-                        <>
-                          {mandateResult.employeeDetails.map(
-                            (employee, index) => (
-                              <TableRow
-                                key={`${mandateResult.mandateId}-${index}`}
-                                className="bg-muted/30"
-                              >
-                                <TableCell className="pl-8">
-                                  <div className="text-sm">
-                                    <div className="font-medium">
-                                      {employee.employeeName}
-                                    </div>
-                                    <div className="text-muted-foreground text-xs">
-                                      ID: {employee.employeeId}
-                                    </div>
-                                  </div>
-                                </TableCell>
-                                <TableCell className="text-right">-</TableCell>
-                                <TableCell className="text-right">
-                                  {formatHours(employee.totalHours)}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  {formatHours(employee.overtimeHours)}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  {formatCurrency(employee.totalGross)}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  {formatCurrency(employee.socialCharges)}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  {formatCurrency(employee.totalCost)}
-                                </TableCell>
-                                <TableCell></TableCell>
-                              </TableRow>
-                            )
-                          )}
-                        </>
-                      )}
-                    </>
-                  ))}
-                </TableBody>
-                <TableFooter>
-                  <TableRow>
-                    <TableCell className="font-bold">Total général</TableCell>
-                    <TableCell className="text-right font-bold">
-                      {payrollData.globalTotals.totalEmployees}
-                    </TableCell>
-                    <TableCell className="text-right font-bold">
-                      {formatHours(payrollData.globalTotals.totalHours)}
-                    </TableCell>
-                    <TableCell className="text-right font-bold">
-                      {formatHours(payrollData.globalTotals.totalOvertimeHours)}
-                    </TableCell>
-                    <TableCell className="text-right font-bold">
-                      {formatCurrency(payrollData.globalTotals.totalGrossPay)}
-                    </TableCell>
-                    <TableCell className="text-right font-bold">
-                      {formatCurrency(
-                        payrollData.globalTotals.totalSocialCharges
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right font-bold text-primary">
-                      {formatCurrency(payrollData.globalTotals.totalCost)}
-                    </TableCell>
-                    <TableCell></TableCell>
-                  </TableRow>
-                </TableFooter>
-              </Table>
-            </CardContent>
-          </Card>
-
-          {/* Informations supplémentaires */}
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between text-sm text-muted-foreground">
-                <div>
-                  Période:{" "}
-                  {periodType === "WEEKLY" ? "Hebdomadaire" : "Mensuel"} - Du{" "}
-                  {new Date(payrollData.period.start).toLocaleDateString(
-                    "fr-CH"
-                  )}{" "}
-                  au{" "}
-                  {new Date(payrollData.period.end).toLocaleDateString("fr-CH")}
-                </div>
-                <div>
-                  Calculé le:{" "}
-                  {new Date(payrollData.calculatedAt).toLocaleString("fr-CH")}
-                </div>
+      {/* Guide rapide */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Guide rapide</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                <Upload className="h-4 w-4 text-blue-600" />
               </div>
-            </CardContent>
-          </Card>
-        </>
-      )}
+              <div>
+                <h4 className="font-medium">1. Importer les données</h4>
+                <p className="text-sm text-muted-foreground">
+                  Utilisez l&apos;import Gastrotime pour charger les données
+                  horaires
+                </p>
+              </div>
+            </div>
 
-      {/* État vide */}
-      {!payrollData && !calculating && (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Calculator className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">
-              Calcul de la masse salariale
-            </h3>
-            <p className="text-muted-foreground text-center max-w-md mb-4">
-              Sélectionnez une période et un établissement ci-dessus, puis
-              cliquez sur &quot;Calculer&quot; pour analyser vos coûts de
-              personnel.
-            </p>
-            <Button onClick={handleCalculatePayroll} disabled={calculating}>
-              <Calculator className="mr-2 h-4 w-4" />
-              Lancer le calcul
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                <Calculator className="h-4 w-4 text-green-600" />
+              </div>
+              <div>
+                <h4 className="font-medium">2. Saisir manuellement</h4>
+                <p className="text-sm text-muted-foreground">
+                  Ou saisissez directement les montants de masse salariale
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
+                <BarChart3 className="h-4 w-4 text-purple-600" />
+              </div>
+              <div>
+                <h4 className="font-medium">3. Analyser les ratios</h4>
+                <p className="text-sm text-muted-foreground">
+                  Suivez l&apos;évolution du ratio masse salariale / chiffre
+                  d&apos;affaires
+                </p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

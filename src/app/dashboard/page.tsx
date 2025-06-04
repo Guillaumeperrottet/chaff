@@ -254,9 +254,8 @@ export default function DashboardPage() {
   // Fonctions utilitaires inchangées
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("fr-CH", {
-      style: "decimal",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
+      style: "currency",
+      currency: "CHF",
     }).format(value);
   };
 

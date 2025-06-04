@@ -288,8 +288,8 @@ function parseSimpleDate(dateStr: string): Date {
 // Format pour affichage (avec apostrophes pour les milliers)
 function formatCurrencyForDisplay(amount: number): string {
   return new Intl.NumberFormat("fr-CH", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    style: "currency",
+    currency: "CHF",
   }).format(amount);
 }
 

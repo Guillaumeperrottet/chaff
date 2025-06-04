@@ -1,3 +1,5 @@
+// src/app/components/Navbar.tsx - Version améliorée
+
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -465,14 +467,15 @@ function ModernNavbar() {
   );
 }
 
-// Composant principal avec logique conditionnelle
+// Composant principal avec logique conditionnelle améliorée
 export default function ConditionalNavbar({
   children,
 }: ConditionalNavbarProps) {
   const pathname = usePathname();
-  const { data: session } = useSession();
+  const { data: session, isPending } = useSession();
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  // Routes où la navigation ne doit pas s'afficher (pages d'authentification et publiques)
+  // Routes où la navigation ne doit pas s'afficher
   const authRoutes = [
     "/auth/sign-in",
     "/auth/signup",
@@ -489,10 +492,46 @@ export default function ConditionalNavbar({
     (route) => pathname === route || pathname.startsWith(route + "/")
   );
 
-  // Ne pas afficher la navbar si :
-  // - L'utilisateur n'est pas connecté
-  // - On est sur une route d'authentification
-  const shouldShowNavbar = session && !isAuthRoute;
+  // Marquer comme initialisé quand la session est chargée (même si null)
+  useEffect(() => {
+    if (!isPending) {
+      setIsInitialized(true);
+    }
+  }, [isPending]);
+
+  // Déterminer si on doit afficher la navbar
+  const shouldShowNavbar = isInitialized && session && !isAuthRoute;
+
+  // Afficher un loader pendant le chargement initial de la session
+  if (!isInitialized && !isAuthRoute) {
+    return (
+      <div className="min-h-screen bg-background">
+        {/* Placeholder navbar pendant le chargement */}
+        <div className="sticky top-0 z-50 w-full h-16 border-b bg-white/95 backdrop-blur dark:bg-gray-950/95">
+          <div className="container mx-auto px-4 h-full flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                <span className="text-sm font-bold text-primary-foreground">
+                  C
+                </span>
+              </div>
+              <span className="text-xl font-bold text-primary">Chaff.ch</span>
+            </div>
+
+            {/* Skeleton pour les actions */}
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-muted rounded animate-pulse"></div>
+              <div className="w-8 h-8 bg-muted rounded animate-pulse"></div>
+              <div className="w-20 h-8 bg-muted rounded animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+        <div className="p-8 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
