@@ -546,46 +546,93 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Barre de recherche et filtres */}
-      <div className="flex items-center justify-between bg-white rounded-lg border border-slate-200 p-4 shadow-sm">
-        <div className="flex items-center space-x-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-            <Input
-              placeholder="Rechercher un campus..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 w-[320px] border-slate-200 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
-            />
-          </div>
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-[180px] border-slate-200 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
-              <SelectValue placeholder="Catégorie" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Toutes catégories</SelectItem>
-              <SelectItem value="hebergement">Hébergement</SelectItem>
-              <SelectItem value="restauration">Restauration</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[150px] border-slate-200 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
-              <SelectValue placeholder="Statut" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tous</SelectItem>
-              <SelectItem value="active">Actif</SelectItem>
-              <SelectItem value="inactive">Inactif</SelectItem>
-              <SelectItem value="new">Nouveau</SelectItem>
-              <SelectItem value="warning">Attention</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+      {/* Barre de recherche et filtres modernisée */}
+      <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+        <div className="flex items-center justify-between gap-6">
+          {/* Section de recherche et filtres */}
+          <div className="flex items-center gap-4 flex-1">
+            {/* Recherche principale */}
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Rechercher un campus..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 h-10 border-slate-200 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-slate-50 hover:bg-white"
+              />
+            </div>
 
-        {/* Indicateur de résultats */}
-        <div className="text-sm text-slate-600">
-          <span className="font-medium">{mergedData.length}</span> campus trouvé
-          {mergedData.length > 1 ? "s" : ""}
+            {/* Filtres avec labels */}
+            <div className="flex items-center gap-3">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium text-slate-600 uppercase tracking-wide">
+                  Catégorie
+                </label>
+                <Select
+                  value={categoryFilter}
+                  onValueChange={setCategoryFilter}
+                >
+                  <SelectTrigger className="w-[160px] h-10 border-slate-200 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-slate-50 hover:bg-white transition-colors">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Toutes</SelectItem>
+                    <SelectItem value="hebergement">Hébergement</SelectItem>
+                    <SelectItem value="restauration">Restauration</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium text-slate-600 uppercase tracking-wide">
+                  Statut
+                </label>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-[130px] h-10 border-slate-200 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-slate-50 hover:bg-white transition-colors">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tous</SelectItem>
+                    <SelectItem value="active">Actif</SelectItem>
+                    <SelectItem value="inactive">Inactif</SelectItem>
+                    <SelectItem value="new">Nouveau</SelectItem>
+                    <SelectItem value="warning">Attention</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          {/* Indicateur de résultats avec style badge */}
+          <div className="flex items-center gap-2">
+            <Badge
+              variant="outline"
+              className="bg-blue-50 border-blue-200 text-blue-700 px-3 py-1.5"
+            >
+              <span className="font-semibold">{mergedData.length}</span>
+              <span className="ml-1">
+                campus trouvé{mergedData.length > 1 ? "s" : ""}
+              </span>
+            </Badge>
+
+            {/* Bouton de reset des filtres (si filtres actifs) */}
+            {(searchTerm ||
+              categoryFilter !== "all" ||
+              statusFilter !== "all") && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSearchTerm("");
+                  setCategoryFilter("all");
+                  setStatusFilter("all");
+                }}
+                className="text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+              >
+                <span className="text-xs">Effacer filtres</span>
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
