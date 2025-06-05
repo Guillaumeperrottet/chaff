@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 import { defaultMetadata } from "@/lib/metadata";
 import { ThemeProvider } from "@/app/components/theme-provider";
 import Navbar from "@/app/components/Navbar";
+import { UnifiedSessionManager } from "@/app/components/UnifiedSessionManager";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -23,7 +24,13 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          {/* Gestionnaire de session unifié */}
+          <UnifiedSessionManager />
+
+          {/* Navbar conditionnelle */}
           <Navbar>{children}</Navbar>
+
+          {/* Toast notifications */}
           <Toaster
             position="bottom-center"
             richColors
