@@ -287,6 +287,9 @@ model Mandate {
   // Nouveaux champs pour la masse salariale
   totalPayrollCost Float @default(0) // Cache du coût total masse salariale
   lastPayrollCalculation DateTime? // Dernière fois que la masse salariale a été calculée
+  
+  // Relation pour l'historique des imports
+  payrollImports   PayrollImportHistory[]
 
   @@map("mandates")
 }
@@ -537,4 +540,68 @@ enum PayrollSource {
   MANUAL      // Saisie manuelle
   CALCULATED  // Calcul automatique
   BOTH        // Les deux disponibles
+}
+
+enum PayrollImportType {
+  GASTROTIME
+  MANUAL_CSV
+  MANUAL_ENTRY
+}
+
+// ==========================================
+// HISTORIQUE DES IMPORTS MASSE SALARIALE
+// ==========================================
+
+model PayrollImportHistory {
+  id               String   @id @default(cuid())
+  mandateId        String
+  filename         String
+  importDate       DateTime @default(now())
+  period           String   // Format "2025-07"
+  importType       PayrollImportType @default(GASTROTIME)
+  
+  // Statistiques de l'import
+  totalEmployees   Int      @default(0)
+  totalHours       Float    @default(0)
+  totalGrossAmount Float    @default(0)
+  socialCharges    Float    @default(0)
+  totalCost        Float    @default(0)
+  
+  // Métadonnées
+  defaultHourlyRate Float?
+  status           ImportStatus @default(COMPLETED)
+  notes            String?
+  createdBy        String
+  
+  // Relations
+  mandate          Mandate  @relation(fields: [mandateId], references: [id], onDelete: Cascade)
+  employeeEntries  PayrollImportEmployee[]
+  
+  // Index
+  @@index([mandateId, period])
+  @@index([importDate])
+  @@map("payroll_import_history")
+}
+
+model PayrollImportEmployee {
+  id               String   @id @default(cuid())
+  importHistoryId  String
+  
+  // Données employé
+  employeeId       String?  // ID depuis le CSV
+  firstName        String
+  lastName         String
+  totalHours       Float
+  hourlyRate       Float
+  grossAmount      Float
+  
+  // Métadonnées
+  rateSource       String   // "csv", "database", "default"
+  employeeFound    Boolean  @default(false)
+  
+  // Relations  
+  importHistory    PayrollImportHistory @relation(fields: [importHistoryId], references: [id], onDelete: Cascade)
+  
+  @@index([importHistoryId])
+  @@map("payroll_import_employees")
 }

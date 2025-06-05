@@ -103,16 +103,18 @@ export async function POST(request: NextRequest) {
 
     let totalGrossAmount = 0;
     const employeeCount = employees.length;
-    const processedEmployees: Array<{
-      name: string;
-      hours: number;
-      rate: number;
-      amount: number;
-      employeeFound: boolean;
-    }> = [];
 
     // Traitement dans une transaction
     const result = await prisma.$transaction(async (tx) => {
+      const processedEmployees: Array<{
+        name: string;
+        hours: number;
+        rate: number;
+        amount: number;
+        employeeFound: boolean;
+        rateSource: string;
+      }> = [];
+
       for (const emp of employees) {
         // Essayer de trouver/créer l'employé
         let employee = await tx.employee.findFirst({
@@ -144,16 +146,24 @@ export async function POST(request: NextRequest) {
           });
         }
 
+        // Déterminer le taux horaire final
+        const finalHourlyRate = employee?.hourlyRate || emp.hourlyRate;
+
         // Calculer le coût pour cet employé
-        const grossAmount = emp.totalHours * emp.hourlyRate;
+        const grossAmount = emp.totalHours * finalHourlyRate;
         totalGrossAmount += grossAmount;
 
         processedEmployees.push({
           name: `${emp.firstName} ${emp.lastName}`,
           hours: emp.totalHours,
-          rate: emp.hourlyRate,
+          rate: finalHourlyRate,
           amount: grossAmount,
           employeeFound: !!employee,
+          rateSource: employee?.hourlyRate
+            ? "database"
+            : emp.hourlyRate !== defaultHourlyRate
+              ? "csv"
+              : "default",
         });
       }
 
@@ -191,13 +201,59 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      return { payrollEntry, processedEmployees };
+      // 🆕 NOUVEAU : Créer l'entrée dans l'historique
+      const importHistory = await tx.payrollImportHistory.create({
+        data: {
+          mandateId: mandateId,
+          filename: file.name,
+          period: period,
+          importType: "GASTROTIME",
+          totalEmployees: employeeCount,
+          totalHours: employees.reduce((sum, emp) => sum + emp.totalHours, 0),
+          totalGrossAmount: totalGrossAmount,
+          socialCharges: socialCharges,
+          totalCost: totalCost,
+          defaultHourlyRate: defaultHourlyRate,
+          status: "COMPLETED",
+          notes: `Import automatique depuis ${file.name}`,
+          createdBy: session.user.id,
+        },
+      });
+
+      // 🆕 NOUVEAU : Créer les entrées détaillées pour chaque employé
+      const employeeEntries = await Promise.all(
+        employees.map(async (emp, index) => {
+          const processedEmp = processedEmployees[index];
+
+          return tx.payrollImportEmployee.create({
+            data: {
+              importHistoryId: importHistory.id,
+              employeeId: emp.employeeId,
+              firstName: emp.firstName,
+              lastName: emp.lastName,
+              totalHours: emp.totalHours,
+              hourlyRate: processedEmp.rate,
+              grossAmount: processedEmp.amount,
+              rateSource: processedEmp.rateSource,
+              employeeFound: processedEmp.employeeFound,
+            },
+          });
+        })
+      );
+
+      return {
+        payrollEntry,
+        importHistory,
+        employeeEntries,
+        processedEmployees,
+      };
     });
 
     return NextResponse.json({
       success: true,
       message: `Import réalisé avec succès pour ${employees.length} employés`,
       data: {
+        importId: result.importHistory.id, // 🆕 Nouveau
         period: `${monthNum}/${yearNum}`,
         totalEmployees: employeeCount,
         totalHours: employees.reduce((sum, emp) => sum + emp.totalHours, 0),
