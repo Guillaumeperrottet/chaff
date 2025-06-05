@@ -169,10 +169,6 @@ export default function EmployeesPage() {
     }
   };
 
-  const handleImportGastrotime = () => {
-    router.push("/dashboard/payroll/import");
-  };
-
   const handleExport = async () => {
     try {
       const response = await fetch("/api/export/employees");
@@ -237,7 +233,10 @@ export default function EmployeesPage() {
             <Download className="mr-2 h-4 w-4" />
             Exporter
           </Button>
-          <Button variant="outline" onClick={handleImportGastrotime}>
+          <Button
+            variant="outline"
+            onClick={() => router.push("/dashboard/payroll/simple-import")}
+          >
             <Upload className="mr-2 h-4 w-4" />
             Import Gastrotime
           </Button>

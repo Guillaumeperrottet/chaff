@@ -121,10 +121,6 @@ export default function PayrollIndexPage() {
     router.push(`/dashboard/mandates/${mandateId}/payroll`);
   };
 
-  const handleImportData = () => {
-    router.push("/dashboard/payroll/import");
-  };
-
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("fr-CH", {
       style: "currency",
@@ -184,7 +180,10 @@ export default function PayrollIndexPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={handleImportData}>
+          <Button
+            variant="outline"
+            onClick={() => router.push("/dashboard/payroll/simple-import")}
+          >
             <Upload className="mr-2 h-4 w-4" />
             Import Gastrotime
           </Button>
