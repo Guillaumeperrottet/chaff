@@ -51,85 +51,170 @@ interface ExistingEmployee {
   isActive: boolean;
 }
 
-function parseCSV(csvText: string): CsvEmployeeData[] {
-  const parsed = Papa.parse(csvText, {
-    header: true,
-    delimiter: ";", // Essayer ; puis , si échec
-    skipEmptyLines: true,
-    dynamicTyping: false, // Important pour garder les strings
-  });
+function parseCSV(csvText: string) {
+  console.log("=== DÉBUT PARSING CSV ===");
+  console.log("Taille du fichier:", csvText.length, "caractères");
+  console.log("Premières lignes:", csvText.substring(0, 200));
 
-  console.log("Headers trouvés:", parsed.meta.fields);
-  console.log("Première ligne de données:", parsed.data[0]);
+  // Détecter automatiquement le délimiteur
+  const delimiters = ["\t", ",", ";", "|"];
+  let bestResult = null;
+  let maxColumns = 0;
 
-  if (parsed.errors && parsed.errors.length > 0) {
-    console.error("Erreurs parsing CSV:", parsed.errors);
-  }
+  for (const delimiter of delimiters) {
+    console.log(`Test avec délimiteur: "${delimiter}"`);
 
-  const employees: CsvEmployeeData[] = [];
-
-  for (let index = 0; index < parsed.data.length; index++) {
-    const row = parsed.data[index] as Record<string, string>;
-
-    // Debug: afficher la ligne
-    console.log(`Ligne ${index}:`, row);
-
-    // Extraction avec vos noms de colonnes exacts
-    const firstName = row["FirstName"]?.trim();
-    const lastName = row["LastName"]?.trim();
-    const employeeId = row["EmplID"]?.trim(); // Votre colonne exacte
-
-    if (!firstName || !lastName) {
-      console.log(`Ligne ${index} ignorée: nom/prénom manquant`);
-      continue;
-    }
-
-    // Calcul des heures avec pattern plus flexible
-    const hourColumns = Object.keys(row).filter((key) => {
-      // Accepter tous les nombres, pas seulement 4 chiffres
-      const isNumericKey = /^\d+$/.test(key);
-      const hasValue = row[key] && row[key].trim() !== "";
-      const isValidNumber = !isNaN(parseFloat(row[key] || "0"));
-
-      console.log(
-        `Colonne ${key}: isNumeric=${isNumericKey}, hasValue=${hasValue}, isValidNumber=${isValidNumber}, value="${row[key]}"`
-      );
-
-      return isNumericKey && hasValue && isValidNumber;
+    const testResult = Papa.parse(csvText, {
+      header: true,
+      delimiter: delimiter,
+      skipEmptyLines: true,
+      dynamicTyping: false,
     });
 
     console.log(
-      `Colonnes d'heures trouvées pour ${firstName} ${lastName}:`,
-      hourColumns
+      `  Headers trouvés (${testResult.meta.fields?.length || 0}):`,
+      testResult.meta.fields
     );
+
+    if (testResult.meta.fields && testResult.meta.fields.length > maxColumns) {
+      maxColumns = testResult.meta.fields.length;
+      bestResult = testResult;
+      console.log(
+        `  ✓ Meilleur résultat jusqu'ici avec ${maxColumns} colonnes`
+      );
+    }
+  }
+
+  if (!bestResult || !bestResult.meta.fields) {
+    console.error("ERREUR: Impossible de parser le CSV avec aucun délimiteur");
+    throw new Error("Format CSV non reconnu");
+  }
+
+  console.log("Délimiteur choisi, headers finaux:", bestResult.meta.fields);
+  console.log("Nombre de lignes de données:", bestResult.data.length);
+  console.log("Première ligne de données:", bestResult.data[0]);
+
+  const employees = [];
+
+  for (let index = 0; index < bestResult.data.length; index++) {
+    const row = bestResult.data[index] as Record<string, string>;
+
+    console.log(`\n--- Traitement ligne ${index + 1} ---`);
+    console.log("Données brutes:", row);
+
+    // Extraction flexible des noms de colonnes
+    const firstName = findColumnValue(row, [
+      "FirstName",
+      "First Name",
+      "Prénom",
+      "Prenom",
+    ]);
+    const lastName = findColumnValue(row, ["LastName", "Last Name", "Nom"]);
+    const employeeId = findColumnValue(row, [
+      "EmplID",
+      "EmployeeId",
+      "Employee ID",
+      "ID",
+      "EmpID",
+    ]);
+
+    console.log(
+      `Employé extrait: ${firstName} ${lastName} (ID: ${employeeId})`
+    );
+
+    if (!firstName || !lastName) {
+      console.log("❌ Ligne ignorée: nom/prénom manquant");
+      continue;
+    }
+
+    // Calcul des heures - recherche TOUS les champs numériques
+    const allKeys = Object.keys(row);
+    console.log("Toutes les clés disponibles:", allKeys);
+
+    const hourColumns = allKeys.filter((key) => {
+      // Ignorer les colonnes de métadonnées
+      const isMetadata = [
+        "FirstName",
+        "LastName",
+        "EmplID",
+        "EmployeeId",
+        "Employee ID",
+        "ID",
+        "EmpID",
+        "Prénom",
+        "Prenom",
+        "Nom",
+      ].includes(key);
+      if (isMetadata) return false;
+
+      const value = row[key];
+      if (!value || value.trim() === "") return false;
+
+      // Accepter tout ce qui ressemble à un nombre
+      const numValue = parseFloat(value);
+      const isValidNumber = !isNaN(numValue) && numValue > 0;
+
+      console.log(
+        `  Colonne "${key}": "${value}" -> ${numValue} (valide: ${isValidNumber})`
+      );
+
+      return isValidNumber;
+    });
+
+    console.log("Colonnes d'heures retenues:", hourColumns);
 
     const totalHours = hourColumns.reduce((sum, col) => {
       const value = parseFloat(row[col] || "0");
-      console.log(`  ${col}: ${row[col]} -> ${value}`);
+      console.log(`    ${col}: ${row[col]} -> +${value}`);
       return sum + (isNaN(value) ? 0 : value);
     }, 0);
 
-    console.log(`Total heures pour ${firstName} ${lastName}: ${totalHours}`);
+    console.log(`✓ Total heures calculé: ${totalHours}`);
 
     if (totalHours > 0) {
       employees.push({
         csvIndex: index,
-        employeeId: employeeId,
+        employeeId: employeeId || undefined,
         firstName: firstName,
         lastName: lastName,
         totalHours: totalHours,
       });
+      console.log(
+        `✅ Employé ajouté: ${firstName} ${lastName} - ${totalHours}h`
+      );
     } else {
-      console.log(`Employé ${firstName} ${lastName} ignoré: 0 heures`);
+      console.log(`❌ Employé ignoré: ${firstName} ${lastName} - 0 heures`);
     }
   }
 
-  console.log(`Total employés extraits: ${employees.length}`);
+  console.log(`\n=== RÉSULTAT FINAL ===`);
+  console.log(`Employés extraits: ${employees.length}`);
+  employees.forEach((emp, i) => {
+    console.log(
+      `${i + 1}. ${emp.firstName} ${emp.lastName} (${emp.employeeId || "Pas d'ID"}) - ${emp.totalHours}h`
+    );
+  });
+
   return employees;
+}
+
+// Fonction helper pour trouver une valeur dans différentes colonnes possibles
+function findColumnValue(
+  row: Record<string, string>,
+  possibleKeys: string[]
+): string | undefined {
+  for (const key of possibleKeys) {
+    if (row[key] && row[key].trim()) {
+      return row[key].trim();
+    }
+  }
+  return undefined;
 }
 
 export async function POST(request: NextRequest) {
   try {
+    console.log("🚀 DÉBUT VALIDATION IMPORT");
+
     const session = await auth.api.getSession({
       headers: await headers(),
     });
@@ -145,16 +230,19 @@ export async function POST(request: NextRequest) {
       (formData.get("defaultHourlyRate") as string) || "25"
     );
 
+    console.log("Paramètres reçus:", {
+      fileName: file?.name,
+      fileSize: file?.size,
+      mandateId,
+      defaultHourlyRate,
+    });
+
     if (!file || !mandateId) {
       return NextResponse.json(
         { error: "Fichier et mandat requis" },
         { status: 400 }
       );
     }
-
-    console.log("=== DÉBUT VALIDATION IMPORT ===");
-    console.log(`Fichier: ${file.name}, Taille: ${file.size} bytes`);
-    console.log(`Mandat: ${mandateId}, Taux défaut: ${defaultHourlyRate}`);
 
     // Vérifier que le mandat existe
     const mandate = await prisma.mandate.findUnique({
@@ -166,27 +254,36 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Mandat non trouvé" }, { status: 404 });
     }
 
-    // Parser le CSV avec debugging
-    const csvText = await file.text();
-    console.log("Première ligne CSV:", csvText.split("\n")[0]);
-    console.log("Nombre de lignes CSV:", csvText.split("\n").length);
+    console.log("Mandat trouvé:", mandate);
 
+    // Lire le fichier
+    const csvText = await file.text();
+    console.log("Fichier lu, début du parsing...");
+
+    // Parser avec la nouvelle fonction robuste
     const csvEmployees = parseCSV(csvText);
 
     if (csvEmployees.length === 0) {
-      console.error("ERREUR: Aucun employé extrait du CSV");
+      console.error("❌ AUCUN EMPLOYÉ EXTRAIT");
+      console.log("Contenu du fichier (premiers 500 caractères):");
+      console.log(csvText.substring(0, 500));
+
       return NextResponse.json(
         {
           error:
-            "Aucun employé trouvé dans le fichier CSV. Vérifiez le format.",
+            "Aucun employé avec des heures trouvé. Vérifiez que le fichier contient des données d'heures valides.",
+          debug: {
+            fileContent: csvText.substring(0, 200),
+            fileSize: csvText.length,
+          },
         },
         { status: 400 }
       );
     }
 
-    console.log(`${csvEmployees.length} employés extraits du CSV`);
+    console.log(`✅ ${csvEmployees.length} employés extraits avec succès`);
 
-    // Récupérer tous les employés du mandat
+    // Récupérer les employés existants pour le matching
     const existingEmployees = await prisma.employee.findMany({
       where: { mandateId: mandateId },
       select: {
@@ -200,20 +297,20 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    console.log(`Employés existants en base: ${existingEmployees.length}`);
+
+    // Continuer avec la validation...
     const validationResults: ValidationEmployee[] = [];
 
-    // Analyser chaque employé du CSV
-    for (const csvEmployee of csvEmployees) {
-      // Tentative de matching avec les employés existants
-      const matchResult = findEmployeeMatch(csvEmployee, existingEmployees);
+    for (const csvEmp of csvEmployees) {
+      const matchResult = findEmployeeMatch(csvEmp, existingEmployees);
 
       // Déterminer le taux horaire proposé
       let proposedRate = defaultHourlyRate;
       let rateSource: "employee" | "default" | "manual" = "default";
 
-      if (matchResult.matchedEmployee) {
-        proposedRate =
-          matchResult.matchedEmployee.hourlyRate || defaultHourlyRate;
+      if (matchResult.matchedEmployee?.hourlyRate) {
+        proposedRate = matchResult.matchedEmployee.hourlyRate;
         rateSource = "employee";
       }
 
@@ -234,24 +331,23 @@ export async function POST(request: NextRequest) {
         needsReview = true;
       }
 
-      if (csvEmployee.totalHours > 200) {
+      if (csvEmp.totalHours > 200) {
         issues.push("Nombre d'heures élevé (>200h)");
         needsReview = true;
       }
 
-      if (!csvEmployee.employeeId) {
+      if (!csvEmp.employeeId) {
         issues.push("Pas d'ID employé dans le CSV");
-        needsReview = true;
       }
 
       validationResults.push({
-        ...csvEmployee,
+        ...csvEmp,
         matchedEmployee: matchResult.matchedEmployee || undefined,
         matchType: matchResult.matchType,
         matchConfidence: matchResult.confidence,
         proposedHourlyRate: proposedRate,
         rateSource: rateSource,
-        estimatedCost: csvEmployee.totalHours * proposedRate * 1.22, // +22% charges
+        estimatedCost: csvEmp.totalHours * proposedRate * 1.22, // +22% charges
         needsReview: needsReview,
         issues: issues,
       });
@@ -273,17 +369,22 @@ export async function POST(request: NextRequest) {
       ),
     };
 
+    console.log("Statistiques finales:", stats);
+
     return NextResponse.json({
       filename: file.name,
       defaultHourlyRate: defaultHourlyRate,
       validationResults: validationResults,
       statistics: stats,
-      canProceed: stats.needsReview === 0, // Peut procéder si aucun problème
+      canProceed: stats.needsReview === 0,
     });
   } catch (error) {
-    console.error("Erreur validation:", error);
+    console.error("❌ ERREUR VALIDATION:", error);
     return NextResponse.json(
-      { error: "Erreur lors de la validation" },
+      {
+        error: "Erreur lors de la validation",
+        details: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 }
     );
   }
