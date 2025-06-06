@@ -199,13 +199,13 @@ export const auth = betterAuth({
 // FONCTIONS SIMPLIFIÉES POUR INSCRIPTIONS NORMALES UNIQUEMENT
 // ============================================================================
 
-// Gérer inscription normale (nouveau propriétaire)
+// Gérer inscription normale (nouveau propriétaire) - CORRIGÉ
 async function handleRegularSignup(user: {
   id: string;
   email: string;
   name?: string;
 }) {
-  console.log("🆕 Nouveau propriétaire, création organisation:", user.email);
+  console.log("🆕 Nouveau propriétaire, préparation organisation:", user.email);
 
   // Enregistrer les métadonnées basiques
   await prisma.user.update({
@@ -214,11 +214,11 @@ async function handleRegularSignup(user: {
       metadata: {
         planType: "FREE",
         signupTimestamp: new Date().toISOString(),
+        organizationCreated: false, // Flag pour suivre l'état
       },
     },
   });
 
-  // Pas de création d'organisation ici, on attend la vérification email
   console.log("✅ Métadonnées sauvegardées, attente vérification email");
 }
 
@@ -314,62 +314,123 @@ async function createDefaultOrganization(user: {
 }) {
   console.log("🏢 Création organisation par défaut pour:", user.email);
 
-  const organization = await prisma.organization.create({
-    data: {
-      name: `${user.name || user.email.split("@")[0]}'s Organization`,
-    },
-  });
+  try {
+    await prisma.$transaction(async (tx) => {
+      // 1. Créer l'organisation
+      const organization = await tx.organization.create({
+        data: {
+          name: `${user.name || user.email.split("@")[0]}'s Organization`,
+        },
+      });
 
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { organizationId: organization.id },
-  });
+      // 2. Lier l'utilisateur à l'organisation
+      await tx.user.update({
+        where: { id: user.id },
+        data: { organizationId: organization.id },
+      });
 
-  await prisma.organizationUser.create({
-    data: {
-      userId: user.id,
-      organizationId: organization.id,
-      role: "admin",
-    },
-  });
+      // 3. Créer la relation OrganizationUser avec rôle admin
+      await tx.organizationUser.create({
+        data: {
+          userId: user.id,
+          organizationId: organization.id,
+          role: "admin",
+        },
+      });
 
-  await createSubscriptionIfNeeded(organization.id, "FREE");
+      // 4. Créer l'abonnement FREE
+      await createSubscriptionIfNeeded(organization.id, "FREE");
 
-  console.log("✅ Organisation par défaut créée:", organization.id);
-  return organization;
+      // 5. Initialiser le stockage
+      try {
+        await tx.storageUsage.create({
+          data: {
+            organizationId: organization.id,
+            totalUsedBytes: 0,
+          },
+        });
+      } catch {
+        console.log("ℹ️ StorageUsage déjà existant ou table non disponible");
+      }
+
+      console.log("✅ Organisation complète créée:", {
+        organizationId: organization.id,
+        organizationName: organization.name,
+        userId: user.id,
+      });
+    });
+  } catch (error) {
+    console.error("❌ Erreur création organisation complète:", error);
+    throw error;
+  }
 }
 
-// Créer abonnement si nécessaire
+// Créer abonnement si nécessaire - VERSION AMÉLIORÉE
 async function createSubscriptionIfNeeded(
   organizationId: string,
-  planType: string
+  planType: string = "FREE"
 ) {
-  const existingSubscription = await prisma.subscription.findFirst({
-    where: { organizationId },
-  });
+  console.log("💰 Vérification abonnement pour:", organizationId);
 
-  if (existingSubscription) return;
+  try {
+    // Vérifier si un abonnement existe déjà
+    const existingSubscription = await prisma.subscription.findFirst({
+      where: { organizationId },
+    });
 
-  const validatedPlanType = validatePlanType(planType);
-  let plan = await prisma.plan.findFirst({
-    where: { name: validatedPlanType },
-  });
+    if (existingSubscription) {
+      console.log("ℹ️ Abonnement existe déjà:", existingSubscription.id);
+      return existingSubscription;
+    }
 
-  if (!plan) {
-    plan = await prisma.plan.findFirst({ where: { name: "FREE" } });
-  }
+    // Récupérer ou créer le plan FREE
+    let plan = await prisma.plan.findFirst({
+      where: { name: validatePlanType(planType) },
+    });
 
-  if (plan) {
-    await prisma.subscription.create({
+    if (!plan) {
+      console.log("📋 Création du plan FREE manquant...");
+      plan = await prisma.plan.create({
+        data: {
+          name: "FREE",
+          price: 0,
+          monthlyPrice: 0,
+          yearlyPrice: 0,
+          maxUsers: 1,
+          maxStorage: 500,
+          features: [
+            "1 utilisateur",
+            "1 objet immobilier",
+            "500MB de stockage",
+            "Support communauté",
+          ],
+          description: "Plan gratuit pour découvrir l'application",
+          isActive: true,
+        },
+      });
+    }
+
+    // Créer l'abonnement
+    const subscription = await prisma.subscription.create({
       data: {
         organizationId,
         planId: plan.id,
         status: "ACTIVE",
         currentPeriodStart: new Date(),
-        currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+        currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 an
       },
     });
-    console.log("💰 Abonnement créé avec plan:", plan.name);
+
+    console.log("💰 Abonnement créé:", {
+      subscriptionId: subscription.id,
+      planName: plan.name,
+      organizationId,
+    });
+
+    return subscription;
+  } catch (error) {
+    console.error("❌ Erreur création abonnement:", error);
+    throw error;
   }
 }
 
