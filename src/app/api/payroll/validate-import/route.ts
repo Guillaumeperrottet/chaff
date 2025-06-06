@@ -4,13 +4,6 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import * as Papa from "papaparse";
 
-interface CsvRow {
-  EmplID?: string;
-  FirstName: string;
-  LastName: string;
-  [key: string]: string | undefined; // For dynamic hour columns like "0101", "0102", etc.
-}
-
 interface ValidationEmployee {
   csvIndex: number;
   employeeId?: string;
@@ -58,6 +51,83 @@ interface ExistingEmployee {
   isActive: boolean;
 }
 
+function parseCSV(csvText: string): CsvEmployeeData[] {
+  const parsed = Papa.parse(csvText, {
+    header: true,
+    delimiter: ";", // Essayer ; puis , si échec
+    skipEmptyLines: true,
+    dynamicTyping: false, // Important pour garder les strings
+  });
+
+  console.log("Headers trouvés:", parsed.meta.fields);
+  console.log("Première ligne de données:", parsed.data[0]);
+
+  if (parsed.errors && parsed.errors.length > 0) {
+    console.error("Erreurs parsing CSV:", parsed.errors);
+  }
+
+  const employees: CsvEmployeeData[] = [];
+
+  for (let index = 0; index < parsed.data.length; index++) {
+    const row = parsed.data[index] as Record<string, string>;
+
+    // Debug: afficher la ligne
+    console.log(`Ligne ${index}:`, row);
+
+    // Extraction avec vos noms de colonnes exacts
+    const firstName = row["FirstName"]?.trim();
+    const lastName = row["LastName"]?.trim();
+    const employeeId = row["EmplID"]?.trim(); // Votre colonne exacte
+
+    if (!firstName || !lastName) {
+      console.log(`Ligne ${index} ignorée: nom/prénom manquant`);
+      continue;
+    }
+
+    // Calcul des heures avec pattern plus flexible
+    const hourColumns = Object.keys(row).filter((key) => {
+      // Accepter tous les nombres, pas seulement 4 chiffres
+      const isNumericKey = /^\d+$/.test(key);
+      const hasValue = row[key] && row[key].trim() !== "";
+      const isValidNumber = !isNaN(parseFloat(row[key] || "0"));
+
+      console.log(
+        `Colonne ${key}: isNumeric=${isNumericKey}, hasValue=${hasValue}, isValidNumber=${isValidNumber}, value="${row[key]}"`
+      );
+
+      return isNumericKey && hasValue && isValidNumber;
+    });
+
+    console.log(
+      `Colonnes d'heures trouvées pour ${firstName} ${lastName}:`,
+      hourColumns
+    );
+
+    const totalHours = hourColumns.reduce((sum, col) => {
+      const value = parseFloat(row[col] || "0");
+      console.log(`  ${col}: ${row[col]} -> ${value}`);
+      return sum + (isNaN(value) ? 0 : value);
+    }, 0);
+
+    console.log(`Total heures pour ${firstName} ${lastName}: ${totalHours}`);
+
+    if (totalHours > 0) {
+      employees.push({
+        csvIndex: index,
+        employeeId: employeeId,
+        firstName: firstName,
+        lastName: lastName,
+        totalHours: totalHours,
+      });
+    } else {
+      console.log(`Employé ${firstName} ${lastName} ignoré: 0 heures`);
+    }
+  }
+
+  console.log(`Total employés extraits: ${employees.length}`);
+  return employees;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const session = await auth.api.getSession({
@@ -82,6 +152,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log("=== DÉBUT VALIDATION IMPORT ===");
+    console.log(`Fichier: ${file.name}, Taille: ${file.size} bytes`);
+    console.log(`Mandat: ${mandateId}, Taux défaut: ${defaultHourlyRate}`);
+
     // Vérifier que le mandat existe
     const mandate = await prisma.mandate.findUnique({
       where: { id: mandateId },
@@ -92,13 +166,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Mandat non trouvé" }, { status: 404 });
     }
 
-    // Parser le CSV
+    // Parser le CSV avec debugging
     const csvText = await file.text();
-    const parsed = Papa.parse(csvText, {
-      header: true,
-      delimiter: ";",
-      skipEmptyLines: true,
-    });
+    console.log("Première ligne CSV:", csvText.split("\n")[0]);
+    console.log("Nombre de lignes CSV:", csvText.split("\n").length);
+
+    const csvEmployees = parseCSV(csvText);
+
+    if (csvEmployees.length === 0) {
+      console.error("ERREUR: Aucun employé extrait du CSV");
+      return NextResponse.json(
+        {
+          error:
+            "Aucun employé trouvé dans le fichier CSV. Vérifiez le format.",
+        },
+        { status: 400 }
+      );
+    }
+
+    console.log(`${csvEmployees.length} employés extraits du CSV`);
 
     // Récupérer tous les employés du mandat
     const existingEmployees = await prisma.employee.findMany({
@@ -116,32 +202,8 @@ export async function POST(request: NextRequest) {
 
     const validationResults: ValidationEmployee[] = [];
 
-    // Analyser chaque ligne du CSV
-    for (let index = 0; index < parsed.data.length; index++) {
-      const row = parsed.data[index] as CsvRow;
-
-      if (!row.FirstName || !row.LastName) continue;
-
-      // Calculer le total des heures
-      const hourColumns = Object.keys(row).filter(
-        (key) =>
-          key.match(/^\d{4}$/) && row[key] && !isNaN(parseFloat(row[key]!))
-      );
-
-      const totalHours = hourColumns.reduce((sum, col) => {
-        return sum + (parseFloat(row[col] || "0") || 0);
-      }, 0);
-
-      if (totalHours === 0) continue;
-
-      const csvEmployee = {
-        csvIndex: index,
-        employeeId: row.EmplID?.trim(),
-        firstName: row.FirstName.trim(),
-        lastName: row.LastName.trim(),
-        totalHours: totalHours,
-      };
-
+    // Analyser chaque employé du CSV
+    for (const csvEmployee of csvEmployees) {
       // Tentative de matching avec les employés existants
       const matchResult = findEmployeeMatch(csvEmployee, existingEmployees);
 
@@ -172,7 +234,7 @@ export async function POST(request: NextRequest) {
         needsReview = true;
       }
 
-      if (totalHours > 200) {
+      if (csvEmployee.totalHours > 200) {
         issues.push("Nombre d'heures élevé (>200h)");
         needsReview = true;
       }
@@ -189,7 +251,7 @@ export async function POST(request: NextRequest) {
         matchConfidence: matchResult.confidence,
         proposedHourlyRate: proposedRate,
         rateSource: rateSource,
-        estimatedCost: totalHours * proposedRate * 1.22, // +22% charges
+        estimatedCost: csvEmployee.totalHours * proposedRate * 1.22, // +22% charges
         needsReview: needsReview,
         issues: issues,
       });
@@ -227,7 +289,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Fonction de matching des employés
+// Fonction de matching améliorée
 function findEmployeeMatch(
   csvEmployee: CsvEmployeeData,
   existingEmployees: ExistingEmployee[]
@@ -235,6 +297,10 @@ function findEmployeeMatch(
   let bestMatch = null;
   let bestScore = 0;
   let matchType: "exact" | "partial" | "none" = "none";
+
+  console.log(
+    `Recherche de correspondance pour: ${csvEmployee.firstName} ${csvEmployee.lastName} (ID: ${csvEmployee.employeeId})`
+  );
 
   for (const employee of existingEmployees) {
     let score = 0;
@@ -244,6 +310,7 @@ function findEmployeeMatch(
       csvEmployee.employeeId &&
       employee.employeeId === csvEmployee.employeeId
     ) {
+      console.log(`  Match exact par ID: ${employee.employeeId}`);
       return {
         matchedEmployee: employee,
         matchType: "exact" as const,
@@ -261,15 +328,24 @@ function findEmployeeMatch(
 
     if (firstNameMatch && lastNameMatch) {
       score = 90;
+      console.log(
+        `  Match nom/prénom complet: ${employee.firstName} ${employee.lastName} (score: ${score})`
+      );
     } else if (firstNameMatch || lastNameMatch) {
       score = 50;
+      console.log(
+        `  Match partiel nom/prénom: ${employee.firstName} ${employee.lastName} (score: ${score})`
+      );
     } else {
-      // Match partiel sur les noms (Levenshtein ou contient)
+      // Match partiel sur les noms (contient)
       if (
         containsName(csvEmployee.firstName, employee.firstName) ||
         containsName(csvEmployee.lastName, employee.lastName)
       ) {
         score = 30;
+        console.log(
+          `  Match partiel contient: ${employee.firstName} ${employee.lastName} (score: ${score})`
+        );
       }
     }
 
@@ -284,6 +360,10 @@ function findEmployeeMatch(
   } else if (bestScore >= 30) {
     matchType = "partial";
   }
+
+  console.log(
+    `  Meilleur match: ${bestMatch ? `${bestMatch.firstName} ${bestMatch.lastName}` : "aucun"} (score: ${bestScore}, type: ${matchType})`
+  );
 
   return {
     matchedEmployee: bestMatch,
