@@ -187,6 +187,14 @@ export default function PayrollIndexPage() {
             <Upload className="mr-2 h-4 w-4" />
             Import Gastrotime
           </Button>
+          <Button
+            onClick={() =>
+              router.push("/dashboard/payroll/import-with-validation")
+            }
+          >
+            <Upload className="mr-2 h-4 w-4" />
+            Import avec validation
+          </Button>
           <Button onClick={() => router.push("/dashboard/analytics")}>
             <BarChart3 className="mr-2 h-4 w-4" />
             Analytics
