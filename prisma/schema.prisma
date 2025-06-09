@@ -505,9 +505,7 @@ enum SubscriptionStatus {
 
 enum PlanType {
   FREE
-  PERSONAL
-  PROFESSIONAL
-  ENTERPRISE
+  PREMIUM
   SUPER_ADMIN
   ILLIMITE
   CUSTOM

@@ -1,12 +1,14 @@
+// src/lib/access-control.ts - Version nettoyée
 import { getUser } from "./auth-session";
 import { getPlanDetails } from "./stripe";
+import { prisma } from "./prisma";
 
+// Types simplifiés - suppression des références aux objets/tâches
 export type FeatureAccess =
   | "payroll"
   | "advanced_reports"
   | "bulk_import"
   | "api_access"
-  | "multiple_mandates"
   | "team_management";
 
 /**
@@ -42,8 +44,6 @@ export async function hasFeatureAccess(
         return planDetails.allowBulkImport ?? false;
       case "api_access":
         return planDetails.allowAPIAccess ?? false;
-      case "multiple_mandates":
-        return (planDetails.maxObjects ?? 0) > 1;
       case "team_management":
         return (planDetails.maxUsers ?? 0) > 1;
       default:

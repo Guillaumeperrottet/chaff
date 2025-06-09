@@ -1,3 +1,4 @@
+// src/app/pricing/page.tsx - Version nettoyée
 "use client";
 
 import { useState } from "react";
@@ -9,8 +10,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/app/components/ui/card";
-import { Check, Crown, Shield, Star, Zap } from "lucide-react";
+import { Check, Crown, Shield, Star } from "lucide-react";
 
+// Plans simplifiés - seulement 3 plans
 const PLANS = [
   {
     id: "FREE",
@@ -19,64 +21,45 @@ const PLANS = [
     description: "Pour découvrir l'application",
     features: [
       "1 utilisateur",
-      "1 objet immobilier",
-      "500MB de stockage",
+      "Accès dashboard de base",
+      "100MB de stockage",
       "Support communauté",
-      "Fonctionnalités de base",
+      "Fonctionnalités limitées",
     ],
     icon: Shield,
     color: "gray",
     popular: false,
   },
   {
-    id: "PERSONAL",
-    name: "Particulier",
-    price: 9,
-    description: "Pour une utilisation personnelle",
-    features: [
-      "1 utilisateur",
-      "3 objets immobiliers",
-      "2GB de stockage",
-      "Support email",
-      "Toutes les fonctionnalités",
-    ],
-    icon: Star,
-    color: "blue",
-    popular: false,
-  },
-  {
-    id: "PROFESSIONAL",
-    name: "Professionnel",
+    id: "PREMIUM",
+    name: "Premium",
     price: 29,
-    description: "Pour une utilisation professionnelle",
+    description: "Plan complet pour professionnels",
     features: [
-      "5 utilisateurs",
-      "Objets illimités",
+      "Jusqu'à 10 utilisateurs",
+      "Toutes les fonctionnalités",
       "10GB de stockage",
       "Support prioritaire",
-      "Gestion d'équipe",
       "Rapports avancés",
     ],
-    icon: Zap,
+    icon: Star,
     color: "orange",
     popular: true,
   },
   {
-    id: "ENTERPRISE",
-    name: "Entreprise",
-    price: 99,
-    description: "Pour les grandes équipes",
+    id: "SUPER_ADMIN",
+    name: "Super Admin",
+    price: null, // Pas affiché
+    description: "Accès administrateur complet",
     features: [
-      "Utilisateurs illimités",
-      "Objets illimités",
-      "100GB de stockage",
+      "Accès administrateur complet",
+      "Gestion système",
       "Support dédié",
-      "API personnalisée",
-      "Formation incluse",
     ],
     icon: Crown,
     color: "purple",
     popular: false,
+    hidden: true, // Caché pour les utilisateurs normaux
   },
 ];
 
@@ -87,18 +70,24 @@ export default function PricingPage() {
   );
 
   const handleSelectPlan = (planId: string) => {
+    if (planId === "SUPER_ADMIN") {
+      // Plan admin non accessible publiquement
+      return;
+    }
     router.push(`/signup?plan=${planId}`);
   };
 
   const getColorClasses = (color: string) => {
     const colors = {
       gray: "border-gray-200 text-gray-600",
-      blue: "border-blue-200 text-blue-600",
       orange: "border-orange-200 text-orange-600",
       purple: "border-purple-200 text-purple-600",
     };
     return colors[color as keyof typeof colors] || colors.gray;
   };
+
+  // Filtrer les plans visibles
+  const visiblePlans = PLANS.filter((plan) => !plan.hidden);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
@@ -133,7 +122,7 @@ export default function PricingPage() {
               >
                 Annuel
                 <span className="ml-1 text-xs bg-green-100 text-green-800 px-1.5 py-0.5 rounded">
-                  -20%
+                  -15%
                 </span>
               </button>
             </div>
@@ -141,10 +130,12 @@ export default function PricingPage() {
         </div>
 
         {/* Plans Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
-          {PLANS.map((plan) => {
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+          {visiblePlans.map((plan) => {
             const Icon = plan.icon;
-            const yearlyPrice = Math.floor(plan.price * 12 * 0.8); // 20% reduction
+            const yearlyPrice = plan.price
+              ? Math.floor(plan.price * 12 * 0.85)
+              : 0; // 15% reduction
             const displayPrice =
               billingCycle === "yearly" ? yearlyPrice : plan.price;
 
@@ -175,17 +166,19 @@ export default function PricingPage() {
                     <span className="text-3xl font-bold">
                       {displayPrice === 0 ? "Gratuit" : `${displayPrice}€`}
                     </span>
-                    {displayPrice > 0 && (
+                    {displayPrice && displayPrice > 0 && (
                       <span className="text-muted-foreground">
                         /{billingCycle === "yearly" ? "an" : "mois"}
                       </span>
                     )}
                   </div>
-                  {billingCycle === "yearly" && plan.price > 0 && (
-                    <p className="text-sm text-green-600 font-medium">
-                      Économisez {plan.price * 12 - yearlyPrice}€/an
-                    </p>
-                  )}
+                  {billingCycle === "yearly" &&
+                    plan.price &&
+                    plan.price > 0 && (
+                      <p className="text-sm text-green-600 font-medium">
+                        Économisez {plan.price * 12 - yearlyPrice}€/an
+                      </p>
+                    )}
                 </CardHeader>
 
                 <CardContent className="pt-0">

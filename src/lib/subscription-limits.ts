@@ -1,13 +1,9 @@
+// src/lib/subscription-limits.ts - Version nettoyée
 import { prisma } from "./prisma";
-import { getPlanDetails } from "@/lib/stripe-client"; // Import partagé pour les configs
+import { getPlanDetails } from "@/lib/stripe-client";
 
-export type LimitType =
-  | "users"
-  | "objects"
-  | "storage"
-  | "sectors"
-  | "articles"
-  | "tasks";
+// Types simplifiés - suppression des objets et tâches
+export type LimitType = "users" | "storage";
 
 interface LimitCheckResult {
   allowed: boolean;
@@ -35,23 +31,11 @@ export async function checkOrganizationLimits(
     case "users":
       limit = planDetails.maxUsers;
       break;
-    case "objects":
-      limit = planDetails.maxObjects;
-      break;
     case "storage":
       // Convertir MB en bytes pour la comparaison
       limit = planDetails.maxStorage
         ? planDetails.maxStorage * 1024 * 1024
         : null;
-      break;
-    case "sectors":
-      limit = planDetails.maxSectors;
-      break;
-    case "articles":
-      limit = planDetails.maxArticles;
-      break;
-    case "tasks":
-      limit = planDetails.maxTasks;
       break;
   }
 
@@ -132,6 +116,12 @@ async function getCurrentCount(
         where: { organizationId },
       });
 
+    case "storage":
+      const storageUsage = await prisma.storageUsage.findUnique({
+        where: { organizationId },
+      });
+      return Number(storageUsage?.totalUsedBytes || 0);
+
     default:
       return 0;
   }
@@ -144,11 +134,7 @@ export async function updateCustomLimits(
   organizationId: string,
   customLimits: {
     maxUsers?: number | null;
-    maxObjects?: number | null;
     maxStorage?: number | null;
-    maxSectors?: number | null;
-    maxArticles?: number | null;
-    maxTasks?: number | null;
   }
 ): Promise<void> {
   // Vérifier si l'organisation a un abonnement

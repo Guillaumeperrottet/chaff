@@ -43,7 +43,7 @@ async function seedPlans() {
       supportLevel: "community",
     },
     {
-      name: PlanType.PROFESSIONAL,
+      name: PlanType.PREMIUM,
       stripeProductId: "prod_SSzanXH0ailEMP",
       stripePriceId: "price_1RY3b1GuCDQP9LdIXFEMIlkM",
       price: 29,

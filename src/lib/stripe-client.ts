@@ -1,6 +1,6 @@
-// src/lib/stripe-client.ts - Version client (sans variables serveur)
+// src/lib/stripe-client.ts - Version nettoyée
 
-// Configuration centralisée des plans (sans Stripe server)
+// Configuration centralisée des plans (sans variables serveur)
 export const PLAN_DETAILS = {
   FREE: {
     id: "FREE",
@@ -10,43 +10,44 @@ export const PLAN_DETAILS = {
     monthlyPrice: 0,
     yearlyPrice: 0,
     maxUsers: 1,
-    maxObjects: 1,
-    maxStorage: 500, // MB
-    maxSectors: 1,
-    maxArticles: 10,
-    maxTasks: 50,
+    maxStorage: 100, // MB
     features: [
       "1 utilisateur",
-      "1 objet immobilier",
-      "500MB de stockage",
+      "Accès dashboard de base",
+      "100MB de stockage",
       "Support communauté",
-      "Fonctionnalités de base",
+      "Fonctionnalités limitées",
     ],
     popular: false,
+    // Restrictions spécifiques
+    allowPayrollAccess: false,
+    allowAdvancedReports: false,
+    allowBulkImport: false,
+    allowAPIAccess: false,
   },
   PREMIUM: {
     id: "PREMIUM",
     name: "Premium",
-    description: "Pour une utilisation professionnelle",
-    price: 29, // Ajustez selon vos besoins
+    description: "Plan complet pour professionnels",
+    price: 29,
     monthlyPrice: 29,
     yearlyPrice: 290, // 10 mois payés sur 12
     maxUsers: 10,
-    maxObjects: null, // Illimité
     maxStorage: 10240, // 10GB
-    maxSectors: null, // Illimité
-    maxArticles: null, // Illimité
-    maxTasks: null, // Illimité
     features: [
       "Jusqu'à 10 utilisateurs",
-      "Objets immobiliers illimités",
+      "Toutes les fonctionnalités",
       "10GB de stockage",
       "Support prioritaire",
-      "Toutes les fonctionnalités",
-      "Gestion avancée des accès",
-      "Rapports et analytics",
+      "Rapports avancés",
+      "Accès API",
     ],
     popular: true,
+    // Accès complet
+    allowPayrollAccess: true,
+    allowAdvancedReports: true,
+    allowBulkImport: true,
+    allowAPIAccess: true,
   },
   SUPER_ADMIN: {
     id: "SUPER_ADMIN",
@@ -55,16 +56,18 @@ export const PLAN_DETAILS = {
     price: 0,
     monthlyPrice: 0,
     yearlyPrice: 0,
-    maxUsers: null,
-    maxObjects: null,
-    maxStorage: null,
-    maxSectors: null,
-    maxArticles: null,
-    maxTasks: null,
+    maxUsers: null, // Illimité
+    maxStorage: null, // Illimité
     features: ["Accès administrateur complet"],
     popular: false,
+    // Accès total
+    allowPayrollAccess: true,
+    allowAdvancedReports: true,
+    allowBulkImport: true,
+    allowAPIAccess: true,
   },
 } as const;
+
 export type PlanId = keyof typeof PLAN_DETAILS;
 
 // Helpers utilitaires
@@ -79,4 +82,17 @@ export function isValidPlanId(planId: string): planId is PlanId {
 // Helper pour obtenir les plans payants
 export function getPayablePlans() {
   return Object.values(PLAN_DETAILS).filter((plan) => plan.price > 0);
+}
+
+// Helper pour vérifier les limites
+export function getPlanLimits(planId: string) {
+  const plan = getPlanDetails(planId);
+  return {
+    maxUsers: plan.maxUsers,
+    maxStorage: plan.maxStorage,
+    allowPayrollAccess: plan.allowPayrollAccess,
+    allowAdvancedReports: plan.allowAdvancedReports,
+    allowBulkImport: plan.allowBulkImport,
+    allowAPIAccess: plan.allowAPIAccess,
+  };
 }

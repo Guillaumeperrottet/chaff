@@ -15,13 +15,12 @@ import {
   Loader2,
   Check,
   ArrowRight,
-  Zap,
-  Users,
   Shield,
   BarChart3,
+  Star,
 } from "lucide-react";
 
-// Plans disponibles (repris de votre stripe-client.ts)
+// Plans simplifiés (repris de votre stripe-client.ts)
 const PLAN_DETAILS = {
   FREE: {
     id: "FREE",
@@ -31,56 +30,27 @@ const PLAN_DETAILS = {
     monthlyPrice: 0,
     features: [
       "1 utilisateur",
-      "1 objets immobiliers",
-      "500MB de stockage",
+      "Accès dashboard de base",
+      "100MB de stockage",
       "Support communauté",
     ],
     popular: false,
   },
-  PERSONAL: {
-    id: "PERSONAL",
-    name: "Particulier",
-    description: "Pour la gestion personnelle",
-    price: 12,
-    monthlyPrice: 12,
+  PREMIUM: {
+    id: "PREMIUM",
+    name: "Premium",
+    description: "Plan complet pour professionnels",
+    price: 29,
+    monthlyPrice: 29,
     features: [
-      "1 utilisateur",
-      "1 objets immobiliers",
-      "2GB de stockage",
-      "Support email",
+      "Jusqu'à 10 utilisateurs",
       "Toutes les fonctionnalités",
-    ],
-    popular: false,
-  },
-  PROFESSIONAL: {
-    id: "PROFESSIONAL",
-    name: "Professionnel",
-    description: "Pour les professionnels indépendants",
-    price: 50,
-    monthlyPrice: 50,
-    features: [
-      "Jusqu'à 5 utilisateurs",
-      "3 objets immobiliers",
       "10GB de stockage",
       "Support prioritaire",
-      "Gestion des accès",
+      "Rapports avancés",
+      "Accès API",
     ],
     popular: true,
-  },
-  ENTERPRISE: {
-    id: "ENTERPRISE",
-    name: "Entreprise",
-    description: "Pour les équipes et entreprises",
-    price: 90,
-    monthlyPrice: 90,
-    features: [
-      "10 Utilisateurs",
-      "5 Objets",
-      "50GB de stockage",
-      "Support téléphone + email",
-      "Formation",
-    ],
-    popular: false,
   },
 } as const;
 
@@ -93,8 +63,8 @@ const SubscribeRedirectSkeleton = () => (
         <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
       </div>
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {Array.from({ length: 3 }).map((_, i) => (
+      <div className="grid md:grid-cols-2 gap-6">
+        {Array.from({ length: 2 }).map((_, i) => (
           <div
             key={i}
             className="bg-white rounded-xl p-6 shadow-lg animate-pulse"
@@ -124,7 +94,7 @@ function SubscribeRedirectContent() {
 
   // Récupérer le plan depuis les paramètres URL
   const planFromUrl = searchParams.get("plan");
-  const redirectPlan = planFromUrl?.toUpperCase() || "PROFESSIONAL";
+  const redirectPlan = planFromUrl?.toUpperCase() || "PREMIUM";
 
   useEffect(() => {
     // Auto-sélectionner le plan de l'URL si valide
@@ -134,7 +104,7 @@ function SubscribeRedirectContent() {
     ) {
       setSelectedPlan(redirectPlan);
     } else {
-      setSelectedPlan("PROFESSIONAL"); // Plan par défaut
+      setSelectedPlan("PREMIUM"); // Plan par défaut
     }
   }, [planFromUrl, redirectPlan]);
 
@@ -189,7 +159,7 @@ function SubscribeRedirectContent() {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid md:grid-cols-2 gap-6 mb-8 max-w-4xl mx-auto">
           {Object.entries(PLAN_DETAILS).map(([planId, plan]) => (
             <Card
               key={planId}
@@ -202,12 +172,19 @@ function SubscribeRedirectContent() {
             >
               {plan.popular && (
                 <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-orange-500 text-white">
-                  <Zap className="w-3 h-3 mr-1" />
+                  <Star className="w-3 h-3 mr-1" />
                   Populaire
                 </Badge>
               )}
 
               <CardHeader className="text-center">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
+                  {planId === "FREE" ? (
+                    <Shield className="w-8 h-8 text-white" />
+                  ) : (
+                    <BarChart3 className="w-8 h-8 text-white" />
+                  )}
+                </div>
                 <CardTitle className="text-xl font-bold">{plan.name}</CardTitle>
                 <CardDescription>{plan.description}</CardDescription>
                 <div className="mt-4">
@@ -262,37 +239,6 @@ function SubscribeRedirectContent() {
               </CardContent>
             </Card>
           ))}
-        </div>
-
-        {/* Fonctionnalités mise en avant */}
-        <div className="bg-white rounded-xl p-8 shadow-lg mb-8">
-          <h3 className="text-xl font-bold text-center mb-6">
-            Pourquoi choisir notre plateforme ?
-          </h3>
-          <div className="grid md:grid-cols-3 gap-6">
-            <div className="text-center">
-              <Shield className="w-12 h-12 text-orange-500 mx-auto mb-4" />
-              <h4 className="font-semibold mb-2">Sécurisé</h4>
-              <p className="text-sm text-gray-600">
-                Vos données sont protégées avec les dernières technologies de
-                sécurité
-              </p>
-            </div>
-            <div className="text-center">
-              <Users className="w-12 h-12 text-orange-500 mx-auto mb-4" />
-              <h4 className="font-semibold mb-2">Collaboratif</h4>
-              <p className="text-sm text-gray-600">
-                Travaillez en équipe avec des outils de partage avancés
-              </p>
-            </div>
-            <div className="text-center">
-              <BarChart3 className="w-12 h-12 text-orange-500 mx-auto mb-4" />
-              <h4 className="font-semibold mb-2">Analytics</h4>
-              <p className="text-sm text-gray-600">
-                Obtenez des insights précieux sur vos données
-              </p>
-            </div>
-          </div>
         </div>
 
         {/* Bouton pour passer */}
