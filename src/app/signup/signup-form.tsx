@@ -1,9 +1,8 @@
-// signup-form.tsx - Version avec Suspense sécurisé
+// signup-form.tsx - Version simplifiée et corrigée
 "use client";
 
 import {
   FormEvent,
-  useEffect,
   useState,
   useRef,
   useCallback,
@@ -11,7 +10,6 @@ import {
   Suspense,
 } from "react";
 import { authClient } from "@/lib/auth-client";
-import { useSearchParams } from "next/navigation";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Button } from "@/app/components/ui/button";
@@ -72,52 +70,15 @@ function SignUpFormSkeleton() {
 
 // Composant qui utilise useSearchParams
 function SignUpFormWithParams() {
-  const searchParams = useSearchParams();
-  const inviteCode = searchParams.get("code");
-  const [isInvite, setIsInvite] = useState(false);
-  const [organizationName, setOrganizationName] = useState("");
-  const [organizationId, setOrganizationId] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
-  const planType = searchParams.get("plan") || "FREE";
 
   const handleImageSelect = useCallback((file: File | null) => {
     setSelectedFile(file);
   }, []);
-
-  useEffect(() => {
-    let mounted = true;
-
-    if (inviteCode) {
-      fetch(`/api/invitations/validate?code=${inviteCode}`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (!mounted) return;
-          if (data.valid) {
-            setIsInvite(true);
-            setOrganizationName(data.organizationName);
-            setOrganizationId(data.organizationId);
-            console.log("📋 Invitation validée:", data);
-          } else {
-            console.error("Code d'invitation invalide:", data.error);
-            setError(
-              `Code d'invitation invalide: ${data.error || "Code inconnu ou expiré"}`
-            );
-          }
-        })
-        .catch((err) => {
-          console.error("Erreur de validation du code:", err);
-          setError("Erreur lors de la validation du code d'invitation");
-        });
-    }
-
-    return () => {
-      mounted = false;
-    };
-  }, [inviteCode]);
 
   const handleSubmit = useCallback(
     async (event: FormEvent<HTMLFormElement>) => {
@@ -163,22 +124,15 @@ function SignUpFormWithParams() {
           }
         }
 
-        console.log("📤 Données d'inscription:", {
-          email,
-          name,
-          inviteCode: inviteCode ? "***" : undefined,
-          planType,
-          organizationId: isInvite ? organizationId : undefined,
-        });
+        console.log("📤 Inscription normale:", { email, name });
 
+        // ✅ INSCRIPTION SIMPLIFIÉE - Pas de logique complexe côté client
         const signupData = {
           email,
           password,
           name,
           image: imageUrl,
-          inviteCode: inviteCode || undefined,
-          planType: planType || "FREE",
-          organizationId: isInvite ? organizationId : undefined,
+          planType: "FREE", // Toujours FREE par défaut
         };
 
         const result = await authClient.signUp.email(signupData);
@@ -199,7 +153,7 @@ function SignUpFormWithParams() {
         setIsSubmitting(false);
       }
     },
-    [inviteCode, planType, selectedFile, isSubmitting, isInvite, organizationId]
+    [selectedFile, isSubmitting]
   );
 
   if (showSuccess) {
@@ -238,22 +192,19 @@ function SignUpFormWithParams() {
           </div>
         </div>
 
-        {isInvite && (
-          <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6">
-            <div className="flex items-start gap-3">
-              <div className="text-green-600 mt-0.5">
-                <CheckCircle className="h-5 w-5" />
-              </div>
-              <div className="text-left">
-                <p className="text-green-700 text-sm">
-                  <strong>Invitation détectée :</strong> Après vérification de
-                  votre email, vous serez ajouté à l&apos;organisation{" "}
-                  <strong>{organizationName}</strong>.
-                </p>
-              </div>
+        <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6">
+          <div className="flex items-start gap-3">
+            <div className="text-green-600 mt-0.5">
+              <CheckCircle className="h-5 w-5" />
+            </div>
+            <div className="text-left">
+              <p className="text-green-700 text-sm">
+                <strong>Après vérification :</strong> Votre organisation et
+                votre plan gratuit seront automatiquement créés.
+              </p>
             </div>
           </div>
-        )}
+        </div>
 
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
           <div className="flex items-start gap-3">
@@ -304,32 +255,6 @@ function SignUpFormWithParams() {
       <h2 className="text-2xl font-bold text-center mb-6 text-gray-900">
         Inscription
       </h2>
-
-      {isInvite && (
-        <div className="mb-6 p-5 bg-blue-50 border border-blue-200 rounded-xl shadow-sm">
-          <div className="flex items-start gap-3">
-            <div className="text-blue-600 mt-0.5">
-              <svg
-                className="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-            </div>
-            <p className="text-blue-700 flex-1">
-              Vous avez été invité à rejoindre{" "}
-              <strong className="font-semibold">{organizationName}</strong>
-            </p>
-          </div>
-        </div>
-      )}
 
       {error && (
         <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 shadow-sm">

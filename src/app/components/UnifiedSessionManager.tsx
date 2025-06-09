@@ -1,126 +1,147 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { authClient } from "@/lib/auth-client";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, useCallback } from "react";
+import { useSession } from "@/hooks/useSession";
+import { useRouter, usePathname } from "next/navigation";
+import { SessionService } from "@/lib/session-service";
 
-// Durée d'inactivité maximale en millisecondes (4 heures)
-const MAX_INACTIVITY_TIME = 4 * 60 * 60 * 1000;
+// Pages publiques qui ne nécessitent pas d'authentification
+const PUBLIC_PAGES = [
+  "/",
+  "/signin",
+  "/signup",
+  "/pricing",
+  "/about",
+  "/contact",
+  "/auth/verification-success",
+  "/auth/verification-failed",
+  "/auth/email-verification-required",
+];
+
+// Pages d'invitation qui ont leur propre logique
+const INVITATION_PAGES = ["/invite", "/join"];
 
 export function UnifiedSessionManager() {
+  const { data: session, isPending, error } = useSession();
   const router = useRouter();
-  const lastActivityTime = useRef(Date.now());
-  const pageHidden = useRef(false);
+  const pathname = usePathname();
+  const [isChecking, setIsChecking] = useState(false);
 
-  useEffect(() => {
-    // Fonction pour mettre à jour le temps de dernière activité
-    const updateActivity = () => {
-      lastActivityTime.current = Date.now();
-      localStorage.setItem(
-        "lastActivityTime",
-        lastActivityTime.current.toString()
-      );
-    };
+  // Fonction pour vérifier si la page actuelle est publique
+  const isPublicPage = useCallback(() => {
+    return (
+      PUBLIC_PAGES.includes(pathname) ||
+      INVITATION_PAGES.some((page) => pathname.startsWith(page)) ||
+      pathname.startsWith("/auth/") ||
+      pathname.startsWith("/api/")
+    );
+  }, [pathname]);
 
-    // Fonction pour déconnecter l'utilisateur
-    const logoutUser = async () => {
+  // Fonction pour vérifier et créer l'organisation si nécessaire
+  const ensureUserHasOrganization = useCallback(
+    async (userId: string) => {
+      if (isChecking) return; // Éviter les appels multiples
+
+      setIsChecking(true);
       try {
-        await authClient.signOut();
-        localStorage.setItem("forceLogout", "true");
-        router.push("/");
+        console.log("🔍 Vérification de l'organisation pour:", userId);
+
+        const response = await fetch("/api/users/organization-check");
+        if (!response.ok) {
+          throw new Error(`Erreur ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log("📊 Résultat vérification organisation:", data);
+
+        // Si l'utilisateur n'a pas d'organisation, tenter la récupération
+        if (!data.user?.organizationId) {
+          console.log(
+            "⚠️ Utilisateur sans organisation, tentative de récupération..."
+          );
+
+          const recoveryResponse = await fetch(
+            "/api/user/organization-recovery",
+            {
+              method: "POST",
+            }
+          );
+
+          if (recoveryResponse.ok) {
+            const recoveryData = await recoveryResponse.json();
+            console.log("✅ Récupération réussie:", recoveryData);
+          } else {
+            console.error("❌ Échec de la récupération d'organisation");
+          }
+        }
       } catch (error) {
-        console.error("Erreur lors de la déconnexion:", error);
+        console.error(
+          "❌ Erreur lors de la vérification d'organisation:",
+          error
+        );
+      } finally {
+        setIsChecking(false);
       }
-    };
+    },
+    [isChecking]
+  );
 
-    // Fonction pour vérifier l'inactivité
-    const checkInactivity = () => {
-      const storedTime = parseInt(
-        localStorage.getItem("lastActivityTime") || "0",
-        10
-      );
-      const currentTime = Date.now();
-      const lastActive = Math.max(lastActivityTime.current, storedTime || 0);
+  // Initialiser le service de session
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      SessionService.init();
+    }
+  }, []);
 
-      if (currentTime - lastActive > MAX_INACTIVITY_TIME) {
-        logoutUser();
-      }
-    };
+  // Gestion de l'authentification et des redirections
+  useEffect(() => {
+    // Attendre que le chargement soit terminé
+    if (isPending) return;
 
-    // Gestionnaire de visibilité de la page
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "hidden") {
-        pageHidden.current = true;
-        localStorage.setItem("appHiddenAt", Date.now().toString());
-      } else if (pageHidden.current) {
-        pageHidden.current = false;
-        // Vérifier si déconnexion forcée
-        const forceLogout = localStorage.getItem("forceLogout");
-        if (forceLogout === "true") {
-          localStorage.removeItem("forceLogout");
-          router.push("/");
-        }
-        // Vérifier l'inactivité au retour
-        checkInactivity();
-      }
-    };
-
-    // Gestionnaire avant fermeture
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      const isRefresh = e.preventDefault !== undefined;
-      localStorage.setItem(
-        "appClosingState",
-        isRefresh ? "refresh" : "complete_close"
-      );
-    };
-
-    // Gestionnaire après chargement
-    const handlePageShow = (e: PageTransitionEvent) => {
-      if (!e.persisted) {
-        const closingState = localStorage.getItem("appClosingState");
-        if (closingState === "complete_close") {
-          localStorage.removeItem("appClosingState");
-          logoutUser();
-        } else if (closingState === "refresh") {
-          localStorage.removeItem("appClosingState");
-        }
-      }
-    };
-
-    // Initialisation
-    if (!localStorage.getItem("sessionId")) {
-      localStorage.setItem("sessionId", `session_${Date.now()}`);
+    // Si erreur de session, rediriger vers la connexion
+    if (error && !isPublicPage()) {
+      console.log("❌ Erreur de session, redirection vers /signin");
+      router.push("/signin");
+      return;
     }
 
-    // Vérification initiale
-    checkInactivity();
-    updateActivity();
+    // Si pas de session et page protégée, rediriger vers signin
+    if (!session?.user && !isPublicPage()) {
+      console.log("🔐 Pas de session, redirection vers /signin");
+      router.push("/signin");
+      return;
+    }
 
-    // Événements d'activité utilisateur
-    const events = ["mousedown", "keypress", "scroll", "touchstart", "click"];
-    events.forEach((event) => {
-      document.addEventListener(event, updateActivity);
-    });
+    // Si utilisateur connecté sur une page publique d'auth, rediriger vers dashboard
+    if (session?.user && (pathname === "/signin" || pathname === "/signup")) {
+      console.log("👤 Utilisateur connecté, redirection vers /dashboard");
+      router.push("/dashboard");
+      return;
+    }
 
-    // Autres événements
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    window.addEventListener("pageshow", handlePageShow);
+    // Si utilisateur connecté, vérifier qu'il a une organisation
+    if (session?.user && !isPublicPage()) {
+      ensureUserHasOrganization(session.user.id);
+    }
+  }, [
+    session,
+    isPending,
+    error,
+    pathname,
+    router,
+    isChecking,
+    ensureUserHasOrganization,
+    isPublicPage,
+  ]);
 
-    // Vérification périodique
-    const intervalId = setInterval(checkInactivity, 60 * 1000);
+  // Gestion de l'email non vérifié
+  useEffect(() => {
+    if (session?.user && !session.user.emailVerified && !isPublicPage()) {
+      console.log("📧 Email non vérifié, redirection vers vérification");
+      router.push("/auth/email-verification-required");
+    }
+  }, [session, pathname, router, isPublicPage]);
 
-    // Nettoyage
-    return () => {
-      events.forEach((event) => {
-        document.removeEventListener(event, updateActivity);
-      });
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-      window.removeEventListener("pageshow", handlePageShow);
-      clearInterval(intervalId);
-    };
-  }, [router]);
-
+  // Ce composant ne rend rien, il ne fait que gérer la logique de session
   return null;
 }
