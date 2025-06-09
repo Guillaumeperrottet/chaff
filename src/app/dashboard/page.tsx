@@ -56,9 +56,11 @@ import {
   Filter,
   Menu,
   ChevronRight,
+  Lock,
 } from "lucide-react";
 import EmptyState from "@/app/components/EmptyState";
-import { FeatureButton } from "@/app/components/FeatureButton";
+import { useFeatureAccess } from "@/hooks/useFeatureAccess";
+import { FeatureAccess } from "@/lib/access-control";
 import { Input } from "@/app/components/ui/input";
 import {
   Select,
@@ -157,6 +159,58 @@ interface PayrollRatiosResponse {
     };
   };
 }
+
+// Composant simple pour boutons premium sobres
+const SimpleFeatureButton = ({
+  feature,
+  children,
+  onClick,
+  variant = "outline",
+  className = "",
+}: {
+  feature: FeatureAccess;
+  children: React.ReactNode;
+  onClick?: () => void;
+  variant?: "outline" | "default" | "ghost" | "secondary" | "destructive";
+  className?: string;
+}) => {
+  const { hasAccess, loading } = useFeatureAccess(feature);
+
+  if (loading) {
+    return (
+      <Button variant={variant} disabled className={className}>
+        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        {children}
+      </Button>
+    );
+  }
+
+  if (!hasAccess) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant={variant}
+            className={`${className} opacity-50 cursor-not-allowed hover:opacity-50`}
+            disabled
+          >
+            <Lock className="mr-2 h-4 w-4" />
+            {children}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>Fonctionnalité premium requise</p>
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return (
+    <Button variant={variant} onClick={onClick} className={className}>
+      {children}
+    </Button>
+  );
+};
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -700,408 +754,417 @@ export default function DashboardPage() {
   const mergedData = getMergedData();
 
   return (
-    <div className="space-y-6">
-      {/* Header avec titre et actions */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Tableau de bord</h1>
-        </div>
+    <TooltipProvider>
+      <div className="space-y-6">
+        {/* Header avec titre et actions */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">
+              Tableau de bord
+            </h1>
+          </div>
 
-        {/* Actions - CONDITIONNELLES selon mobile/desktop */}
-        {isMobile ? (
-          /* Version MOBILE - Layout empilé */
-          <div className="flex flex-col gap-2 w-full max-w-xs">
-            <Button
-              onClick={() => router.push("/dashboard/dayvalues/create")}
-              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg"
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Ajouter un CA
-            </Button>
+          {/* Actions - CONDITIONNELLES selon mobile/desktop */}
+          {isMobile ? (
+            /* Version MOBILE - Layout empilé */
+            <div className="flex flex-col gap-2 w-full max-w-xs">
+              <Button
+                onClick={() => router.push("/dashboard/dayvalues/create")}
+                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Ajouter un CA
+              </Button>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="w-full">
-                  <Menu className="mr-2 h-4 w-4" />
-                  Plus d&apos;actions
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56">
-                <DropdownMenuItem
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="w-full">
+                    <Menu className="mr-2 h-4 w-4" />
+                    Plus d&apos;actions
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56">
+                  <DropdownMenuItem
+                    onClick={() => router.push("/dashboard/analytics")}
+                  >
+                    <BarChart3 className="mr-2 h-4 w-4" />
+                    Analytics
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => router.push("/dashboard/payroll")}
+                  >
+                    <Calculator className="mr-2 h-4 w-4" />
+                    Masse salariale
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Import
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <Download className="mr-2 h-4 w-4" />
+                    Exporter
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          ) : (
+            /* Version DESKTOP - EXACTEMENT comme votre code original */
+            <div className="flex items-center gap-4">
+              <Button
+                onClick={() => router.push("/dashboard/dayvalues/create")}
+                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-200 px-6 py-2.5 text-base font-semibold"
+                size="lg"
+              >
+                <Plus className="mr-2 h-5 w-5" />
+                Ajouter un CA
+              </Button>
+
+              <div className="h-8 w-px bg-border"></div>
+
+              <div className="flex items-center gap-2">
+                <SimpleFeatureButton
+                  feature="advanced_reports"
                   onClick={() => router.push("/dashboard/analytics")}
+                  variant="outline"
+                  className="border-slate-200 hover:bg-slate-50"
                 >
                   <BarChart3 className="mr-2 h-4 w-4" />
                   Analytics
-                </DropdownMenuItem>
-                <DropdownMenuItem
+                </SimpleFeatureButton>
+
+                <SimpleFeatureButton
+                  feature="payroll"
                   onClick={() => router.push("/dashboard/payroll")}
+                  variant="outline"
+                  className="border-slate-200 hover:bg-slate-50"
                 >
                   <Calculator className="mr-2 h-4 w-4" />
                   Masse salariale
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <Upload className="mr-2 h-4 w-4" />
-                  Import
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Download className="mr-2 h-4 w-4" />
-                  Exporter
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        ) : (
-          /* Version DESKTOP - EXACTEMENT comme votre code original */
-          <div className="flex items-center gap-4">
-            <Button
-              onClick={() => router.push("/dashboard/dayvalues/create")}
-              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-200 px-6 py-2.5 text-base font-semibold"
-              size="lg"
-            >
-              <Plus className="mr-2 h-5 w-5" />
-              Ajouter un CA
-            </Button>
+                </SimpleFeatureButton>
 
-            <div className="h-8 w-px bg-border"></div>
-
-            <div className="flex items-center gap-2">
-              <FeatureButton
-                feature="advanced_reports"
-                onClick={() => router.push("/dashboard/analytics")}
-                variant="outline"
-                className="border-slate-200 hover:bg-slate-50"
-              >
-                <BarChart3 className="mr-2 h-4 w-4" />
-                Analytics
-              </FeatureButton>
-
-              <FeatureButton
-                feature="payroll"
-                onClick={() => router.push("/dashboard/payroll")}
-                variant="outline"
-                className="border-slate-200 hover:bg-slate-50"
-              >
-                <Calculator className="mr-2 h-4 w-4" />
-                Masse salariale
-              </FeatureButton>
-
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-colors"
-              >
-                <Upload className="mr-2 h-4 w-4" />
-                Import
-              </Button>
-
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-colors"
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Exporter
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Table principale avec filtres intégrés dans le CardHeader */}
-      <Card className="shadow-lg border-slate-200">
-        <CardHeader className="bg-white border-b border-slate-200 py-2">
-          <div className="relative flex items-center min-h-[60px]">
-            {/* Titre parfaitement centré */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-              <CardTitle className="text-xl font-bold text-slate-800 mb-2">
-                Vue d&apos;ensemble du chiffre d&apos;affaires journalier
-              </CardTitle>
-              <CardDescription className="text-slate-600">
-                <Link
-                  href="/dashboard/mandates"
-                  className="underline text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
-                >
-                  Index des mandats
-                </Link>
-              </CardDescription>
-            </div>
-
-            {/* Filtres - CONDITIONNELS selon mobile/desktop */}
-            <div className="absolute right-0 flex items-center gap-3">
-              {isMobile ? (
-                /* Version MOBILE - Bouton filtres */
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setShowMobileFilters(true)}
-                  className="flex items-center gap-2"
+                  className="border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-colors"
                 >
-                  <Filter className="h-4 w-4" />
-                  Filtres
-                  {(searchTerm ||
-                    categoryFilter !== "all" ||
-                    statusFilter !== "all") && (
-                    <Badge variant="secondary" className="text-xs ml-1">
-                      {
-                        [
-                          searchTerm,
-                          categoryFilter !== "all",
-                          statusFilter !== "all",
-                        ].filter(Boolean).length
-                      }
-                    </Badge>
-                  )}
+                  <Upload className="mr-2 h-4 w-4" />
+                  Import
                 </Button>
-              ) : (
-                /* Version DESKTOP - EXACTEMENT comme votre code original */
-                <>
-                  <div className="relative">
-                    <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-                    <Input
-                      placeholder="Rechercher..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-8 h-8 w-40 text-xs border-slate-200 focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 bg-white/80 placeholder:text-slate-400"
-                    />
-                  </div>
 
-                  <Select
-                    value={categoryFilter}
-                    onValueChange={setCategoryFilter}
-                  >
-                    <SelectTrigger className="w-36 h-8 text-xs border-slate-200 focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 bg-white/80">
-                      <SelectValue placeholder="Catégorie" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Toutes catégories</SelectItem>
-                      <SelectItem value="hebergement">Hébergement</SelectItem>
-                      <SelectItem value="restauration">Restauration</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-28 h-8 text-xs border-slate-200 focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 bg-white/80">
-                      <SelectValue placeholder="Statut" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Tous statuts</SelectItem>
-                      <SelectItem value="active">Actif</SelectItem>
-                      <SelectItem value="inactive">Inactif</SelectItem>
-                      <SelectItem value="new">Nouveau</SelectItem>
-                      <SelectItem value="warning">Attention</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  {(searchTerm ||
-                    categoryFilter !== "all" ||
-                    statusFilter !== "all") && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setSearchTerm("");
-                        setCategoryFilter("all");
-                        setStatusFilter("all");
-                      }}
-                      className="h-8 px-2 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100"
-                    >
-                      ✕
-                    </Button>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-        </CardHeader>
-
-        <CardContent>
-          {" "}
-          {/* Affichage conditionnel : Cards sur mobile, Table sur desktop */}
-          {isMobile ? (
-            /* Version MOBILE - Cards */
-            <div className="space-y-4">
-              {mergedData.length === 0 ? (
-                <EmptyState
-                  type="mandates"
-                  onPrimaryAction={() =>
-                    router.push("/dashboard/mandates/create")
-                  }
-                />
-              ) : (
-                mergedData.map((campus) => (
-                  <MobileCampusCard key={campus.id} campus={campus} />
-                ))
-              )}
-            </div>
-          ) : (
-            /* Version DESKTOP - Table EXACTEMENT comme votre code original */
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="min-w-[150px]">Campus</TableHead>
-                    <TableHead className="min-w-[120px]">
-                      Dernière saisie
-                    </TableHead>
-                    <TableHead className="min-w-[150px]">Top</TableHead>
-                    <TableHead className="text-center min-w-[120px]">
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div className="flex items-center justify-center gap-1 cursor-help group">
-                              <span className="font-medium">Ratio %</span>
-                              <Info className="h-3 w-3 text-muted-foreground/40 group-hover:text-muted-foreground/60 transition-colors" />
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent
-                            side="top"
-                            className="max-w-xs bg-white border border-gray-200 shadow-sm p-3"
-                            sideOffset={8}
-                          >
-                            <div className="space-y-2.5 text-xs">
-                              <div>
-                                <div className="text-gray-600 mb-1">
-                                  Formule :
-                                </div>
-                                <div className="font-mono text-gray-900 bg-gray-50 px-2 py-1 rounded text-center">
-                                  (Masse Salariale ÷ CA) × 100
-                                </div>
-                              </div>
-                              <div>
-                                <div className="text-gray-600 mb-1.5">
-                                  Seuils :
-                                </div>
-                                <div className="space-y-1">
-                                  <div className="flex items-center gap-2 text-gray-700">
-                                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
-                                    <span>&lt; 25%</span>
-                                    <span className="text-gray-500">
-                                      Excellent
-                                    </span>
-                                  </div>
-                                  <div className="flex items-center gap-2 text-gray-700">
-                                    <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                                    <span>25-35%</span>
-                                    <span className="text-gray-500">Bon</span>
-                                  </div>
-                                  <div className="flex items-center gap-2 text-gray-700">
-                                    <div className="w-1.5 h-1.5 bg-amber-500 rounded-full"></div>
-                                    <span>35-50%</span>
-                                    <span className="text-gray-500">
-                                      Attention
-                                    </span>
-                                  </div>
-                                  <div className="flex items-center gap-2 text-gray-700">
-                                    <div className="w-1.5 h-1.5 bg-red-500 rounded-full"></div>
-                                    <span>&gt; 50%</span>
-                                    <span className="text-gray-500">
-                                      Critique
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </TableHead>
-                    {dashboardData.columnLabels.map((col) => (
-                      <TableHead
-                        key={col.key}
-                        className="text-center min-w-[100px]"
-                      >
-                        <div className="font-medium">{col.label}</div>
-                      </TableHead>
-                    ))}
-                    <TableHead className="w-[50px]"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {/* Section Hébergement */}
-                  {(categoryFilter === "all" ||
-                    categoryFilter === "hebergement") && (
-                    <>
-                      {grouped.hebergement.map((campus) => (
-                        <CampusRow key={campus.id} campus={campus} />
-                      ))}
-                      {grouped.hebergement.length > 0 && (
-                        <SubtotalRow
-                          label="Hébergement"
-                          totals={hebergementTotals}
-                          bgColor="bg-blue-50"
-                          textColor="text-blue-700"
-                          groupData={grouped.hebergement}
-                        />
-                      )}
-                    </>
-                  )}
-
-                  {/* Section Restauration */}
-                  {(categoryFilter === "all" ||
-                    categoryFilter === "restauration") && (
-                    <>
-                      {grouped.restauration.map((campus) => (
-                        <CampusRow key={campus.id} campus={campus} />
-                      ))}
-                      {grouped.restauration.length > 0 && (
-                        <SubtotalRow
-                          label="Restauration"
-                          totals={restaurationTotals}
-                          bgColor="bg-orange-50"
-                          textColor="text-orange-700"
-                        />
-                      )}
-                    </>
-                  )}
-
-                  {/* Message si aucun campus */}
-                  {mergedData.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8">
-                        <EmptyState
-                          type="mandates"
-                          onPrimaryAction={() =>
-                            router.push("/dashboard/mandates/create")
-                          }
-                        />
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-
-                {/* Total général EXACTEMENT comme votre code original */}
-                {mergedData.length > 0 && categoryFilter === "all" && (
-                  <TableFooter>
-                    <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-150 border-t-4 border-gray-300">
-                      <TableCell
-                        colSpan={4}
-                        className="font-bold text-gray-900 py-4"
-                      >
-                        <span className="text-lg">Total général</span>
-                      </TableCell>
-                      {dashboardData.columnLabels.map((col) => (
-                        <TableCell
-                          key={col.key}
-                          className="text-center font-bold text-gray-900 py-4"
-                        >
-                          <div className="text-xl">
-                            {formatCurrency(grandTotals[col.key] || 0)}
-                          </div>
-                        </TableCell>
-                      ))}
-                      <TableCell></TableCell>
-                    </TableRow>
-                  </TableFooter>
-                )}
-              </Table>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-colors"
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Exporter
+                </Button>
+              </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
 
-      {/* Composant filtres mobile */}
-      <MobileFilters />
-    </div>
+        {/* Table principale avec filtres intégrés dans le CardHeader */}
+        <Card className="shadow-lg border-slate-200">
+          <CardHeader className="bg-white border-b border-slate-200 py-2">
+            <div className="relative flex items-center min-h-[60px]">
+              {/* Titre parfaitement centré */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                <CardTitle className="text-xl font-bold text-slate-800 mb-2">
+                  Vue d&apos;ensemble du chiffre d&apos;affaires journalier
+                </CardTitle>
+                <CardDescription className="text-slate-600">
+                  <Link
+                    href="/dashboard/mandates"
+                    className="underline text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
+                  >
+                    Index des mandats
+                  </Link>
+                </CardDescription>
+              </div>
+
+              {/* Filtres - CONDITIONNELS selon mobile/desktop */}
+              <div className="absolute right-0 flex items-center gap-3">
+                {isMobile ? (
+                  /* Version MOBILE - Bouton filtres */
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowMobileFilters(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <Filter className="h-4 w-4" />
+                    Filtres
+                    {(searchTerm ||
+                      categoryFilter !== "all" ||
+                      statusFilter !== "all") && (
+                      <Badge variant="secondary" className="text-xs ml-1">
+                        {
+                          [
+                            searchTerm,
+                            categoryFilter !== "all",
+                            statusFilter !== "all",
+                          ].filter(Boolean).length
+                        }
+                      </Badge>
+                    )}
+                  </Button>
+                ) : (
+                  /* Version DESKTOP - EXACTEMENT comme votre code original */
+                  <>
+                    <div className="relative">
+                      <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                      <Input
+                        placeholder="Rechercher..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-8 h-8 w-40 text-xs border-slate-200 focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 bg-white/80 placeholder:text-slate-400"
+                      />
+                    </div>
+
+                    <Select
+                      value={categoryFilter}
+                      onValueChange={setCategoryFilter}
+                    >
+                      <SelectTrigger className="w-36 h-8 text-xs border-slate-200 focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 bg-white/80">
+                        <SelectValue placeholder="Catégorie" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Toutes catégories</SelectItem>
+                        <SelectItem value="hebergement">Hébergement</SelectItem>
+                        <SelectItem value="restauration">
+                          Restauration
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    <Select
+                      value={statusFilter}
+                      onValueChange={setStatusFilter}
+                    >
+                      <SelectTrigger className="w-28 h-8 text-xs border-slate-200 focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 bg-white/80">
+                        <SelectValue placeholder="Statut" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Tous statuts</SelectItem>
+                        <SelectItem value="active">Actif</SelectItem>
+                        <SelectItem value="inactive">Inactif</SelectItem>
+                        <SelectItem value="new">Nouveau</SelectItem>
+                        <SelectItem value="warning">Attention</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    {(searchTerm ||
+                      categoryFilter !== "all" ||
+                      statusFilter !== "all") && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setSearchTerm("");
+                          setCategoryFilter("all");
+                          setStatusFilter("all");
+                        }}
+                        className="h-8 px-2 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+                      >
+                        ✕
+                      </Button>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          </CardHeader>
+
+          <CardContent>
+            {" "}
+            {/* Affichage conditionnel : Cards sur mobile, Table sur desktop */}
+            {isMobile ? (
+              /* Version MOBILE - Cards */
+              <div className="space-y-4">
+                {mergedData.length === 0 ? (
+                  <EmptyState
+                    type="mandates"
+                    onPrimaryAction={() =>
+                      router.push("/dashboard/mandates/create")
+                    }
+                  />
+                ) : (
+                  mergedData.map((campus) => (
+                    <MobileCampusCard key={campus.id} campus={campus} />
+                  ))
+                )}
+              </div>
+            ) : (
+              /* Version DESKTOP - Table EXACTEMENT comme votre code original */
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="min-w-[150px]">Campus</TableHead>
+                      <TableHead className="min-w-[120px]">
+                        Dernière saisie
+                      </TableHead>
+                      <TableHead className="min-w-[150px]">Top</TableHead>
+                      <TableHead className="text-center min-w-[120px]">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="flex items-center justify-center gap-1 cursor-help group">
+                                <span className="font-medium">Ratio %</span>
+                                <Info className="h-3 w-3 text-muted-foreground/40 group-hover:text-muted-foreground/60 transition-colors" />
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent
+                              side="top"
+                              className="max-w-xs bg-white border border-gray-200 shadow-sm p-3"
+                              sideOffset={8}
+                            >
+                              <div className="space-y-2.5 text-xs">
+                                <div>
+                                  <div className="text-gray-600 mb-1">
+                                    Formule :
+                                  </div>
+                                  <div className="font-mono text-gray-900 bg-gray-50 px-2 py-1 rounded text-center">
+                                    (Masse Salariale ÷ CA) × 100
+                                  </div>
+                                </div>
+                                <div>
+                                  <div className="text-gray-600 mb-1.5">
+                                    Seuils :
+                                  </div>
+                                  <div className="space-y-1">
+                                    <div className="flex items-center gap-2 text-gray-700">
+                                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+                                      <span>&lt; 25%</span>
+                                      <span className="text-gray-500">
+                                        Excellent
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-gray-700">
+                                      <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                                      <span>25-35%</span>
+                                      <span className="text-gray-500">Bon</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-gray-700">
+                                      <div className="w-1.5 h-1.5 bg-amber-500 rounded-full"></div>
+                                      <span>35-50%</span>
+                                      <span className="text-gray-500">
+                                        Attention
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-gray-700">
+                                      <div className="w-1.5 h-1.5 bg-red-500 rounded-full"></div>
+                                      <span>&gt; 50%</span>
+                                      <span className="text-gray-500">
+                                        Critique
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </TableHead>
+                      {dashboardData.columnLabels.map((col) => (
+                        <TableHead
+                          key={col.key}
+                          className="text-center min-w-[100px]"
+                        >
+                          <div className="font-medium">{col.label}</div>
+                        </TableHead>
+                      ))}
+                      <TableHead className="w-[50px]"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {/* Section Hébergement */}
+                    {(categoryFilter === "all" ||
+                      categoryFilter === "hebergement") && (
+                      <>
+                        {grouped.hebergement.map((campus) => (
+                          <CampusRow key={campus.id} campus={campus} />
+                        ))}
+                        {grouped.hebergement.length > 0 && (
+                          <SubtotalRow
+                            label="Hébergement"
+                            totals={hebergementTotals}
+                            bgColor="bg-blue-50"
+                            textColor="text-blue-700"
+                            groupData={grouped.hebergement}
+                          />
+                        )}
+                      </>
+                    )}
+
+                    {/* Section Restauration */}
+                    {(categoryFilter === "all" ||
+                      categoryFilter === "restauration") && (
+                      <>
+                        {grouped.restauration.map((campus) => (
+                          <CampusRow key={campus.id} campus={campus} />
+                        ))}
+                        {grouped.restauration.length > 0 && (
+                          <SubtotalRow
+                            label="Restauration"
+                            totals={restaurationTotals}
+                            bgColor="bg-orange-50"
+                            textColor="text-orange-700"
+                          />
+                        )}
+                      </>
+                    )}
+
+                    {/* Message si aucun campus */}
+                    {mergedData.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-8">
+                          <EmptyState
+                            type="mandates"
+                            onPrimaryAction={() =>
+                              router.push("/dashboard/mandates/create")
+                            }
+                          />
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+
+                  {/* Total général EXACTEMENT comme votre code original */}
+                  {mergedData.length > 0 && categoryFilter === "all" && (
+                    <TableFooter>
+                      <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-150 border-t-4 border-gray-300">
+                        <TableCell
+                          colSpan={4}
+                          className="font-bold text-gray-900 py-4"
+                        >
+                          <span className="text-lg">Total général</span>
+                        </TableCell>
+                        {dashboardData.columnLabels.map((col) => (
+                          <TableCell
+                            key={col.key}
+                            className="text-center font-bold text-gray-900 py-4"
+                          >
+                            <div className="text-xl">
+                              {formatCurrency(grandTotals[col.key] || 0)}
+                            </div>
+                          </TableCell>
+                        ))}
+                        <TableCell></TableCell>
+                      </TableRow>
+                    </TableFooter>
+                  )}
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Composant filtres mobile */}
+        <MobileFilters />
+      </div>
+    </TooltipProvider>
   );
 }
