@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-import { hasFeatureAccess } from "@/lib/access-control";
+import { withFeatureAccess } from "@/lib/api-access-guard";
 import * as Papa from "papaparse";
 
 interface ValidationEmployee {
@@ -212,28 +210,9 @@ function findColumnValue(
   return undefined;
 }
 
-export async function POST(request: NextRequest) {
+async function postHandler(request: NextRequest) {
   try {
     console.log("🚀 DÉBUT VALIDATION IMPORT");
-
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
-    }
-
-    const hasPayrollAccess = await hasFeatureAccess(session.user.id, "payroll");
-    if (!hasPayrollAccess) {
-      return NextResponse.json(
-        {
-          error: "Accès refusé",
-          message: "L'accès à la masse salariale nécessite un plan Premium",
-        },
-        { status: 403 }
-      );
-    }
 
     const formData = await request.formData();
     const file = formData.get("file") as File;
@@ -401,6 +380,12 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+// Export avec protection d'accès
+export const POST = withFeatureAccess(postHandler, {
+  feature: "payroll",
+  customMessage: "La validation d'import de masse salariale nécessite un abonnement Premium."
+});
 
 // Fonction de matching améliorée
 function findEmployeeMatch(

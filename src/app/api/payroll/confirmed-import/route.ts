@@ -4,7 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { hasFeatureAccess } from "@/lib/access-control";
+import { withFeatureAccess } from "@/lib/api-access-guard";
 
 const ConfirmedImportSchema = z.object({
   mandateId: z.string().cuid(),
@@ -34,25 +34,15 @@ const ConfirmedImportSchema = z.object({
   }),
 });
 
-export async function POST(request: NextRequest) {
+async function postHandler(request: NextRequest) {
   try {
+    // Session déjà vérifiée par le guard, donc forcément présente
     const session = await auth.api.getSession({
       headers: await headers(),
     });
 
-    if (!session) {
-      return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
-    }
-
-    const hasPayrollAccess = await hasFeatureAccess(session.user.id, "payroll");
-    if (!hasPayrollAccess) {
-      return NextResponse.json(
-        {
-          error: "Accès refusé",
-          message: "L'accès à la masse salariale nécessite un plan Premium",
-        },
-        { status: 403 }
-      );
+    if (!session?.user) {
+      throw new Error("Session utilisateur manquante");
     }
 
     const body = await request.json();
@@ -249,3 +239,9 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+// Export avec protection d'accès
+export const POST = withFeatureAccess(postHandler, {
+  feature: "payroll",
+  customMessage: "La confirmation d'import de masse salariale nécessite un abonnement Premium."
+});

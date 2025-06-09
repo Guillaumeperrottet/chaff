@@ -1,8 +1,8 @@
-// src/app/pricing/page.tsx - Version nettoyée
+// src/app/pricing/page.tsx - Version hybride avec gestion contextuelle
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/app/components/ui/button";
 import {
   Card,
@@ -10,7 +10,47 @@ import {
   CardHeader,
   CardTitle,
 } from "@/app/components/ui/card";
-import { Check, Crown, Shield, Star } from "lucide-react";
+import {
+  Check,
+  Crown,
+  Shield,
+  Star,
+  ArrowLeft,
+  Lock,
+  AlertTriangle,
+  DollarSign,
+  BarChart3,
+  Zap,
+} from "lucide-react";
+import { toast } from "sonner";
+
+// Messages contextuels selon la fonctionnalité (nouveau)
+const FEATURE_MESSAGES = {
+  payroll: {
+    title: "Accès à la Masse Salariale",
+    description: "La gestion de la masse salariale nécessite un plan Premium",
+    icon: DollarSign,
+    features: [
+      "Import des données Gastrotime",
+      "Calcul automatique des charges sociales",
+      "Ratios masse salariale / CA",
+      "Historique des imports",
+      "Gestion des employés",
+    ],
+  },
+  advanced_reports: {
+    title: "Analytics Avancés",
+    description: "Les rapports avancés sont réservés aux abonnés Premium",
+    icon: BarChart3,
+    features: [
+      "Analytics détaillés par période",
+      "Comparaisons année précédente",
+      "Performance par mandat",
+      "Analyse par groupe (Hébergement/Restauration)",
+      "Export des rapports",
+    ],
+  },
+};
 
 // Plans simplifiés - seulement 3 plans
 const PLANS = [
@@ -65,15 +105,74 @@ const PLANS = [
 
 export default function PricingPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">(
     "monthly"
   );
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSelectPlan = (planId: string) => {
+  // Paramètres de contexte depuis la redirection (nouveau)
+  const feature =
+    (searchParams.get("feature") as keyof typeof FEATURE_MESSAGES) || null;
+  const reason = searchParams.get("reason");
+  const returnTo = searchParams.get("returnTo");
+
+  const featureInfo = feature ? FEATURE_MESSAGES[feature] : null;
+  const FeatureIcon = featureInfo?.icon;
+
+  useEffect(() => {
+    // Afficher un message si l'utilisateur arrive via une restriction d'accès
+    if (reason === "access_denied" && featureInfo) {
+      toast.error(`Accès refusé: ${featureInfo.title}`, {
+        description: featureInfo.description,
+        duration: 6000,
+      });
+    }
+  }, [reason, featureInfo]);
+
+  const handleSelectPlan = async (planId: string) => {
     if (planId === "SUPER_ADMIN") {
       // Plan admin non accessible publiquement
       return;
     }
+
+    if (planId === "FREE") {
+      router.push("/signup?plan=FREE");
+      return;
+    }
+
+    // Pour le plan Premium, gérer l'upgrade via Stripe
+    if (planId === "PREMIUM") {
+      setIsLoading(true);
+
+      try {
+        const response = await fetch("/api/subscriptions/create-checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            planType: "PREMIUM",
+            returnUrl: returnTo || "/dashboard",
+          }),
+        });
+
+        const data = await response.json();
+
+        if (data.url) {
+          window.location.href = data.url;
+        } else {
+          throw new Error(
+            data.error || "Erreur lors de la création de la session"
+          );
+        }
+      } catch (error) {
+        console.error("Erreur upgrade:", error);
+        toast.error("Erreur lors de la souscription");
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
     router.push(`/signup?plan=${planId}`);
   };
 
@@ -91,12 +190,58 @@ export default function PricingPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
-      {/* Header */}
+      {/* Header contextuel si restriction d'accès (nouveau) */}
+      {featureInfo && reason === "access_denied" && (
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center gap-2 mb-4">
+            {returnTo && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push("/dashboard")}
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Retour au dashboard
+              </Button>
+            )}
+          </div>
+
+          <Card className="border-orange-200 bg-orange-50">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-orange-100 rounded-full">
+                  <Lock className="h-6 w-6 text-orange-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-orange-900 flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4" />
+                    Fonctionnalité Premium Requise
+                  </h3>
+                  <p className="text-orange-700 mt-1">
+                    {featureInfo.description}
+                  </p>
+                </div>
+                {FeatureIcon && (
+                  <FeatureIcon className="h-8 w-8 text-orange-600" />
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Header principal */}
       <div className="container mx-auto px-4 py-12">
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold mb-4">Choisissez votre plan</h1>
+          <h1 className="text-4xl font-bold mb-4">
+            {featureInfo
+              ? `Débloquez: ${featureInfo.title}`
+              : "Choisissez votre plan"}
+          </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Commencez gratuitement et évoluez selon vos besoins
+            {featureInfo
+              ? "Passez au plan Premium pour accéder à toutes les fonctionnalités avancées"
+              : "Commencez gratuitement et évoluez selon vos besoins"}
           </p>
 
           {/* Toggle billing cycle */}
@@ -193,21 +338,62 @@ export default function PricingPage() {
 
                   <Button
                     onClick={() => handleSelectPlan(plan.id)}
+                    disabled={isLoading && plan.id === "PREMIUM"}
                     className={`w-full ${
                       plan.popular
                         ? "bg-primary text-primary-foreground hover:bg-primary/90"
                         : "bg-muted text-foreground hover:bg-muted/80"
                     }`}
                   >
-                    {plan.price === 0
-                      ? "Commencer gratuitement"
-                      : "Choisir ce plan"}
+                    {isLoading && plan.id === "PREMIUM" ? (
+                      <>
+                        <Zap className="mr-2 h-4 w-4 animate-spin" />
+                        Chargement...
+                      </>
+                    ) : (
+                      <>
+                        {plan.price === 0
+                          ? "Commencer gratuitement"
+                          : plan.id === "PREMIUM"
+                            ? "Passer au Premium"
+                            : "Choisir ce plan"}
+                      </>
+                    )}
                   </Button>
                 </CardContent>
               </Card>
             );
           })}
         </div>
+
+        {/* Section spécifique à la fonctionnalité bloquée (nouveau) */}
+        {featureInfo && (
+          <Card className="max-w-2xl mx-auto mb-16 border-primary/20 bg-primary/5">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                {FeatureIcon && (
+                  <FeatureIcon className="h-5 w-5 text-primary" />
+                )}
+                Fonctionnalités {featureInfo.title}
+              </CardTitle>
+              <p className="text-muted-foreground">
+                Voici ce que vous débloquez avec le plan Premium:
+              </p>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-3">
+                {featureInfo.features.map((feature) => (
+                  <li key={feature} className="flex items-center gap-3">
+                    <div className="p-1 bg-primary/10 rounded-full">
+                      <Check className="h-3 w-3 text-primary" />
+                    </div>
+                    <span className="text-sm">{feature}</span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
 
         {/* FAQ Section */}
         <div className="mt-16 max-w-3xl mx-auto">
