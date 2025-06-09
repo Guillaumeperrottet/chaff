@@ -1,4 +1,4 @@
-// signup-form.tsx - Version simplifiée et corrigée
+// src/app/signup/signup-form.tsx - Formulaire d'inscription Chaff.ch avec design bleu
 "use client";
 
 import {
@@ -24,6 +24,7 @@ import {
   ArrowRight,
   CheckCircle,
   AlertCircle,
+  BarChart3,
 } from "lucide-react";
 
 const SignupImageUpload = dynamic(() => import("./SignupImageUpload"), {
@@ -124,9 +125,9 @@ function SignUpFormWithParams() {
           }
         }
 
-        console.log("📤 Inscription normale:", { email, name });
+        console.log("📤 Inscription Chaff.ch:", { email, name });
 
-        // ✅ INSCRIPTION SIMPLIFIÉE - Pas de logique complexe côté client
+        // ✅ INSCRIPTION CHAFF.CH
         const signupData = {
           email,
           password,
@@ -169,22 +170,22 @@ function SignUpFormWithParams() {
 
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-6">
           <div className="flex items-start gap-3">
-            <div className="text-blue-600 mt-0.5">
+            <div className="text-primary mt-0.5">
               <Mail className="h-5 w-5" />
             </div>
             <div className="text-left">
-              <h3 className="font-semibold text-blue-700 mb-2">
+              <h3 className="font-semibold text-primary mb-2">
                 Email de vérification envoyé !
               </h3>
-              <p className="text-blue-700 text-sm mb-3">
+              <p className="text-primary/80 text-sm mb-3">
                 Nous avons envoyé un lien de vérification à votre adresse email.
                 <strong>
                   {" "}
-                  Votre compte ne sera activé qu&apos;après avoir cliqué sur ce
-                  lien.
+                  Votre compte Chaff.ch ne sera activé qu&apos;après avoir
+                  cliqué sur ce lien.
                 </strong>
               </p>
-              <p className="text-blue-700 text-sm">
+              <p className="text-primary/80 text-sm">
                 💡 <strong>Vérifiez également votre dossier spam</strong> si
                 vous ne voyez pas l&apos;email dans quelques minutes.
               </p>
@@ -199,7 +200,7 @@ function SignUpFormWithParams() {
             </div>
             <div className="text-left">
               <p className="text-green-700 text-sm">
-                <strong>Après vérification :</strong> Votre organisation et
+                <strong>Après vérification :</strong> Votre espace Chaff.ch et
                 votre plan gratuit seront automatiquement créés.
               </p>
             </div>
@@ -226,13 +227,13 @@ function SignUpFormWithParams() {
           <Button
             onClick={() => setShowSuccess(false)}
             variant="outline"
-            className="w-full border-orange-200 hover:bg-orange-50"
+            className="w-full border-primary/30 hover:bg-primary/10"
           >
             Réessayer avec une autre adresse
           </Button>
           <p className="text-xs text-gray-600">
             Ou{" "}
-            <Link href="/signin" className="text-orange-600 hover:underline">
+            <Link href="/signin" className="text-primary hover:underline">
               connectez-vous si vous avez déjà un compte
             </Link>
           </p>
@@ -246,15 +247,21 @@ function SignUpFormWithParams() {
       <div className="absolute top-4 right-4">
         <Link
           href="/"
-          className="text-gray-600 hover:text-orange-600 transition-colors"
+          className="text-gray-600 hover:text-primary transition-colors"
         >
           <Home size={20} />
         </Link>
       </div>
 
-      <h2 className="text-2xl font-bold text-center mb-6 text-gray-900">
-        Inscription
-      </h2>
+      <div className="text-center mb-6">
+        <div className="w-16 h-16 bg-chaff-gradient rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+          <BarChart3 className="w-8 h-8 text-white" />
+        </div>
+        <h2 className="text-2xl font-bold text-gray-900">Rejoignez Chaff.ch</h2>
+        <p className="text-gray-600 mt-1">
+          Commencez à analyser vos performances dès aujourd&apos;hui
+        </p>
+      </div>
 
       {error && (
         <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 shadow-sm">
@@ -301,7 +308,7 @@ function SignUpFormWithParams() {
               required
               placeholder="Entrez votre nom complet"
               autoComplete="name"
-              className="pl-10 bg-white border-orange-200 focus:border-orange-500 rounded-lg shadow-sm hover:border-orange-400 transition-colors"
+              className="pl-10 bg-white border-primary/30 focus:border-primary rounded-lg shadow-sm hover:border-primary/50 transition-colors"
             />
           </div>
         </div>
@@ -321,7 +328,7 @@ function SignUpFormWithParams() {
               required
               placeholder="Entrez votre email"
               autoComplete="email"
-              className="pl-10 bg-white border-orange-200 focus:border-orange-500 rounded-lg shadow-sm hover:border-orange-400 transition-colors"
+              className="pl-10 bg-white border-primary/30 focus:border-primary rounded-lg shadow-sm hover:border-primary/50 transition-colors"
             />
           </div>
         </div>
@@ -345,21 +352,21 @@ function SignUpFormWithParams() {
               placeholder="Mot de passe (min. 8 caractères)"
               minLength={8}
               autoComplete="new-password"
-              className="pl-10 bg-white border-orange-200 focus:border-orange-500 rounded-lg shadow-sm hover:border-orange-400 transition-colors"
+              className="pl-10 bg-white border-primary/30 focus:border-primary rounded-lg shadow-sm hover:border-primary/50 transition-colors"
             />
           </div>
         </div>
 
         <Button
           type="submit"
-          className="w-full py-6 mt-2 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 transition-all duration-300 transform hover:scale-[1.02] font-medium shadow-md text-white rounded-lg"
+          className="w-full py-6 mt-2 btn-chaff-primary font-medium shadow-md text-white rounded-lg"
           disabled={isSubmitting}
         >
           {isSubmitting ? (
-            "Envoi en cours..."
+            "Création en cours..."
           ) : (
             <>
-              Créer mon compte
+              Créer mon compte Chaff.ch
               <ArrowRight className="ml-2 h-5 w-5" />
             </>
           )}
@@ -370,7 +377,7 @@ function SignUpFormWithParams() {
             Vous avez déjà un compte?{" "}
             <Link
               href="/signin"
-              className="text-orange-600 hover:text-orange-700 hover:underline underline-offset-4 font-medium transition-colors"
+              className="text-primary hover:text-primary/80 hover:underline underline-offset-4 font-medium transition-colors"
             >
               Connectez-vous
             </Link>
@@ -378,19 +385,19 @@ function SignUpFormWithParams() {
         </div>
       </form>
 
-      <div className="mt-8 pt-6 border-t border-orange-200/30">
+      <div className="mt-8 pt-6 border-t border-primary/20">
         <p className="text-xs text-center text-gray-600">
           En vous inscrivant, vous acceptez nos{" "}
           <a
             href="#"
-            className="underline underline-offset-4 hover:text-orange-600 transition-colors"
+            className="underline underline-offset-4 hover:text-primary transition-colors"
           >
             Conditions d&apos;utilisation
           </a>{" "}
           et notre{" "}
           <a
             href="#"
-            className="underline underline-offset-4 hover:text-orange-600 transition-colors"
+            className="underline underline-offset-4 hover:text-primary transition-colors"
           >
             Politique de confidentialité
           </a>

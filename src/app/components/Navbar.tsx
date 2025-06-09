@@ -1,4 +1,4 @@
-// src/app/components/Navbar.tsx - Version améliorée
+// src/app/components/Navbar.tsx - Version Chaff.ch avec design bleu
 
 "use client";
 
@@ -15,6 +15,7 @@ import {
   Search,
   Users,
   DollarSign,
+  BarChart3,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -97,13 +98,13 @@ const generateBreadcrumbs = (pathname: string): BreadcrumbItem[] => {
   // Mapping des chemins vers des labels personnalisés
   const pathLabels: Record<string, string> = {
     "/dashboard": "Tableau de bord",
-    "/dashboard/mandates": "Mandats",
-    "/dashboard/mandates/create": "Créer un mandat",
-    "/dashboard/dayvalues": "Valeurs journalières",
-    "/dashboard/dayvalues/create": "Nouvelle valeur",
+    "/dashboard/mandates": "Entreprises",
+    "/dashboard/mandates/create": "Nouvelle entreprise",
+    "/dashboard/dayvalues": "Chiffres d'affaires",
+    "/dashboard/dayvalues/create": "Nouveau CA",
     "/dashboard/employees": "Employés",
     "/dashboard/payroll": "Masse salariale",
-    "/dashboard/payroll/import": "Import Gastrotime",
+    "/dashboard/payroll/import": "Import données",
     "/dashboard/analytics": "Analytics",
     "/dashboard/profile": "Profil",
     "/dashboard/settings": "Paramètres",
@@ -153,8 +154,8 @@ const generateBreadcrumbs = (pathname: string): BreadcrumbItem[] => {
   return breadcrumbs;
 };
 
-// Composant de navigation moderne
-function ModernNavbar() {
+// Composant de navigation Chaff.ch avec design bleu
+function ChaffNavbar() {
   const { data: session } = useSession();
   const pathname = usePathname();
   const router = useRouter();
@@ -254,16 +255,21 @@ function ModernNavbar() {
     <nav className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:bg-gray-950/95 dark:supports-[backdrop-filter]:bg-gray-950/80">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
-          {/* Logo/Brand à gauche */}
+          {/* Logo/Brand Chaff.ch à gauche */}
           <div className="flex items-center">
             <Link
               href="/dashboard"
-              className="flex items-center space-x-2 text-xl font-bold text-primary hover:opacity-80 transition-opacity"
+              className="flex items-center space-x-3 text-xl font-bold text-primary hover:opacity-80 transition-opacity group"
             >
-              <div className="flex items-center justify-center w-8 h-8 bg-primary text-primary-foreground rounded-lg">
-                <span className="text-sm font-bold">C</span>
+              <div className="flex items-center justify-center w-10 h-10 bg-chaff-gradient text-white rounded-xl shadow-lg group-hover:shadow-xl transition-all duration-300">
+                <BarChart3 className="text-lg font-bold" />
               </div>
-              <span>Chaff.ch</span>
+              <div className="flex flex-col">
+                <span className="text-primary text-xl font-bold">Chaff.ch</span>
+                <span className="text-xs text-muted-foreground font-normal">
+                  Analytics Business
+                </span>
+              </div>
             </Link>
           </div>
 
@@ -318,7 +324,7 @@ function ModernNavbar() {
                     onBlur={() => {
                       if (!searchQuery) setShowSearch(false);
                     }}
-                    className="h-8 text-sm"
+                    className="h-8 text-sm border-primary/30 focus:border-primary"
                   />
                 </motion.form>
               ) : (
@@ -326,16 +332,20 @@ function ModernNavbar() {
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowSearch(true)}
-                  className="h-8 w-8 p-0"
+                  className="h-8 w-8 p-0 hover:bg-primary/10"
                 >
-                  <Search className="h-4 w-4" />
+                  <Search className="h-4 w-4 text-primary" />
                 </Button>
               )}
             </div>
 
             {/* Notifications */}
-            <Button variant="ghost" size="sm" className="relative h-8 w-8 p-0">
-              <Bell className="h-4 w-4" />
+            <Button
+              variant="ghost"
+              size="sm"
+              className="relative h-8 w-8 p-0 hover:bg-primary/10"
+            >
+              <Bell className="h-4 w-4 text-primary" />
               <Badge
                 variant="destructive"
                 className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
@@ -352,10 +362,10 @@ function ModernNavbar() {
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
-                  className="relative h-8 rounded-full px-2 hover:bg-accent"
+                  className="relative h-8 rounded-full px-2 hover:bg-primary/10"
                 >
                   <div className="flex items-center space-x-2">
-                    <div className="relative w-6 h-6 rounded-full overflow-hidden bg-primary text-primary-foreground flex items-center justify-center text-xs font-medium">
+                    <div className="relative w-6 h-6 rounded-full overflow-hidden bg-chaff-gradient text-white flex items-center justify-center text-xs font-medium shadow-md">
                       {session?.user?.image ? (
                         <Image
                           src={session.user.image}
@@ -394,15 +404,22 @@ function ModernNavbar() {
                 <DropdownMenuItem
                   onClick={() => router.push("/dashboard/employees")}
                 >
-                  <Users className="mr-2 h-4 w-4" />
+                  <Users className="mr-2 h-4 w-4 text-primary" />
                   <span>Employés</span>
                 </DropdownMenuItem>
 
                 <DropdownMenuItem
                   onClick={() => router.push("/dashboard/payroll")}
                 >
-                  <DollarSign className="mr-2 h-4 w-4" />
+                  <DollarSign className="mr-2 h-4 w-4 text-primary" />
                   <span>Masse salariale</span>
+                </DropdownMenuItem>
+
+                <DropdownMenuItem
+                  onClick={() => router.push("/dashboard/analytics")}
+                >
+                  <BarChart3 className="mr-2 h-4 w-4 text-primary" />
+                  <span>Analytics</span>
                 </DropdownMenuItem>
 
                 <DropdownMenuSeparator />
@@ -509,13 +526,16 @@ export default function ConditionalNavbar({
         {/* Placeholder navbar pendant le chargement */}
         <div className="sticky top-0 z-50 w-full h-16 border-b bg-white/95 backdrop-blur dark:bg-gray-950/95">
           <div className="container mx-auto px-4 h-full flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <span className="text-sm font-bold text-primary-foreground">
-                  C
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-chaff-gradient rounded-xl flex items-center justify-center">
+                <BarChart3 className="text-white" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xl font-bold text-primary">Chaff.ch</span>
+                <span className="text-xs text-muted-foreground">
+                  Analytics Business
                 </span>
               </div>
-              <span className="text-xl font-bold text-primary">Chaff.ch</span>
             </div>
 
             {/* Skeleton pour les actions */}
@@ -535,7 +555,7 @@ export default function ConditionalNavbar({
 
   return (
     <div className="min-h-screen bg-background">
-      {shouldShowNavbar && <ModernNavbar />}
+      {shouldShowNavbar && <ChaffNavbar />}
       <div className={shouldShowNavbar ? "" : ""}>{children}</div>
     </div>
   );

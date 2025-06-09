@@ -1,4 +1,4 @@
-// src/app/page.tsx - Page d'accueil redirigée vers inscription
+// src/app/page.tsx - Page d'accueil Chaff.ch avec design bleu
 "use client";
 
 import { useEffect } from "react";
@@ -14,15 +14,16 @@ import {
 } from "@/app/components/ui/card";
 import {
   ChevronRight,
-  Shield,
-  Users,
   BarChart3,
-  Zap,
   ArrowRight,
+  TrendingUp,
+  DollarSign,
+  Calendar,
+  PieChart,
 } from "lucide-react";
 import Link from "next/link";
 
-export default function LandingPage() {
+export default function ChaffLandingPage() {
   const { data: session, isPending } = useSession();
   const router = useRouter();
 
@@ -47,8 +48,16 @@ export default function LandingPage() {
       <nav className="border-b bg-card/80 backdrop-blur-md border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
-            <div className="flex items-center">
-              <div className="text-2xl font-bold text-primary">Chaff.ch</div>
+            <div className="flex items-center space-x-3">
+              <div className="flex items-center justify-center w-10 h-10 bg-chaff-gradient text-white rounded-xl shadow-lg">
+                <BarChart3 className="text-lg font-bold" />
+              </div>
+              <div className="flex flex-col">
+                <div className="text-2xl font-bold text-primary">Chaff.ch</div>
+                <div className="text-xs text-muted-foreground">
+                  Analytics Business
+                </div>
+              </div>
             </div>
             <div className="hidden md:flex items-center space-x-8">
               <a
@@ -85,13 +94,14 @@ export default function LandingPage() {
           {/* Hero Section */}
           <div className="space-y-8">
             <div className="space-y-4">
-              <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
-                Gérez vos données avec{" "}
-                <span className="text-primary">Chaff.ch</span>
+              <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-primary to-blue-700 bg-clip-text text-transparent">
+                Visualisez vos{" "}
+                <span className="text-primary">performances</span> en temps réel
               </h1>
               <p className="text-xl text-muted-foreground max-w-lg">
-                La plateforme moderne qui simplifie la gestion de vos données et
-                optimise votre productivité.
+                Chaff.ch vous aide à analyser votre chiffre d&apos;affaires et
+                votre masse salariale pour optimiser la rentabilité de votre
+                entreprise.
               </p>
             </div>
 
@@ -99,34 +109,37 @@ export default function LandingPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="flex items-center space-x-3">
                 <div className="p-2 bg-primary/10 rounded-lg">
-                  <Shield className="h-5 w-5 text-primary" />
+                  <TrendingUp className="h-5 w-5 text-primary" />
                 </div>
-                <span className="text-sm font-medium">Sécurisé</span>
+                <span className="text-sm font-medium">Analytics avancés</span>
               </div>
               <div className="flex items-center space-x-3">
                 <div className="p-2 bg-primary/10 rounded-lg">
-                  <Users className="h-5 w-5 text-primary" />
+                  <DollarSign className="h-5 w-5 text-primary" />
                 </div>
-                <span className="text-sm font-medium">Collaboratif</span>
+                <span className="text-sm font-medium">Suivi CA</span>
               </div>
               <div className="flex items-center space-x-3">
                 <div className="p-2 bg-primary/10 rounded-lg">
                   <BarChart3 className="h-5 w-5 text-primary" />
                 </div>
-                <span className="text-sm font-medium">Analytics</span>
+                <span className="text-sm font-medium">Ratios financiers</span>
               </div>
               <div className="flex items-center space-x-3">
                 <div className="p-2 bg-primary/10 rounded-lg">
-                  <Zap className="h-5 w-5 text-primary" />
+                  <Calendar className="h-5 w-5 text-primary" />
                 </div>
-                <span className="text-sm font-medium">Performant</span>
+                <span className="text-sm font-medium">Suivi quotidien</span>
               </div>
             </div>
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4">
               <Link href="/signup">
-                <Button size="lg" className="group w-full sm:w-auto">
+                <Button
+                  size="lg"
+                  className="group w-full sm:w-auto btn-chaff-primary"
+                >
                   Commencer gratuitement
                   <ChevronRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                 </Button>
@@ -136,7 +149,7 @@ export default function LandingPage() {
                 <Button
                   size="lg"
                   variant="outline"
-                  className="w-full sm:w-auto"
+                  className="w-full sm:w-auto border-primary/30 hover:bg-primary/10"
                 >
                   Se connecter
                 </Button>
@@ -144,17 +157,19 @@ export default function LandingPage() {
             </div>
 
             <p className="text-sm text-muted-foreground">
-              ✨ Aucune carte bancaire requise • Configuration en 2 minutes
+              ✨ Essai gratuit • Configuration en 2 minutes • Données sécurisées
             </p>
           </div>
 
           {/* CTA Card */}
           <div className="lg:max-w-md mx-auto w-full">
-            <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
+            <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20 card-chaff">
               <CardHeader className="text-center">
-                <CardTitle className="text-2xl">Commencez maintenant</CardTitle>
+                <CardTitle className="text-2xl">
+                  Optimisez votre rentabilité
+                </CardTitle>
                 <CardDescription className="text-base">
-                  Rejoignez nous !
+                  Analysez vos performances financières en quelques clics
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -164,7 +179,7 @@ export default function LandingPage() {
                       <div className="w-2 h-2 bg-white rounded-full"></div>
                     </div>
                     <span className="text-sm">
-                      Inscription gratuite en 30 secondes
+                      Suivi quotidien du chiffre d&apos;affaires
                     </span>
                   </div>
                   <div className="flex items-center space-x-3">
@@ -172,20 +187,26 @@ export default function LandingPage() {
                       <div className="w-2 h-2 bg-white rounded-full"></div>
                     </div>
                     <span className="text-sm">
-                      Interface intuitive et moderne
+                      Analyse de la masse salariale
                     </span>
                   </div>
                   <div className="flex items-center space-x-3">
                     <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
                       <div className="w-2 h-2 bg-white rounded-full"></div>
                     </div>
-                    <span className="text-sm">Support client réactif</span>
+                    <span className="text-sm">Ratios de rentabilité</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
+                      <div className="w-2 h-2 bg-white rounded-full"></div>
+                    </div>
+                    <span className="text-sm">Tableaux de bord intuitifs</span>
                   </div>
                 </div>
 
                 <Link href="/signup" className="block">
-                  <Button className="w-full" size="lg">
-                    Créer mon compte gratuitement
+                  <Button className="w-full btn-chaff-primary" size="lg">
+                    Démarrer l&apos;analyse
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
@@ -211,43 +232,45 @@ export default function LandingPage() {
       <section id="features" className="py-20 bg-card border-t">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center space-y-4 mb-16">
-            <h2 className="text-3xl font-bold">Fonctionnalités principales</h2>
+            <h2 className="text-3xl font-bold">
+              Fonctionnalités puissantes pour votre business
+            </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Découvrez les outils qui vous aideront à gérer vos données
-              efficacement
+              Découvrez comment Chaff.ch transforme vos données financières en
+              insights actionnables
             </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
-            <Card>
+            <Card className="card-chaff">
               <CardHeader>
-                <Shield className="h-10 w-10 text-primary mb-4" />
-                <CardTitle>Sécurité avancée</CardTitle>
+                <TrendingUp className="h-10 w-10 text-primary mb-4" />
+                <CardTitle>Analytics en temps réel</CardTitle>
                 <CardDescription>
-                  Vos données sont protégées par les dernières technologies de
-                  sécurité
+                  Visualisez l&apos;évolution de votre chiffre d&apos;affaires
+                  avec des graphiques interactifs et des métriques précises
                 </CardDescription>
               </CardHeader>
             </Card>
 
-            <Card>
+            <Card className="card-chaff">
               <CardHeader>
-                <Users className="h-10 w-10 text-primary mb-4" />
-                <CardTitle>Collaboration</CardTitle>
+                <DollarSign className="h-10 w-10 text-primary mb-4" />
+                <CardTitle>Gestion de la masse salariale</CardTitle>
                 <CardDescription>
-                  Travaillez en équipe avec des outils de partage et de gestion
-                  des droits
+                  Suivez et optimisez vos coûts de personnel en calculant les
+                  ratios de rentabilité par période
                 </CardDescription>
               </CardHeader>
             </Card>
 
-            <Card>
+            <Card className="card-chaff">
               <CardHeader>
-                <BarChart3 className="h-10 w-10 text-primary mb-4" />
-                <CardTitle>Analytics</CardTitle>
+                <PieChart className="h-10 w-10 text-primary mb-4" />
+                <CardTitle>Tableaux de bord</CardTitle>
                 <CardDescription>
-                  Obtenez des insights précieux grâce à nos outils
-                  d&apos;analyse intégrés
+                  Des dashboards personnalisables pour analyser vos performances
+                  et prendre des décisions éclairées
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -260,7 +283,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center space-y-4 mb-16">
             <h2 className="text-3xl font-bold">
-              Tarifs simples et transparents
+              Tarifs transparents et accessibles
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
               Commencez gratuitement, évoluez selon vos besoins
@@ -279,7 +302,11 @@ export default function LandingPage() {
               </CardHeader>
               <CardContent>
                 <Link href="/signup">
-                  <Button className="w-full" variant="outline">
+                  <Button
+                    className="w-full"
+                    variant="outline"
+                    style={{ borderColor: "hsl(var(--primary))" }}
+                  >
                     Commencer gratuitement
                   </Button>
                 </Link>
@@ -302,7 +329,9 @@ export default function LandingPage() {
               </CardHeader>
               <CardContent>
                 <Link href="/signup">
-                  <Button className="w-full">Essayer Premium</Button>
+                  <Button className="w-full btn-chaff-primary">
+                    Essayer Premium
+                  </Button>
                 </Link>
               </CardContent>
             </Card>
@@ -315,7 +344,11 @@ export default function LandingPage() {
                 <div className="text-3xl font-bold">Sur mesure</div>
               </CardHeader>
               <CardContent>
-                <Button className="w-full" variant="outline">
+                <Button
+                  className="w-full"
+                  variant="outline"
+                  style={{ borderColor: "hsl(var(--primary))" }}
+                >
                   Nous contacter
                 </Button>
               </CardContent>
@@ -323,6 +356,38 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* Footer */}
+      <footer className="border-t bg-card">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="text-center space-y-4">
+            <div className="flex items-center justify-center space-x-3">
+              <div className="flex items-center justify-center w-8 h-8 bg-chaff-gradient text-white rounded-lg">
+                <BarChart3 />
+              </div>
+              <span className="text-xl font-bold text-primary">Chaff.ch</span>
+            </div>
+            <p className="text-muted-foreground">
+              La solution d&apos;analytics business pour optimiser votre
+              rentabilité
+            </p>
+            <div className="flex justify-center space-x-6 text-sm text-muted-foreground">
+              <a href="#" className="hover:text-primary">
+                Conditions d&apos;utilisation
+              </a>
+              <a href="#" className="hover:text-primary">
+                Politique de confidentialité
+              </a>
+              <a href="#contact" className="hover:text-primary">
+                Support
+              </a>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              © 2025 Chaff.ch. Tous droits réservés.
+            </p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

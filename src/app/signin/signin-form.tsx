@@ -1,3 +1,4 @@
+// src/app/sign-in/signin-form.tsx - Formulaire de connexion Chaff.ch avec design bleu
 "use client";
 
 import { useState, Suspense } from "react";
@@ -9,7 +10,18 @@ import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronRight, User, Lock, Eye, EyeOff, Home } from "lucide-react";
+import {
+  ChevronRight,
+  User,
+  Lock,
+  Eye,
+  EyeOff,
+  Home,
+  BarChart3,
+  TrendingUp,
+  DollarSign,
+  PieChart,
+} from "lucide-react";
 
 // Composant séparé pour la partie qui utilise useSearchParams
 function SignInFormWithParams({
@@ -63,32 +75,20 @@ function SignInFormWithParams({
         <div className="absolute top-4 right-4">
           <Link
             href="/"
-            className="text-gray-600 hover:text-orange-600 transition-colors"
+            className="text-gray-600 hover:text-primary transition-colors"
           >
             <Home size={20} />
           </Link>
         </div>
 
-        <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center mx-auto mb-6 shadow-lg">
-          <div className="w-8 h-8 text-white">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-              <polyline points="9 22 9 12 15 12 15 22"></polyline>
-            </svg>
-          </div>
+        <div className="w-16 h-16 bg-chaff-gradient rounded-xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+          <BarChart3 className="w-8 h-8 text-white" />
         </div>
         <h1 className="text-2xl font-bold text-gray-900">
           Bienvenue sur Chaff.ch
         </h1>
         <p className="text-gray-600 mt-2">
-          Connectez-vous pour accéder à votre espace
+          Connectez-vous pour accéder à vos analytics business
         </p>
       </div>
 
@@ -119,7 +119,7 @@ function SignInFormWithParams({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isLoading}
-                className="pl-10 bg-white border-orange-200 focus:border-orange-500 rounded-lg shadow-sm hover:border-orange-400 transition-colors"
+                className="pl-10 bg-white border-primary/30 focus:border-primary rounded-lg shadow-sm hover:border-primary/50 transition-colors"
               />
             </div>
           </div>
@@ -142,7 +142,7 @@ function SignInFormWithParams({
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={isLoading}
-                className="pl-10 pr-10 bg-white border-orange-200 focus:border-orange-500 rounded-lg shadow-sm hover:border-orange-400 transition-colors"
+                className="pl-10 pr-10 bg-white border-primary/30 focus:border-primary rounded-lg shadow-sm hover:border-primary/50 transition-colors"
               />
               <button
                 type="button"
@@ -162,7 +162,7 @@ function SignInFormWithParams({
 
         <Button
           type="submit"
-          className="w-full py-6 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 transition-all duration-300 transform hover:scale-[1.02] font-medium shadow-md text-white rounded-lg"
+          className="w-full py-6 btn-chaff-primary font-medium shadow-md text-white rounded-lg"
           disabled={isLoading}
         >
           {isLoading ? "Connexion en cours..." : "Se connecter"}
@@ -176,7 +176,7 @@ function SignInFormWithParams({
             </span>
             <Link
               href="/signup"
-              className="text-orange-600 hover:text-orange-700 hover:underline underline-offset-4 font-medium transition-colors"
+              className="text-primary hover:text-primary/80 hover:underline underline-offset-4 font-medium transition-colors"
             >
               Inscrivez-vous
             </Link>
@@ -185,7 +185,7 @@ function SignInFormWithParams({
           <div className="text-sm">
             <Link
               href="/pricing"
-              className="text-orange-600 hover:text-orange-700 hover:underline underline-offset-4 font-medium transition-colors"
+              className="text-primary hover:text-primary/80 hover:underline underline-offset-4 font-medium transition-colors"
             >
               Découvrez nos formules
             </Link>
@@ -193,19 +193,19 @@ function SignInFormWithParams({
         </div>
       </form>
 
-      <div className="mt-8 pt-6 border-t border-orange-200/30">
+      <div className="mt-8 pt-6 border-t border-primary/20">
         <p className="text-xs text-center text-gray-600">
           En continuant, vous acceptez nos{" "}
           <a
             href="#"
-            className="underline underline-offset-4 hover:text-orange-600 transition-colors"
+            className="underline underline-offset-4 hover:text-primary transition-colors"
           >
             Conditions d&apos;utilisation
           </a>{" "}
           et notre{" "}
           <a
             href="#"
-            className="underline underline-offset-4 hover:text-orange-600 transition-colors"
+            className="underline underline-offset-4 hover:text-primary transition-colors"
           >
             Politique de confidentialité
           </a>
@@ -249,13 +249,107 @@ function SignInFormSkeleton() {
   );
 }
 
-// Composant principal exporté avec Suspense
-export default function SignInForm(
-  props: React.ComponentPropsWithoutRef<"div">
-) {
+// Page de connexion complète avec design bleu Chaff.ch
+export default function SignInPage() {
   return (
-    <Suspense fallback={<SignInFormSkeleton />}>
-      <SignInFormWithParams {...props} />
-    </Suspense>
+    <div className="flex min-h-svh bg-gradient-to-br from-blue-50 via-slate-50 to-indigo-50">
+      <div className="hidden lg:block lg:w-1/2 relative overflow-hidden">
+        <div
+          className="absolute inset-0 bg-gradient-to-br from-primary/10 to-blue-700/30"
+          aria-hidden="true"
+        />
+        {/* Cercles décoratifs bleus */}
+        <div className="absolute -right-20 top-1/4 w-64 h-64 rounded-full bg-primary/10 blur-2xl" />
+        <div className="absolute left-1/4 bottom-1/4 w-48 h-48 rounded-full bg-blue-600/40 blur-xl" />
+
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-full max-w-md p-8">
+            <div className="relative mb-12">
+              <div className="absolute -left-6 -top-6 w-16 h-16 bg-primary/20 rounded-full"></div>
+              <div className="text-4xl font-bold mb-6 text-gray-900 relative z-10">
+                <span className="block">Analysez.</span>
+                <span className="block">Optimisez.</span>
+                <span className="block text-primary">Prospérez.</span>
+              </div>
+            </div>
+
+            <p className="text-lg text-gray-600 mb-10 border-l-4 border-primary/40 pl-4">
+              Transformez vos données financières en décisions stratégiques avec
+              Chaff.ch, la plateforme d&apos;analytics business conçue pour
+              votre succès.
+            </p>
+
+            <div className="space-y-6">
+              {/* Feature analytics */}
+              <div className="bg-white p-5 rounded-xl border border-primary/20 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 overflow-hidden relative group">
+                <div className="absolute right-0 top-0 w-20 h-20 bg-primary/10 rounded-bl-3xl -mr-4 -mt-4 group-hover:bg-primary/20 transition-all duration-300"></div>
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center text-white shadow-md">
+                    <TrendingUp className="w-6 h-6" />
+                  </div>
+                  <div className="relative z-10">
+                    <h3 className="font-semibold text-gray-900">
+                      Analytics temps réel
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      Visualisez vos performances instantanément
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Feature ratios */}
+              <div className="bg-white p-5 rounded-xl border border-primary/20 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 overflow-hidden relative group">
+                <div className="absolute right-0 top-0 w-20 h-20 bg-primary/10 rounded-bl-3xl -mr-4 -mt-4 group-hover:bg-primary/20 transition-all duration-300"></div>
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-md">
+                    <DollarSign className="w-6 h-6" />
+                  </div>
+                  <div className="relative z-10">
+                    <h3 className="font-semibold text-gray-900">
+                      Ratios financiers
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      Optimisez votre rentabilité
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Feature dashboards */}
+              <div className="bg-white p-5 rounded-xl border border-primary/20 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 overflow-hidden relative group">
+                <div className="absolute right-0 top-0 w-20 h-20 bg-primary/10 rounded-bl-3xl -mr-4 -mt-4 group-hover:bg-primary/20 transition-all duration-300"></div>
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-blue-700 rounded-xl flex items-center justify-center text-white shadow-md">
+                    <PieChart className="w-6 h-6" />
+                  </div>
+                  <div className="relative z-10">
+                    <h3 className="font-semibold text-gray-900">
+                      Tableaux de bord
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      Pilotez votre activité efficacement
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 md:p-10 relative">
+        {/* Cercles décoratifs pour le côté droit aussi */}
+        <div className="absolute right-10 bottom-10 w-40 h-40 rounded-full bg-primary/5 blur-xl" />
+        <div className="absolute left-10 top-1/4 w-32 h-32 rounded-full bg-blue-600/30 blur-xl" />
+
+        {/* Le formulaire de connexion avec Suspense */}
+        <Suspense fallback={<SignInFormSkeleton />}>
+          <div className="w-full max-w-md mx-auto bg-white rounded-2xl shadow-xl border border-primary/30 p-8 z-10">
+            <SignInFormWithParams />
+          </div>
+        </Suspense>
+      </div>
+    </div>
   );
 }
