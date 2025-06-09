@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { withFeatureAccess } from "@/lib/api-access-guard";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { hasFeatureAccess } from "@/lib/access-control";
 
 const OVERTIME_THRESHOLD = 40; // Hours per week before overtime
 
@@ -34,8 +36,28 @@ interface Mandate {
   employees: Employee[];
 }
 
-async function postHandler(request: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
+    // Vérifier l'authentification
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    if (!session) {
+      return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+    }
+
+    const hasPayrollAccess = await hasFeatureAccess(session.user.id, "payroll");
+    if (!hasPayrollAccess) {
+      return NextResponse.json(
+        {
+          error: "Accès refusé",
+          message: "L'accès à la masse salariale nécessite un plan Premium",
+        },
+        { status: 403 }
+      );
+    }
+
     const body: PayrollCalculationRequest = await request.json();
     const { mandateId, periodStart, periodEnd, periodType, recalculate } = body;
 
@@ -364,9 +386,3 @@ function generatePeriods(
 
   return periods;
 }
-
-// Export avec protection d'accès
-export const POST = withFeatureAccess(postHandler, {
-  feature: "payroll",
-  customMessage: "Le calcul de masse salariale nécessite un abonnement Premium."
-});
