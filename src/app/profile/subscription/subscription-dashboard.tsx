@@ -1,4 +1,4 @@
-// src/app/profile/subscription/subscription-dashboard.tsx - Version mise à jour
+// src/app/profile/subscription/subscription-dashboard.tsx - Version finale nettoyée
 "use client";
 
 import { useState } from "react";
@@ -14,7 +14,6 @@ import {
   AlertTriangle,
   Info,
   CalendarClock,
-  Star,
   Sparkles,
   Crown,
   Mail,
@@ -42,10 +41,13 @@ type Plan = {
   monthlyPrice: number;
   yearlyPrice: number | null;
   maxUsers: number | null;
-  maxObjects: number | null;
+  maxStorage: number | null;
   features: string[];
   hasCustomPricing: boolean;
   trialDays: number;
+  hasAdvancedReports?: boolean;
+  hasApiAccess?: boolean;
+  hasCustomBranding?: boolean;
 };
 
 type Subscription = {
@@ -91,12 +93,10 @@ export default function SubscriptionDashboard({
     switch (planName) {
       case "FREE":
         return <Shield className="h-6 w-6 text-gray-500" />;
-      case "PERSONAL":
-        return <Check className="h-6 w-6 text-[#3b82f6]" />;
-      case "PROFESSIONAL":
+      case "PREMIUM":
         return <Sparkles className="h-6 w-6 text-[#d9840d]" />;
-      case "ENTERPRISE":
-        return <Star className="h-6 w-6 text-[#8b5cf6]" />;
+      case "SUPER_ADMIN":
+        return <Crown className="h-6 w-6 text-[#8b5cf6]" />;
       default:
         return <CreditCard className="h-6 w-6 text-gray-500" />;
     }
@@ -113,15 +113,7 @@ export default function SubscriptionDashboard({
           accent: "text-gray-600",
           bg: "bg-gray-50 dark:bg-gray-900/20",
         };
-      case "PERSONAL":
-        return {
-          gradient: "from-blue-500 to-blue-600",
-          button: "bg-blue-600 hover:bg-blue-700",
-          border: "border-blue-200",
-          accent: "text-blue-600",
-          bg: "bg-blue-50 dark:bg-blue-900/20",
-        };
-      case "PROFESSIONAL":
+      case "PREMIUM":
         return {
           gradient: "from-[#d9840d] to-[#e36002]",
           button: "bg-[#d9840d] hover:bg-[#c6780c]",
@@ -129,7 +121,7 @@ export default function SubscriptionDashboard({
           accent: "text-[#d9840d]",
           bg: "bg-[#fff7ed] dark:bg-orange-900/20",
         };
-      case "ENTERPRISE":
+      case "SUPER_ADMIN":
         return {
           gradient: "from-purple-500 to-purple-600",
           button: "bg-purple-600 hover:bg-purple-700",
@@ -153,12 +145,10 @@ export default function SubscriptionDashboard({
     switch (planName) {
       case "FREE":
         return "Gratuit";
-      case "PERSONAL":
-        return "Particulier";
-      case "PROFESSIONAL":
-        return "Professionnel";
-      case "ENTERPRISE":
-        return "Entreprise";
+      case "PREMIUM":
+        return "Premium";
+      case "SUPER_ADMIN":
+        return "Super Admin";
       default:
         return planName;
     }
@@ -170,30 +160,18 @@ export default function SubscriptionDashboard({
       case "FREE":
         return [
           "1 utilisateur",
-          "1 objet immobilier",
-          "500MB de stockage",
+          "Accès dashboard de base",
+          "100MB de stockage",
           "Support communauté",
         ];
-      case "PERSONAL":
+      case "PREMIUM":
         return [
-          "1 utilisateur",
-          "1 objet immobilier",
-          "2GB de stockage",
-          "Support email",
-        ];
-      case "PROFESSIONAL":
-        return [
-          "5 utilisateurs",
-          "3 objets immobiliers",
+          "Jusqu'à 10 utilisateurs",
+          "Toutes les fonctionnalités",
           "10GB de stockage",
           "Support prioritaire",
-        ];
-      case "ENTERPRISE":
-        return [
-          "10 utilisateurs",
-          "5 objets immobiliers",
-          "50GB de stockage",
-          "Support premium",
+          "Rapports avancés",
+          "Accès API",
         ];
       default:
         return plan.features.slice(0, 4);
@@ -684,11 +662,6 @@ export default function SubscriptionDashboard({
     );
   };
 
-  // Filtrer les plans pour séparer les standards du plan sur mesure
-  const standardPlans = plans.filter((plan) =>
-    ["FREE", "PERSONAL", "PROFESSIONAL", "ENTERPRISE"].includes(plan.name)
-  );
-
   return (
     <div className="min-h-screen bg-[color:var(--background)]">
       {/* Header avec navigation */}
@@ -882,7 +855,7 @@ export default function SubscriptionDashboard({
           <UsageLimits />
         </div>
 
-        {/* Section plans standards */}
+        {/* Section plans disponibles - Seulement FREE et PREMIUM */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
             <h2 className="text-xl font-semibold text-[color:var(--foreground)]">
@@ -913,11 +886,11 @@ export default function SubscriptionDashboard({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {standardPlans.map((plan) => {
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {plans.map((plan) => {
               const colors = getPlanColor(plan.name);
               const isCurrentPlan = currentPlan?.id === plan.id;
-              const isPopular = plan.name === "PROFESSIONAL";
+              const isPopular = plan.name === "PREMIUM";
               const simplifiedFeatures = getSimplifiedFeatures(plan);
 
               return (
@@ -1147,7 +1120,7 @@ export default function SubscriptionDashboard({
                   Vous serez notifié lorsque vous approchez des limites de votre
                   forfait. Si vous dépassez ces limites, vous devrez passer à un
                   forfait supérieur pour pouvoir continuer à ajouter de nouveaux
-                  utilisateurs ou objets.
+                  utilisateurs.
                 </p>
               </div>
             </CardContent>
