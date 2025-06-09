@@ -1,4 +1,4 @@
-// src/app/signup/signup-form.tsx - Formulaire d'inscription Chaff.ch avec design bleu
+// src/app/signup/signup-form.tsx - Version améliorée
 "use client";
 
 import {
@@ -14,7 +14,6 @@ import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Button } from "@/app/components/ui/button";
 import Link from "next/link";
-import dynamic from "next/dynamic";
 import { toast } from "sonner";
 import {
   User,
@@ -23,47 +22,35 @@ import {
   Home,
   ArrowRight,
   CheckCircle,
-  AlertCircle,
   BarChart3,
+  Eye,
+  EyeOff,
+  Camera,
+  X,
+  Gift,
+  Zap,
+  TrendingUp,
 } from "lucide-react";
-
-const SignupImageUpload = dynamic(() => import("./SignupImageUpload"), {
-  loading: () => (
-    <div className="h-24 w-24 rounded-full bg-gray-200 mx-auto mb-4"></div>
-  ),
-  ssr: false,
-});
 
 // Skeleton pour le formulaire d'inscription
 function SignUpFormSkeleton() {
   return (
-    <div className="w-full animate-pulse">
-      <div className="absolute top-4 right-4">
-        <div className="w-5 h-5 bg-gray-200 rounded"></div>
-      </div>
-
-      <div className="h-6 bg-gray-200 rounded mb-6 w-1/2 mx-auto"></div>
-
-      <div className="flex flex-col items-center mb-6">
-        <div className="w-24 h-24 bg-gray-200 rounded-full mb-3"></div>
-        <div className="h-4 bg-gray-200 rounded w-2/3"></div>
-      </div>
-
-      <div className="space-y-5">
-        <div className="space-y-2">
-          <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-          <div className="h-12 bg-gray-200 rounded"></div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="w-full max-w-md animate-pulse">
+        <div className="bg-white rounded-2xl p-8 space-y-6">
+          <div className="text-center">
+            <div className="w-16 h-16 bg-gray-200 rounded-2xl mx-auto mb-4"></div>
+            <div className="h-6 bg-gray-200 rounded w-3/4 mx-auto mb-2"></div>
+            <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
+          </div>
+          <div className="w-20 h-20 bg-gray-200 rounded-full mx-auto"></div>
+          <div className="space-y-4">
+            <div className="h-12 bg-gray-200 rounded-xl"></div>
+            <div className="h-12 bg-gray-200 rounded-xl"></div>
+            <div className="h-12 bg-gray-200 rounded-xl"></div>
+            <div className="h-12 bg-gray-200 rounded-xl"></div>
+          </div>
         </div>
-        <div className="space-y-2">
-          <div className="h-4 bg-gray-200 rounded w-1/3"></div>
-          <div className="h-12 bg-gray-200 rounded"></div>
-        </div>
-        <div className="space-y-2">
-          <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-          <div className="h-12 bg-gray-200 rounded"></div>
-        </div>
-        <div className="h-12 bg-gray-200 rounded mt-6"></div>
-        <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto"></div>
       </div>
     </div>
   );
@@ -75,11 +62,19 @@ function SignUpFormWithParams() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [hasProfileImage, setHasProfileImage] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
 
-  const handleImageSelect = useCallback((file: File | null) => {
-    setSelectedFile(file);
-  }, []);
+  const handleImageUpload = () => {
+    setHasProfileImage(!hasProfileImage);
+    if (!hasProfileImage) {
+      // Simuler la sélection d'un fichier
+      setSelectedFile(new File([""], "profile.jpg", { type: "image/jpeg" }));
+    } else {
+      setSelectedFile(null);
+    }
+  };
 
   const handleSubmit = useCallback(
     async (event: FormEvent<HTMLFormElement>) => {
@@ -159,250 +154,416 @@ function SignUpFormWithParams() {
 
   if (showSuccess) {
     return (
-      <div className="w-full text-center">
-        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <CheckCircle className="w-8 h-8 text-green-600" />
-        </div>
-
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">
-          Vérifiez votre email
-        </h2>
-
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-6">
-          <div className="flex items-start gap-3">
-            <div className="text-primary mt-0.5">
-              <Mail className="h-5 w-5" />
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center p-6">
+        <div className="w-full max-w-md">
+          <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
+            <div className="w-20 h-20 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
+              <CheckCircle className="w-10 h-10 text-white" />
             </div>
-            <div className="text-left">
-              <h3 className="font-semibold text-primary mb-2">
-                Email de vérification envoyé !
-              </h3>
-              <p className="text-primary/80 text-sm mb-3">
-                Nous avons envoyé un lien de vérification à votre adresse email.
-                <strong>
-                  {" "}
-                  Votre compte Chaff.ch ne sera activé qu&apos;après avoir
-                  cliqué sur ce lien.
-                </strong>
-              </p>
-              <p className="text-primary/80 text-sm">
-                💡 <strong>Vérifiez également votre dossier spam</strong> si
-                vous ne voyez pas l&apos;email dans quelques minutes.
-              </p>
+
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">
+              Vérifiez votre email
+            </h1>
+
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+              <div className="flex items-start gap-3">
+                <Mail className="w-5 h-5 text-blue-600 mt-0.5" />
+                <div className="text-left">
+                  <p className="text-blue-800 text-sm font-medium mb-2">
+                    Email de vérification envoyé !
+                  </p>
+                  <p className="text-blue-700 text-sm">
+                    Nous avons envoyé un lien de vérification à votre adresse
+                    email.{" "}
+                    <strong>
+                      Votre compte sera activé après avoir cliqué sur ce lien.
+                    </strong>
+                  </p>
+                </div>
+              </div>
             </div>
+
+            <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6">
+              <div className="flex items-start gap-3">
+                <Gift className="w-5 h-5 text-green-600 mt-0.5" />
+                <div className="text-left">
+                  <p className="text-green-800 text-sm font-medium mb-1">
+                    Plan gratuit activé
+                  </p>
+                  <p className="text-green-700 text-sm">
+                    Votre espace Chaff.ch sera créé automatiquement après
+                    vérification
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <Button
+              onClick={() => setShowSuccess(false)}
+              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-4 rounded-xl font-medium shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200"
+            >
+              Réessayer avec une autre adresse
+            </Button>
+
+            <p className="text-sm text-gray-600 mt-4">
+              Déjà un compte ?{" "}
+              <Link
+                href="/signin"
+                className="text-blue-600 hover:text-blue-700 font-medium"
+              >
+                Se connecter
+              </Link>
+            </p>
           </div>
-        </div>
-
-        <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6">
-          <div className="flex items-start gap-3">
-            <div className="text-green-600 mt-0.5">
-              <CheckCircle className="h-5 w-5" />
-            </div>
-            <div className="text-left">
-              <p className="text-green-700 text-sm">
-                <strong>Après vérification :</strong> Votre espace Chaff.ch et
-                votre plan gratuit seront automatiquement créés.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
-            <div className="text-left">
-              <p className="text-yellow-700 text-sm">
-                <strong>Important :</strong> Le lien expire dans 24 heures. Si
-                vous ne finalisez pas votre inscription dans ce délai, vous
-                devrez recommencer le processus.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          <p className="text-sm text-gray-600">
-            Vous n&apos;avez pas reçu l&apos;email ?
-          </p>
-          <Button
-            onClick={() => setShowSuccess(false)}
-            variant="outline"
-            className="w-full border-primary/30 hover:bg-primary/10"
-          >
-            Réessayer avec une autre adresse
-          </Button>
-          <p className="text-xs text-gray-600">
-            Ou{" "}
-            <Link href="/signin" className="text-primary hover:underline">
-              connectez-vous si vous avez déjà un compte
-            </Link>
-          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="w-full">
-      <div className="absolute top-4 right-4">
-        <Link
-          href="/"
-          className="text-gray-600 hover:text-primary transition-colors"
-        >
-          <Home size={20} />
-        </Link>
-      </div>
-
-      <div className="text-center mb-6">
-        <div className="w-16 h-16 bg-chaff-gradient rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-          <BarChart3 className="w-8 h-8 text-white" />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex">
+      {/* Section gauche - Features avec design moderne */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800">
+        {/* Motifs géométriques en arrière-plan */}
+        <div className="absolute inset-0">
+          <div className="absolute top-16 left-16 w-40 h-40 bg-white/10 rounded-full blur-xl animate-pulse"></div>
+          <div
+            className="absolute bottom-24 right-12 w-56 h-56 bg-blue-400/20 rounded-3xl rotate-45 animate-bounce"
+            style={{ animationDuration: "4s" }}
+          ></div>
+          <div className="absolute top-1/3 left-1/3 w-28 h-28 bg-indigo-300/20 rounded-2xl rotate-12"></div>
         </div>
-        <h2 className="text-2xl font-bold text-gray-900">Rejoignez Chaff.ch</h2>
-        <p className="text-gray-600 mt-1">
-          Commencez à analyser vos performances dès aujourd&apos;hui
-        </p>
+
+        <div className="relative z-10 flex flex-col justify-center px-12 py-16 text-white">
+          {/* Logo et titre */}
+          <div className="mb-12">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                <BarChart3 className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold">Chaff.ch</h1>
+                <p className="text-blue-200 text-sm">Analytics Business</p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-4xl font-bold leading-tight">
+                Démarrez votre
+                <span className="block text-blue-200">
+                  transformation digitale
+                </span>
+              </h2>
+              <p className="text-blue-100 text-lg">
+                Rejoignez les entreprises qui optimisent déjà leur performance
+                avec nos analytics
+              </p>
+            </div>
+          </div>
+
+          {/* Avantages de l'inscription */}
+          <div className="space-y-6">
+            <div className="group hover:bg-white/10 p-4 rounded-xl transition-all duration-300 cursor-pointer backdrop-blur-sm">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                  <Gift className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg">Démarrage gratuit</h3>
+                  <p className="text-blue-200 text-sm">
+                    Commencez immédiatement sans frais avec notre plan gratuit
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="group hover:bg-white/10 p-4 rounded-xl transition-all duration-300 cursor-pointer backdrop-blur-sm">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-purple-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                  <Zap className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg">
+                    Configuration instantanée
+                  </h3>
+                  <p className="text-blue-200 text-sm">
+                    Votre espace de travail prêt en moins de 2 minutes
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="group hover:bg-white/10 p-4 rounded-xl transition-all duration-300 cursor-pointer backdrop-blur-sm">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-amber-400 to-amber-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                  <TrendingUp className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg">Résultats immédiats</h3>
+                  <p className="text-blue-200 text-sm">
+                    Visualisez vos KPIs dès la première connexion
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Statistiques */}
+          <div className="mt-12 pt-8 border-t border-white/20">
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div>
+                <div className="text-2xl font-bold text-white">1K+</div>
+                <div className="text-blue-200 text-sm">Entreprises</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-white">50M+</div>
+                <div className="text-blue-200 text-sm">Données analysées</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-white">98%</div>
+                <div className="text-blue-200 text-sm">Satisfaction</div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {error && (
-        <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 shadow-sm">
-          <div className="flex items-start gap-3">
-            <div className="text-red-600 mt-0.5">
-              <svg
-                className="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
+      {/* Section droite - Formulaire moderne */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 lg:p-12">
+        <div className="w-full max-w-md">
+          {/* Header du formulaire */}
+          <div className="text-center mb-8">
+            <div className="lg:hidden mb-6">
+              <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                <BarChart3 className="w-8 h-8 text-white" />
+              </div>
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Créer votre compte
+            </h1>
+            <p className="text-gray-600">
+              Rejoignez Chaff.ch et transformez vos données
+            </p>
+          </div>
+
+          {/* Upload d'image de profil */}
+          <div className="flex flex-col items-center mb-6">
+            <div className="relative group">
+              <div className="w-20 h-20 rounded-full overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center text-2xl text-gray-600 font-bold border-2 border-gray-300 group-hover:border-blue-500 cursor-pointer transition-all duration-300">
+                {hasProfileImage ? (
+                  <div className="w-full h-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-lg">
+                    JD
+                  </div>
+                ) : (
+                  <User className="w-8 h-8" />
+                )}
+
+                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-0 group-hover:bg-opacity-40 rounded-full transition-all duration-300">
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Camera className="w-6 h-6 text-white" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {hasProfileImage ? (
+              <button
+                onClick={handleImageUpload}
+                className="mt-3 flex items-center gap-1 text-sm text-red-600 hover:text-red-700 transition-colors"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                <X className="w-4 h-4" />
+                Supprimer
+              </button>
+            ) : (
+              <button
+                onClick={handleImageUpload}
+                className="mt-3 text-sm text-blue-600 hover:text-blue-700 transition-colors"
+              >
+                Ajouter une photo (optionnel)
+              </button>
+            )}
+          </div>
+
+          {/* Formulaire */}
+          <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
+            {error && (
+              <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm flex items-center gap-2">
+                <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                {error}
+              </div>
+            )}
+
+            {/* Champ Nom */}
+            <div className="space-y-2">
+              <Label
+                htmlFor="name"
+                className="text-sm font-medium text-gray-700"
+              >
+                Nom complet
+              </Label>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <User className="h-5 w-5 text-gray-400 group-focus-within:text-blue-600 transition-colors" />
+                </div>
+                <Input
+                  id="name"
+                  name="name"
+                  type="text"
+                  required
+                  placeholder="Jean Dupont"
+                  className="pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white hover:border-gray-400"
                 />
-              </svg>
+              </div>
             </div>
-            <p className="text-red-700 flex-1 font-medium text-sm">{error}</p>
-          </div>
-        </div>
-      )}
 
-      <form
-        ref={formRef}
-        onSubmit={handleSubmit}
-        className="flex flex-col gap-5"
-      >
-        <SignupImageUpload onImageSelect={handleImageSelect} />
-
-        <div className="space-y-2">
-          <Label htmlFor="name" className="text-sm font-medium text-gray-900">
-            Nom complet
-          </Label>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-              <User className="h-4 w-4 text-gray-600" />
+            {/* Champ Email */}
+            <div className="space-y-2">
+              <Label
+                htmlFor="email"
+                className="text-sm font-medium text-gray-700"
+              >
+                Adresse email
+              </Label>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Mail className="h-5 w-5 text-gray-400 group-focus-within:text-blue-600 transition-colors" />
+                </div>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  required
+                  placeholder="jean@entreprise.com"
+                  className="pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white hover:border-gray-400"
+                />
+              </div>
             </div>
-            <Input
-              id="name"
-              name="name"
-              type="text"
-              required
-              placeholder="Entrez votre nom complet"
-              autoComplete="name"
-              className="pl-10 bg-white border-primary/30 focus:border-primary rounded-lg shadow-sm hover:border-primary/50 transition-colors"
-            />
-          </div>
-        </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="email" className="text-sm font-medium text-gray-900">
-            Adresse email
-          </Label>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-              <Mail className="h-4 w-4 text-gray-600" />
+            {/* Champ Mot de passe */}
+            <div className="space-y-2">
+              <Label
+                htmlFor="password"
+                className="text-sm font-medium text-gray-700"
+              >
+                Mot de passe
+              </Label>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Lock className="h-5 w-5 text-gray-400 group-focus-within:text-blue-600 transition-colors" />
+                </div>
+                <Input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  required
+                  placeholder="Minimum 8 caractères"
+                  minLength={8}
+                  className="pl-12 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white hover:border-gray-400"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
+                </button>
+              </div>
+              <div className="text-xs text-gray-500">
+                Au moins 8 caractères avec une majuscule et un chiffre
+              </div>
             </div>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              required
-              placeholder="Entrez votre email"
-              autoComplete="email"
-              className="pl-10 bg-white border-primary/30 focus:border-primary rounded-lg shadow-sm hover:border-primary/50 transition-colors"
-            />
-          </div>
-        </div>
 
-        <div className="space-y-2">
-          <Label
-            htmlFor="password"
-            className="text-sm font-medium text-gray-900"
-          >
-            Mot de passe
-          </Label>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-              <Lock className="h-4 w-4 text-gray-600" />
+            {/* Conditions d'utilisation */}
+            <div className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                id="terms"
+                className="mt-1 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                required
+              />
+              <Label
+                htmlFor="terms"
+                className="text-sm text-gray-600 leading-relaxed"
+              >
+                J&apos;accepte les{" "}
+                <Link
+                  href="#"
+                  className="text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  conditions d&apos;utilisation
+                </Link>{" "}
+                et la{" "}
+                <Link
+                  href="#"
+                  className="text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  politique de confidentialité
+                </Link>
+              </Label>
             </div>
-            <Input
-              id="password"
-              name="password"
-              type="password"
-              required
-              placeholder="Mot de passe (min. 8 caractères)"
-              minLength={8}
-              autoComplete="new-password"
-              className="pl-10 bg-white border-primary/30 focus:border-primary rounded-lg shadow-sm hover:border-primary/50 transition-colors"
-            />
-          </div>
-        </div>
 
-        <Button
-          type="submit"
-          className="w-full py-6 mt-2 btn-chaff-primary font-medium shadow-md text-white rounded-lg"
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? (
-            "Création en cours..."
-          ) : (
-            <>
-              Créer mon compte Chaff.ch
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </>
-          )}
-        </Button>
-
-        <div className="mt-2 text-center">
-          <p className="text-sm text-gray-600">
-            Vous avez déjà un compte?{" "}
-            <Link
-              href="/signin"
-              className="text-primary hover:text-primary/80 hover:underline underline-offset-4 font-medium transition-colors"
+            {/* Bouton d'inscription */}
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-4 rounded-xl font-medium shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
             >
-              Connectez-vous
-            </Link>
-          </p>
-        </div>
-      </form>
+              {isSubmitting ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  Création en cours...
+                </>
+              ) : (
+                <>
+                  Créer mon compte gratuit
+                  <ArrowRight className="w-5 h-5" />
+                </>
+              )}
+            </Button>
 
-      <div className="mt-8 pt-6 border-t border-primary/20">
-        <p className="text-xs text-center text-gray-600">
-          En vous inscrivant, vous acceptez nos{" "}
-          <a
-            href="#"
-            className="underline underline-offset-4 hover:text-primary transition-colors"
+            {/* Divider */}
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-4 bg-slate-50 text-gray-500">ou</span>
+              </div>
+            </div>
+
+            {/* Liens de navigation */}
+            <div className="text-center space-y-4">
+              <p className="text-gray-600">
+                Déjà un compte ?{" "}
+                <Link
+                  href="/signin"
+                  className="text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                >
+                  Se connecter
+                </Link>
+              </p>
+              <Link
+                href="/pricing"
+                className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                Découvrir nos tarifs
+              </Link>
+            </div>
+          </form>
+        </div>
+
+        {/* Bouton retour accueil */}
+        <div className="absolute top-6 right-6">
+          <Link
+            href="/"
+            className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
           >
-            Conditions d&apos;utilisation
-          </a>{" "}
-          et notre{" "}
-          <a
-            href="#"
-            className="underline underline-offset-4 hover:text-primary transition-colors"
-          >
-            Politique de confidentialité
-          </a>
-          .
-        </p>
+            <Home className="w-5 h-5" />
+          </Link>
+        </div>
       </div>
     </div>
   );
