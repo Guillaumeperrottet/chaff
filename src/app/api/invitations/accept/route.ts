@@ -1,3 +1,4 @@
+// src/app/api/invitations/accept/route.ts - Version corrigée
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
@@ -55,10 +56,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 3. CORRECTIF PRINCIPAL : Utiliser Better Auth pour créer l'utilisateur
-    console.log("🔧 Création de l'utilisateur via Better Auth...");
+    // 3. ✅ Créer l'utilisateur via Better Auth avec métadonnées d'invitation
+    console.log("🔧 Création utilisateur avec invitation via Better Auth...");
 
-    // Utiliser Better Auth API pour créer l'utilisateur avec vérification email automatique
     const signupResult = await auth.api.signUpEmail({
       body: {
         email: email.toLowerCase().trim(),
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (!signupResult.user) {
-      console.error("❌ Erreur création utilisateur Better Auth:");
+      console.error("❌ Erreur création utilisateur Better Auth");
       return NextResponse.json(
         { error: "Erreur lors de la création du compte" },
         { status: 500 }
@@ -78,20 +78,20 @@ export async function POST(req: NextRequest) {
     const user = signupResult.user;
     console.log("✅ Utilisateur créé via Better Auth:", user.id);
 
-    // 4. Finaliser avec la logique d'invitation dans une transaction
+    // 4. ✅ Configuration spécifique invitation dans une transaction
     const result = await prisma.$transaction(async (tx) => {
       // Mettre à jour l'utilisateur avec les métadonnées d'invitation
       const updatedUser = await tx.user.update({
         where: { id: user.id },
         data: {
-          emailVerified: true, // S'assurer que c'est vérifié
+          emailVerified: true, // Force vérification pour invitations
           organizationId: invitation.organizationId,
           metadata: {
             inviteCode,
             invitedBy: invitation.createdBy,
             invitedAt: new Date().toISOString(),
             acceptedAt: new Date().toISOString(),
-            directVerification: true,
+            signupType: "invitation", // 🔧 Marquer comme invitation
           },
         },
       });
@@ -118,8 +118,8 @@ export async function POST(req: NextRequest) {
       return updatedUser;
     });
 
-    // 5. CORRECTIF : Créer une session automatiquement
-    console.log("🔧 Connexion automatique de l'utilisateur...");
+    // 5. ✅ Connexion automatique
+    console.log("🔧 Connexion automatique après invitation...");
 
     const signInResult = await auth.api.signInEmail({
       body: {
@@ -129,8 +129,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (!signInResult.user) {
-      console.error("❌ Erreur connexion automatique:");
-      // Malgré l'erreur de connexion, le compte est créé
+      console.error("❌ Erreur connexion automatique après invitation");
       return NextResponse.json({
         success: true,
         message:
@@ -145,21 +144,21 @@ export async function POST(req: NextRequest) {
         redirect: "/signin?message=account_created",
       });
     }
-    console.log("✅ Connexion automatique réussie");
 
-    // 6. Envoi de l'email de bienvenue
+    console.log("✅ Connexion automatique réussie après invitation");
+
+    // 6. Email de bienvenue pour invitation
     try {
       await EmailService.sendWelcomeEmail(result, invitation.organization.name);
       console.log("📧 Email de bienvenue envoyé pour invitation acceptée");
     } catch (emailError) {
       console.error("❌ Erreur envoi email bienvenue:", emailError);
-      // Ne pas faire échouer la création pour autant
     }
 
     // 7. Réponse de succès avec session créée
     const response = NextResponse.json({
       success: true,
-      message: "Compte créé et connecté avec succès",
+      message: "Invitation acceptée et compte connecté avec succès",
       user: {
         id: result.id,
         name: result.name,
@@ -176,7 +175,6 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error("❌ Erreur acceptation invitation:", error);
 
-    // Log détaillé pour debug
     if (error instanceof Error) {
       console.error("Stack trace:", error.stack);
     }
