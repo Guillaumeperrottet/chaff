@@ -1091,8 +1091,8 @@ export default function DashboardPage() {
                           <SubtotalRow
                             label="Hébergement"
                             totals={hebergementTotals}
-                            bgColor="bg-blue-50"
-                            textColor="text-blue-700"
+                            bgColor="bg-slate-50"
+                            textColor="text-slate-700"
                             groupData={grouped.hebergement}
                           />
                         )}
@@ -1110,8 +1110,8 @@ export default function DashboardPage() {
                           <SubtotalRow
                             label="Restauration"
                             totals={restaurationTotals}
-                            bgColor="bg-orange-50"
-                            textColor="text-orange-700"
+                            bgColor="bg-slate-50"
+                            textColor="text-slate-700"
                           />
                         )}
                       </>

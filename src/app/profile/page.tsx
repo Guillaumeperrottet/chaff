@@ -67,10 +67,7 @@ export default async function ProfilePage() {
               </p>
               {orgUser?.organization && (
                 <div className="flex items-center gap-2 mt-2">
-                  <Building2
-                    size={16}
-                    className="text-[color:var(--primary)]"
-                  />
+                  <Building2 size={16} className="text-slate-500" />
                   <span className="text-[color:var(--muted-foreground)]">
                     {orgUser.organization.name}
                   </span>

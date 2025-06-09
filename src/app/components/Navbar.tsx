@@ -11,7 +11,7 @@ import {
   ChevronDown,
   Home,
   ChevronRight,
-  Bell,
+  // Bell,
   Search,
   Users,
   DollarSign,
@@ -36,7 +36,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/app/components/ui/tooltip";
-import { Badge } from "@/app/components/ui/badge";
+// import { Badge } from "@/app/components/ui/badge";
 import { useSession } from "@/hooks/useSession";
 import { authClient } from "@/lib/auth-client";
 import { toast } from "sonner";
@@ -394,7 +394,7 @@ function ChaffNavbar() {
                 )}
               </div>
 
-              {/* Notifications */}
+              {/* Notifications
               <Button
                 variant="ghost"
                 size="sm"
@@ -407,7 +407,7 @@ function ChaffNavbar() {
                 >
                   3
                 </Badge>
-              </Button>
+              </Button> */}
 
               {/* Menu utilisateur */}
               <DropdownMenu
