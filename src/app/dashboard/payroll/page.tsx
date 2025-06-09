@@ -40,6 +40,7 @@ import {
   Filter,
 } from "lucide-react";
 import { toast } from "sonner";
+import EmptyState from "@/app/components/EmptyState";
 
 interface Mandate {
   id: string;
@@ -432,25 +433,10 @@ export default function PayrollIndexPage() {
           </Table>
 
           {filteredMandates.length === 0 && (
-            <div className="text-center py-8">
-              <Calculator className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold">
-                Aucun établissement trouvé
-              </h3>
-              <p className="text-muted-foreground mb-4">
-                {mandates.length === 0
-                  ? "Commencez par créer votre premier établissement"
-                  : "Essayez de modifier vos filtres de recherche"}
-              </p>
-              {mandates.length === 0 && (
-                <Button
-                  onClick={() => router.push("/dashboard/mandates/create")}
-                >
-                  <Building2 className="mr-2 h-4 w-4" />
-                  Créer un établissement
-                </Button>
-              )}
-            </div>
+            <EmptyState
+              type="payroll"
+              onPrimaryAction={() => router.push("/dashboard/mandates/create")}
+            />
           )}
         </CardContent>
       </Card>

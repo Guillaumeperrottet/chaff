@@ -253,7 +253,8 @@ function SignUpFormWithParams() {
                     Configuration instantanée
                   </h3>
                   <p className="text-blue-200 text-sm">
-                    Votre espace de travail prêt en moins de 2 minutes
+                    Votre espace de travail prêt rapidement grâce a notre
+                    fonctionnalité d&apos;import
                   </p>
                 </div>
               </div>
@@ -270,24 +271,6 @@ function SignUpFormWithParams() {
                     Visualisez vos KPIs dès la première connexion
                   </p>
                 </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Statistiques */}
-          <div className="mt-12 pt-8 border-t border-white/20">
-            <div className="grid grid-cols-3 gap-4 text-center">
-              <div>
-                <div className="text-2xl font-bold text-white">1K+</div>
-                <div className="text-blue-200 text-sm">Entreprises</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-white">50M+</div>
-                <div className="text-blue-200 text-sm">Données analysées</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-white">98%</div>
-                <div className="text-blue-200 text-sm">Satisfaction</div>
               </div>
             </div>
           </div>

@@ -43,7 +43,6 @@ import {
   Download,
   Upload,
   Search,
-  Calendar,
   Eye,
   Edit,
   Trash2,
@@ -58,6 +57,7 @@ import {
   Menu,
   ChevronRight,
 } from "lucide-react";
+import EmptyState from "@/app/components/EmptyState";
 import { Input } from "@/app/components/ui/input";
 import {
   Select,
@@ -911,28 +911,18 @@ export default function DashboardPage() {
         </CardHeader>
 
         <CardContent>
+          {" "}
           {/* Affichage conditionnel : Cards sur mobile, Table sur desktop */}
           {isMobile ? (
             /* Version MOBILE - Cards */
             <div className="space-y-4">
               {mergedData.length === 0 ? (
-                <div className="text-center py-8">
-                  <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold">Aucun campus trouvé</h3>
-                  <p className="text-muted-foreground mb-4">
-                    {dashboardData.data.length === 0
-                      ? "Commencez par créer votre premier mandat"
-                      : "Essayez de modifier vos filtres de recherche"}
-                  </p>
-                  {dashboardData.data.length === 0 && (
-                    <Button
-                      onClick={() => router.push("/dashboard/mandates/create")}
-                    >
-                      <Plus className="mr-2 h-4 w-4" />
-                      Créer un mandat
-                    </Button>
-                  )}
-                </div>
+                <EmptyState
+                  type="mandates"
+                  onPrimaryAction={() =>
+                    router.push("/dashboard/mandates/create")
+                  }
+                />
               ) : (
                 mergedData.map((campus) => (
                   <MobileCampusCard key={campus.id} campus={campus} />
@@ -1064,25 +1054,12 @@ export default function DashboardPage() {
                   {mergedData.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={7} className="text-center py-8">
-                        <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold">
-                          Aucun campus trouvé
-                        </h3>
-                        <p className="text-muted-foreground mb-4">
-                          {dashboardData.data.length === 0
-                            ? "Commencez par créer votre premier mandat"
-                            : "Essayez de modifier vos filtres de recherche"}
-                        </p>
-                        {dashboardData.data.length === 0 && (
-                          <Button
-                            onClick={() =>
-                              router.push("/dashboard/mandates/create")
-                            }
-                          >
-                            <Plus className="mr-2 h-4 w-4" />
-                            Créer un mandat
-                          </Button>
-                        )}
+                        <EmptyState
+                          type="mandates"
+                          onPrimaryAction={() =>
+                            router.push("/dashboard/mandates/create")
+                          }
+                        />
                       </TableCell>
                     </TableRow>
                   )}

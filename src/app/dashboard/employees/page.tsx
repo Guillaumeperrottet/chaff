@@ -48,6 +48,7 @@ import {
   Clock,
 } from "lucide-react";
 import { toast } from "sonner";
+import EmptyState from "@/app/components/EmptyState";
 
 interface Employee {
   id: string;
@@ -493,21 +494,7 @@ export default function EmployeesPage() {
           </Table>
 
           {filteredEmployees.length === 0 && (
-            <div className="text-center py-8">
-              <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold">Aucun employé trouvé</h3>
-              <p className="text-muted-foreground mb-4">
-                {employees.length === 0
-                  ? "Commencez par ajouter votre premier employé"
-                  : "Essayez de modifier vos filtres de recherche"}
-              </p>
-              {employees.length === 0 && (
-                <Button onClick={handleCreateNew}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Premier employé
-                </Button>
-              )}
-            </div>
+            <EmptyState type="employees" onPrimaryAction={handleCreateNew} />
           )}
         </CardContent>
       </Card>

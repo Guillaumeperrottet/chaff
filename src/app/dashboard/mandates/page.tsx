@@ -62,6 +62,7 @@ import {
   Download,
   BarChart3,
 } from "lucide-react";
+import EmptyState from "@/app/components/EmptyState";
 
 // Types basés sur le schema Prisma
 interface Mandate {
@@ -731,28 +732,13 @@ export default function MandatesIndexPage() {
             /* Version MOBILE - Cards */
             <div className="space-y-4">
               {filteredMandates.length === 0 ? (
-                <div className="text-center py-8">
-                  <Building2 className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-slate-900">
-                    {mandates.length === 0
-                      ? "Aucun établissement"
-                      : "Aucun résultat"}
-                  </h3>
-                  <p className="text-slate-600 mb-4">
-                    {mandates.length === 0
-                      ? "Créez votre premier établissement pour commencer"
-                      : "Essayez de modifier vos critères de recherche"}
-                  </p>
-                  {mandates.length === 0 && (
-                    <Button
-                      onClick={handleCreateNew}
-                      className="bg-blue-600 hover:bg-blue-700"
-                    >
-                      <Plus className="mr-2 h-4 w-4" />
-                      Créer un établissement
-                    </Button>
-                  )}
-                </div>
+                <EmptyState
+                  type="mandates"
+                  onPrimaryAction={handleCreateNew}
+                  onSecondaryAction={
+                    mandates.length === 0 ? handleImport : undefined
+                  }
+                />
               ) : (
                 filteredMandates.map((mandate) => (
                   <MandateCard key={mandate.id} mandate={mandate} />
@@ -875,47 +861,13 @@ export default function MandatesIndexPage() {
 
               {/* Message si aucun mandat */}
               {filteredMandates.length === 0 && (
-                <div className="text-center py-12">
-                  <Building2 className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-slate-900 mb-2">
-                    {mandates.length === 0
-                      ? "Aucun établissement"
-                      : "Aucun résultat"}
-                  </h3>
-                  <p className="text-slate-600 mb-6 max-w-md mx-auto">
-                    {mandates.length === 0
-                      ? "Créez votre premier établissement pour commencer à suivre vos revenus"
-                      : "Aucun établissement ne correspond à vos critères de recherche"}
-                  </p>
-                  <div className="flex items-center justify-center gap-3">
-                    {mandates.length === 0 ? (
-                      <>
-                        <Button
-                          onClick={handleCreateNew}
-                          className="bg-blue-600 hover:bg-blue-700"
-                        >
-                          <Plus className="mr-2 h-4 w-4" />
-                          Créer un établissement
-                        </Button>
-                        <Button onClick={handleImport} variant="outline">
-                          <Upload className="mr-2 h-4 w-4" />
-                          Importer des données
-                        </Button>
-                      </>
-                    ) : (
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          setSearchTerm("");
-                          setGroupFilter("all");
-                          setStatusFilter("all");
-                        }}
-                      >
-                        Réinitialiser les filtres
-                      </Button>
-                    )}
-                  </div>
-                </div>
+                <EmptyState
+                  type="mandates"
+                  onPrimaryAction={handleCreateNew}
+                  onSecondaryAction={
+                    mandates.length === 0 ? handleImport : undefined
+                  }
+                />
               )}
             </div>
           )}

@@ -46,6 +46,7 @@ import {
   DropdownMenuTrigger,
 } from "@/app/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import EmptyState from "@/app/components/EmptyState";
 
 interface DayValue {
   id: string;
@@ -600,21 +601,11 @@ export default function ValeursPage() {
           </Table>
 
           {filteredValues.length === 0 && (
-            <div className="text-center py-8">
-              <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold">Aucune valeur trouvée</h3>
-              <p className="text-muted-foreground mb-4">
-                {dayValues.length === 0
-                  ? "Commencez par saisir votre première valeur"
-                  : "Essayez de modifier vos filtres de recherche"}
-              </p>
-              {dayValues.length === 0 && (
-                <Button onClick={handleCreateNew}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Première saisie
-                </Button>
-              )}
-            </div>
+            <EmptyState
+              type="dayvalues"
+              mandateCount={mandates.length}
+              onPrimaryAction={handleCreateNew}
+            />
           )}
         </CardContent>
       </Card>
