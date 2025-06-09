@@ -5,7 +5,15 @@ import Link from "next/link";
 import { UsersTable } from "@/app/profile/edit/users-table";
 import { Button } from "@/app/components/ui/button";
 import { BackButton } from "@/app/components/ui/BackButton";
-import { PlusCircle, Users } from "lucide-react";
+import {
+  PlusCircle,
+  Users,
+  Shield,
+  UserCheck,
+  Building2,
+  Crown,
+  TrendingUp,
+} from "lucide-react";
 
 export default async function ProfileEditPage() {
   const user = await getUser();
@@ -35,61 +43,240 @@ export default async function ProfileEditPage() {
     where: { id: orgUser.organizationId },
   });
 
+  // Calculer les statistiques
+  const totalMembers = orgUsers.length;
+  const adminCount = orgUsers.filter((ou) => ou.role === "admin").length;
+  const memberCount = orgUsers.filter((ou) => ou.role === "member").length;
+
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
-      <div className="mb-8">
-        <BackButton
-          href="/profile"
-          label="Retour au profil"
-          loadingMessage="Retour au profil..."
-        />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
+      {/* Header avec design financier */}
+      <div className="relative overflow-hidden">
+        {/* Arrière-plan avec motif subtil */}
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/8 via-indigo-600/5 to-slate-600/3"></div>
+        <div
+          className="absolute inset-0 opacity-[0.02]"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='1'%3E%3Ccircle cx='6' cy='6' r='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+          }}
+        ></div>
 
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-[color:var(--foreground)]">
-              Gestion des Utilisateurs
-            </h1>
-            <p className="text-[color:var(--muted-foreground)] mt-1">
-              {organization?.name || "Organisation"} - {orgUsers.length} membre
-              {orgUsers.length > 1 ? "s" : ""}
-            </p>
-          </div>
+        <div className="relative border-b border-slate-200/50 bg-white/40 backdrop-blur-md">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+            <div className="mb-6">
+              <BackButton
+                href="/profile"
+                label="Retour au profil"
+                className="text-slate-600 hover:text-blue-600 transition-colors"
+              />
+            </div>
 
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Button
-              asChild
-              className="bg-[color:var(--primary)] text-[color:var(--primary-foreground)] hover:bg-[color:var(--primary)]/90"
-            >
-              <Link href="/profile/invitations">
-                <PlusCircle size={16} className="mr-2" />
-                Inviter des membres
-              </Link>
-            </Button>
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+              <div className="flex items-center gap-6">
+                {/* Icône principale avec gradient */}
+                <div className="relative">
+                  <div className="absolute -inset-2 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 rounded-xl blur-md"></div>
+                  <div className="relative p-4 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg">
+                    <Users className="h-8 w-8 text-white" />
+                  </div>
+                </div>
+
+                <div>
+                  <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+                    Gestion des Utilisateurs
+                  </h1>
+                  <div className="flex items-center gap-4 mt-2">
+                    <div className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4 text-emerald-600" />
+                      <span className="text-slate-600 font-medium">
+                        {organization?.name || "Organisation"}
+                      </span>
+                    </div>
+                    <div className="w-1 h-1 bg-slate-400 rounded-full"></div>
+                    <span className="text-slate-500">
+                      {totalMembers} membre{totalMembers > 1 ? "s" : ""}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bouton d'action principal */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button
+                  asChild
+                  className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                >
+                  <Link href="/profile/invitations">
+                    <PlusCircle size={16} className="mr-2" />
+                    Inviter des membres
+                  </Link>
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="bg-[color:var(--card)] border border-[color:var(--border)] rounded-lg shadow-sm overflow-hidden">
-        <div className="p-4 sm:p-6 border-b border-[color:var(--border)] bg-[color:var(--muted)]">
-          <div className="flex items-center gap-3">
-            <Users size={20} className="text-[color:var(--primary)]" />
-            <h2 className="text-lg font-medium text-[color:var(--foreground)]">
-              Liste des membres
-            </h2>
+      {/* Statistiques rapides */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+          {/* Total des membres */}
+          <div className="relative group">
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500/20 to-blue-600/20 rounded-lg blur opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            <div className="relative bg-white/80 backdrop-blur-sm border border-slate-200/60 rounded-lg p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600">
+                    Total des membres
+                  </p>
+                  <p className="text-2xl font-bold text-slate-800">
+                    {totalMembers}
+                  </p>
+                </div>
+                <div className="p-2.5 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg">
+                  <Users className="h-5 w-5 text-blue-600" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Administrateurs */}
+          <div className="relative group">
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-amber-500/20 to-amber-600/20 rounded-lg blur opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            <div className="relative bg-white/80 backdrop-blur-sm border border-slate-200/60 rounded-lg p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600">
+                    Administrateurs
+                  </p>
+                  <p className="text-2xl font-bold text-slate-800">
+                    {adminCount}
+                  </p>
+                </div>
+                <div className="p-2.5 bg-gradient-to-br from-amber-50 to-amber-100 rounded-lg">
+                  <Crown className="h-5 w-5 text-amber-600" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Membres standards */}
+          <div className="relative group">
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 rounded-lg blur opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            <div className="relative bg-white/80 backdrop-blur-sm border border-slate-200/60 rounded-lg p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600">Membres</p>
+                  <p className="text-2xl font-bold text-slate-800">
+                    {memberCount}
+                  </p>
+                </div>
+                <div className="p-2.5 bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-lg">
+                  <UserCheck className="h-5 w-5 text-emerald-600" />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="p-1 sm:p-2">
-          <UsersTable
-            users={orgUsers.map((ou) => ({
-              id: ou.user.id,
-              email: ou.user.email || "",
-              name: ou.user.name || "",
-              role: ou.role,
-              avatar: ou.user.image,
-              isCurrentUser: ou.user.id === user.id,
-            }))}
-          />
+        {/* Carte principale avec la liste des utilisateurs */}
+        <div className="relative group">
+          <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+          <div className="relative bg-white/90 backdrop-blur-sm border border-slate-200/60 rounded-xl shadow-sm overflow-hidden">
+            {/* En-tête de la carte */}
+            <div className="p-6 border-b border-slate-100 bg-gradient-to-r from-blue-50/50 via-transparent to-indigo-50/30">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg">
+                  <Users size={20} className="text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-semibold text-slate-800">
+                    Liste des membres
+                  </h2>
+                  <p className="text-sm text-slate-600">
+                    Gérez les accès et rôles de votre équipe
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Contenu de la carte */}
+            <div className="p-6">
+              <UsersTable
+                users={orgUsers.map((ou) => ({
+                  id: ou.user.id,
+                  email: ou.user.email || "",
+                  name: ou.user.name || "",
+                  role: ou.role,
+                  avatar: ou.user.image,
+                  isCurrentUser: ou.user.id === user.id,
+                }))}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Actions rapides en bas */}
+        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <Link
+            href="/profile/invitations"
+            className="group relative overflow-hidden bg-white/80 backdrop-blur-sm border border-slate-200/50 rounded-lg p-4 shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-[1.02] hover:border-blue-200/60"
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            <div className="relative flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100 text-blue-600 group-hover:from-blue-100 group-hover:to-blue-200 transition-all">
+                <PlusCircle size={18} />
+              </div>
+              <div>
+                <h3 className="font-semibold text-slate-800 group-hover:text-blue-700 transition-colors">
+                  Inviter des membres
+                </h3>
+                <p className="text-xs text-slate-600">
+                  Ajouter de nouveaux utilisateurs
+                </p>
+              </div>
+            </div>
+          </Link>
+
+          <Link
+            href="/profile/permissions"
+            className="group relative overflow-hidden bg-white/80 backdrop-blur-sm border border-slate-200/50 rounded-lg p-4 shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-[1.02] hover:border-amber-200/60"
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-amber-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            <div className="relative flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-amber-50 to-amber-100 text-amber-600 group-hover:from-amber-100 group-hover:to-amber-200 transition-all">
+                <Shield size={18} />
+              </div>
+              <div>
+                <h3 className="font-semibold text-slate-800 group-hover:text-amber-700 transition-colors">
+                  Permissions
+                </h3>
+                <p className="text-xs text-slate-600">
+                  Gérer les accès et rôles
+                </p>
+              </div>
+            </div>
+          </Link>
+
+          <Link
+            href="/profile/activity"
+            className="group relative overflow-hidden bg-white/80 backdrop-blur-sm border border-slate-200/50 rounded-lg p-4 shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-[1.02] hover:border-emerald-200/60"
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            <div className="relative flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-emerald-50 to-emerald-100 text-emerald-600 group-hover:from-emerald-100 group-hover:to-emerald-200 transition-all">
+                <TrendingUp size={18} />
+              </div>
+              <div>
+                <h3 className="font-semibold text-slate-800 group-hover:text-emerald-700 transition-colors">
+                  Activité
+                </h3>
+                <p className="text-xs text-slate-600">
+                  Voir l&apos;activité des membres
+                </p>
+              </div>
+            </div>
+          </Link>
         </div>
       </div>
     </div>
