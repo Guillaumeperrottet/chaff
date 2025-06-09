@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
+import { FeatureButton } from "@/app/components/FeatureButton";
 import {
   Select,
   SelectContent,
@@ -258,10 +259,15 @@ export default function AnalyticsPage() {
             )}
             Actualiser
           </Button>
-          <Button variant="outline" size="sm" onClick={handleExportAnalytics}>
+          <FeatureButton
+            feature="advanced_reports"
+            variant="outline"
+            size="sm"
+            onClick={handleExportAnalytics}
+          >
             <Download className="mr-2 h-4 w-4" />
             Exporter
-          </Button>
+          </FeatureButton>
         </div>
       </div>
 

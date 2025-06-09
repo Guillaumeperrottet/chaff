@@ -13,6 +13,7 @@ import {
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
+import { FeatureButton } from "@/app/components/FeatureButton";
 import {
   Select,
   SelectContent,
@@ -351,29 +352,44 @@ export default function SimpleImportPage() {
 
             {/* Boutons d'action */}
             <div className="flex gap-2 pt-4">
-              <Button
-                onClick={handleImport}
-                disabled={
-                  !selectedFile ||
-                  !selectedMandateId ||
-                  !period ||
-                  !defaultHourlyRate ||
-                  isUploading
-                }
-                className="flex-1"
-              >
-                {isUploading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Import en cours...
-                  </>
-                ) : (
-                  <>
-                    <Calculator className="mr-2 h-4 w-4" />
-                    Calculer la masse salariale
-                  </>
-                )}
-              </Button>
+              {!selectedFile ||
+              !selectedMandateId ||
+              !period ||
+              !defaultHourlyRate ||
+              isUploading ? (
+                <Button
+                  onClick={handleImport}
+                  disabled={
+                    !selectedFile ||
+                    !selectedMandateId ||
+                    !period ||
+                    !defaultHourlyRate ||
+                    isUploading
+                  }
+                  className="flex-1"
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Import en cours...
+                    </>
+                  ) : (
+                    <>
+                      <Calculator className="mr-2 h-4 w-4" />
+                      Calculer la masse salariale
+                    </>
+                  )}
+                </Button>
+              ) : (
+                <FeatureButton
+                  feature="payroll"
+                  onClick={handleImport}
+                  className="flex-1"
+                >
+                  <Calculator className="mr-2 h-4 w-4" />
+                  Calculer la masse salariale
+                </FeatureButton>
+              )}
 
               {(selectedFile || importResult) && (
                 <Button
@@ -540,7 +556,8 @@ export default function SimpleImportPage() {
 
             {/* Actions après import */}
             <div className="flex gap-2 pt-4 border-t">
-              <Button
+              <FeatureButton
+                feature="payroll"
                 onClick={() =>
                   router.push(
                     `/dashboard/mandates/${selectedMandateId}/payroll`
@@ -548,7 +565,7 @@ export default function SimpleImportPage() {
                 }
               >
                 Voir la masse salariale
-              </Button>
+              </FeatureButton>
               <Button variant="outline" onClick={handleReset}>
                 Nouvel import
               </Button>

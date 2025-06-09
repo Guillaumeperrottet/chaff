@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
+import { FeatureButton } from "@/app/components/FeatureButton";
 import { Label } from "@/app/components/ui/label";
 import {
   Select,
@@ -313,23 +314,34 @@ export default function PayrollImportPage() {
 
             {/* Boutons d'action */}
             <div className="flex gap-2 pt-4">
-              <Button
-                onClick={handleImport}
-                disabled={!selectedFile || !selectedMandateId || isUploading}
-                className="flex-1"
-              >
-                {isUploading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Import en cours...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="mr-2 h-4 w-4" />
-                    Lancer l&apos;import
-                  </>
-                )}
-              </Button>
+              {isUploading ? (
+                <Button
+                  onClick={handleImport}
+                  disabled={true}
+                  className="flex-1"
+                >
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Import en cours...
+                </Button>
+              ) : !selectedFile || !selectedMandateId ? (
+                <Button
+                  onClick={handleImport}
+                  disabled={true}
+                  className="flex-1"
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  Lancer l&apos;import
+                </Button>
+              ) : (
+                <FeatureButton
+                  feature="payroll"
+                  onClick={handleImport}
+                  className="flex-1"
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  Lancer l&apos;import
+                </FeatureButton>
+              )}
 
               {(selectedFile || importResult) && (
                 <Button

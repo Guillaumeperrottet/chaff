@@ -218,8 +218,10 @@ export default function DashboardPage() {
       const data = await response.json();
       setPayrollRatios(data);
     } catch (error) {
-      console.error("Erreur:", error);
-      toast.error("Erreur lors du chargement des ratios masse salariale");
+      console.error(
+        "Erreur lors du chargement des ratios(faut avoir le premium):",
+        error
+      );
     }
   };
 

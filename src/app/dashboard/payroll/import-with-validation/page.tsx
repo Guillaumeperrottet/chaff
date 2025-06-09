@@ -13,6 +13,7 @@ import {
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
+import { FeatureButton } from "@/app/components/FeatureButton";
 import {
   Select,
   SelectContent,
@@ -696,24 +697,26 @@ export default function ImportWithValidationPage() {
           <Card>
             <CardContent className="pt-6">
               <div className="flex gap-4">
-                <Button
-                  onClick={handleFinalImport}
-                  disabled={isImporting}
-                  className="flex-1"
-                >
-                  {isImporting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Import en cours...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="mr-2 h-4 w-4" />
-                      Confirmer l&apos;import (
-                      {validationData.statistics.totalEmployees} employés)
-                    </>
-                  )}
-                </Button>
+                {isImporting ? (
+                  <Button
+                    onClick={handleFinalImport}
+                    disabled={isImporting}
+                    className="flex-1"
+                  >
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Import en cours...
+                  </Button>
+                ) : (
+                  <FeatureButton
+                    feature="payroll"
+                    onClick={handleFinalImport}
+                    className="flex-1"
+                  >
+                    <Save className="mr-2 h-4 w-4" />
+                    Confirmer l&apos;import (
+                    {validationData.statistics.totalEmployees} employés)
+                  </FeatureButton>
+                )}
 
                 <Button
                   variant="outline"

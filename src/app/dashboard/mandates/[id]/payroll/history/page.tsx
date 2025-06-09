@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
+import { FeatureButton } from "@/app/components/FeatureButton";
 import {
   Select,
   SelectContent,
@@ -268,12 +269,13 @@ export default function PayrollHistoryPage() {
               ))}
             </SelectContent>
           </Select>
-          <Button
+          <FeatureButton
+            feature="payroll"
             variant="outline"
             onClick={() => router.push("/dashboard/payroll/simple-import")}
           >
             Nouvel import
-          </Button>
+          </FeatureButton>
         </div>
       </div>
 
@@ -413,11 +415,12 @@ export default function PayrollHistoryPage() {
                 Aucun import n&apos;a été effectué pour l&apos;année{" "}
                 {selectedYear}
               </p>
-              <Button
+              <FeatureButton
+                feature="payroll"
                 onClick={() => router.push("/dashboard/payroll/simple-import")}
               >
                 Premier import
-              </Button>
+              </FeatureButton>
             </div>
           ) : (
             <Table>
