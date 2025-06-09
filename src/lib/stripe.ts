@@ -43,11 +43,9 @@ export const stripe =
     ? new Stripe(stripeSecretKey, {
         apiVersion: "2025-05-28.basil",
         appInfo: {
-          name: "PlanniKeeper",
+          name: "Chaff",
           version: "1.0.0",
-          url: isProduction
-            ? "https://plannikeeper.ch"
-            : "http://localhost:3000",
+          url: isProduction ? "https://chaff.ch" : "http://localhost:3000",
         },
         typescript: true,
         timeout: isProduction ? 30000 : 10000,
@@ -57,46 +55,63 @@ export const PLAN_DETAILS = {
   FREE: {
     id: "FREE",
     name: "Gratuit",
-    description: "Pour découvrir l'application",
+    description: "Plan de découverte limité",
     price: 0,
     monthlyPrice: 0,
     yearlyPrice: 0,
-    maxUsers: 1,
-    maxObjects: 1,
-    maxStorage: 500, // MB
-    maxSectors: 1,
-    maxArticles: 10,
-    maxTasks: 50,
+    // 🚫 LIMITATIONS STRICTES
+    maxUsers: 1, // 1 seul utilisateur
+    maxObjects: 1, // 1 seul mandat
+    maxStorage: 100, // 100MB seulement (réduit)
+    maxSectors: 0, // Pas de secteurs
+    maxArticles: 0, // Pas d'articles
+    maxTasks: 5, // Maximum 5 tâches
+    // 🚫 RESTRICTIONS D'ACCÈS
+    allowPayrollAccess: false, // 🚫 PAS d'accès masse salariale
+    allowAdvancedReports: false, // 🚫 PAS de rapports avancés
+    allowBulkImport: false, // 🚫 PAS d'import en lot
+    allowAPIAccess: false, // 🚫 PAS d'accès API
     features: [
-      "1 utilisateur",
-      "1 objet immobilier",
-      "500MB de stockage",
+      "1 utilisateur maximum",
+      "1 mandat de découverte",
+      "100MB de stockage",
+      "5 tâches maximum",
+      "Dashboard de base uniquement",
       "Support communauté",
-      "Fonctionnalités de base",
+      "❌ Pas d'accès masse salariale",
+      "❌ Pas de rapports avancés",
     ],
     popular: false,
   },
   PREMIUM: {
     id: "PREMIUM",
     name: "Premium",
-    description: "Pour une utilisation professionnelle",
-    price: 29, // Ajustez selon vos besoins
+    description: "Plan complet pour professionnels",
+    price: 29,
     monthlyPrice: 29,
     yearlyPrice: 290, // 10 mois payés sur 12
+    // ✅ ACCÈS COMPLET
     maxUsers: 10,
     maxObjects: null, // Illimité
     maxStorage: 10240, // 10GB
     maxSectors: null, // Illimité
     maxArticles: null, // Illimité
     maxTasks: null, // Illimité
+    // ✅ TOUS LES ACCÈS
+    allowPayrollAccess: true, // ✅ Accès masse salariale
+    allowAdvancedReports: true, // ✅ Rapports avancés
+    allowBulkImport: true, // ✅ Import en lot
+    allowAPIAccess: true, // ✅ Accès API
     features: [
       "Jusqu'à 10 utilisateurs",
-      "Objets immobiliers illimités",
+      "Mandats illimités",
       "10GB de stockage",
+      "Tâches illimitées",
+      "✅ Accès complet masse salariale",
+      "✅ Rapports et analytics avancés",
+      "✅ Import/export en lot",
       "Support prioritaire",
-      "Toutes les fonctionnalités",
-      "Gestion avancée des accès",
-      "Rapports et analytics",
+      "Formation incluse",
     ],
     popular: true,
   },
@@ -113,6 +128,10 @@ export const PLAN_DETAILS = {
     maxSectors: null,
     maxArticles: null,
     maxTasks: null,
+    allowPayrollAccess: true,
+    allowAdvancedReports: true,
+    allowBulkImport: true,
+    allowAPIAccess: true,
     features: ["Accès administrateur complet"],
     popular: false,
   },
