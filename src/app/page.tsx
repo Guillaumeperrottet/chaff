@@ -1,11 +1,10 @@
+// src/app/page.tsx - Page d'accueil redirigée vers inscription
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useSession } from "@/hooks/useSession";
 import { useRouter } from "next/navigation";
 import { Button } from "@/app/components/ui/button";
-import { Input } from "@/app/components/ui/input";
-import { Label } from "@/app/components/ui/label";
 import {
   Card,
   CardContent,
@@ -14,19 +13,18 @@ import {
   CardTitle,
 } from "@/app/components/ui/card";
 import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/app/components/ui/tabs";
-import { authClient } from "@/lib/auth-client";
-import { ChevronRight, Shield, Users, BarChart3, Zap } from "lucide-react";
-import { toast } from "sonner";
+  ChevronRight,
+  Shield,
+  Users,
+  BarChart3,
+  Zap,
+  ArrowRight,
+} from "lucide-react";
+import Link from "next/link";
 
 export default function LandingPage() {
   const { data: session, isPending } = useSession();
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
 
   // Redirection si déjà connecté
   useEffect(() => {
@@ -34,79 +32,6 @@ export default function LandingPage() {
       router.push("/dashboard");
     }
   }, [session, isPending, router]);
-
-  // Form states
-  const [signInData, setSignInData] = useState({ email: "", password: "" });
-  const [signUpData, setSignUpData] = useState({
-    name: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-  });
-
-  const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-
-    try {
-      const result = await authClient.signIn.email({
-        email: signInData.email,
-        password: signInData.password,
-      });
-
-      if (result.error) {
-        toast.error("Erreur de connexion", {
-          description: "Email ou mot de passe incorrect",
-        });
-      } else {
-        toast.success("Connexion réussie");
-        router.push("/dashboard");
-      }
-    } catch {
-      toast.error("Erreur", {
-        description: "Une erreur est survenue lors de la connexion",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-
-    if (signUpData.password !== signUpData.confirmPassword) {
-      toast.error("Erreur", {
-        description: "Les mots de passe ne correspondent pas",
-      });
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      const result = await authClient.signUp.email({
-        email: signUpData.email,
-        password: signUpData.password,
-        name: signUpData.name,
-      });
-
-      if (result.error) {
-        toast.error("Erreur d'inscription", {
-          description: "Cet email est peut-être déjà utilisé",
-        });
-      } else {
-        toast.success("Inscription réussie", {
-          description: "Vérifiez votre email pour activer votre compte",
-        });
-      }
-    } catch {
-      toast.error("Erreur", {
-        description: "Une erreur est survenue lors de l'inscription",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   if (isPending) {
     return (
@@ -144,6 +69,12 @@ export default function LandingPage() {
               >
                 Contact
               </a>
+              <Link
+                href="/signin"
+                className="text-muted-foreground hover:text-foreground"
+              >
+                Connexion
+              </Link>
             </div>
           </div>
         </div>
@@ -192,148 +123,84 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <Button size="lg" className="group">
-              Découvrir la démo
-              <ChevronRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-            </Button>
+            {/* CTA Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4">
+              <Link href="/signup">
+                <Button size="lg" className="group w-full sm:w-auto">
+                  Commencer gratuitement
+                  <ChevronRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </Button>
+              </Link>
+
+              <Link href="/signin">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="w-full sm:w-auto"
+                >
+                  Se connecter
+                </Button>
+              </Link>
+            </div>
+
+            <p className="text-sm text-muted-foreground">
+              ✨ Aucune carte bancaire requise • Configuration en 2 minutes
+            </p>
           </div>
 
-          {/* Auth Forms */}
+          {/* CTA Card */}
           <div className="lg:max-w-md mx-auto w-full">
-            <Card>
-              <CardHeader>
-                <CardTitle>Commencer maintenant</CardTitle>
-                <CardDescription>
-                  Créez votre compte ou connectez-vous pour accéder à votre
-                  dashboard
+            <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
+              <CardHeader className="text-center">
+                <CardTitle className="text-2xl">Commencez maintenant</CardTitle>
+                <CardDescription className="text-base">
+                  Rejoignez nous !
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <Tabs defaultValue="signin" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="signin">Connexion</TabsTrigger>
-                    <TabsTrigger value="signup">Inscription</TabsTrigger>
-                  </TabsList>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
+                      <div className="w-2 h-2 bg-white rounded-full"></div>
+                    </div>
+                    <span className="text-sm">
+                      Inscription gratuite en 30 secondes
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
+                      <div className="w-2 h-2 bg-white rounded-full"></div>
+                    </div>
+                    <span className="text-sm">
+                      Interface intuitive et moderne
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
+                      <div className="w-2 h-2 bg-white rounded-full"></div>
+                    </div>
+                    <span className="text-sm">Support client réactif</span>
+                  </div>
+                </div>
 
-                  <TabsContent value="signin" className="space-y-4">
-                    <form onSubmit={handleSignIn} className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="signin-email">Email</Label>
-                        <Input
-                          id="signin-email"
-                          type="email"
-                          placeholder="votre@email.com"
-                          value={signInData.email}
-                          onChange={(e) =>
-                            setSignInData({
-                              ...signInData,
-                              email: e.target.value,
-                            })
-                          }
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="signin-password">Mot de passe</Label>
-                        <Input
-                          id="signin-password"
-                          type="password"
-                          value={signInData.password}
-                          onChange={(e) =>
-                            setSignInData({
-                              ...signInData,
-                              password: e.target.value,
-                            })
-                          }
-                          required
-                        />
-                      </div>
-                      <Button
-                        type="submit"
-                        className="w-full"
-                        disabled={isLoading}
-                      >
-                        {isLoading ? "Connexion..." : "Se connecter"}
-                      </Button>
-                    </form>
-                  </TabsContent>
+                <Link href="/signup" className="block">
+                  <Button className="w-full" size="lg">
+                    Créer mon compte gratuitement
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
 
-                  <TabsContent value="signup" className="space-y-4">
-                    <form onSubmit={handleSignUp} className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="signup-name">Nom complet</Label>
-                        <Input
-                          id="signup-name"
-                          type="text"
-                          placeholder="Jean Dupont"
-                          value={signUpData.name}
-                          onChange={(e) =>
-                            setSignUpData({
-                              ...signUpData,
-                              name: e.target.value,
-                            })
-                          }
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="signup-email">Email</Label>
-                        <Input
-                          id="signup-email"
-                          type="email"
-                          placeholder="votre@email.com"
-                          value={signUpData.email}
-                          onChange={(e) =>
-                            setSignUpData({
-                              ...signUpData,
-                              email: e.target.value,
-                            })
-                          }
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="signup-password">Mot de passe</Label>
-                        <Input
-                          id="signup-password"
-                          type="password"
-                          value={signUpData.password}
-                          onChange={(e) =>
-                            setSignUpData({
-                              ...signUpData,
-                              password: e.target.value,
-                            })
-                          }
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="signup-confirm">
-                          Confirmer le mot de passe
-                        </Label>
-                        <Input
-                          id="signup-confirm"
-                          type="password"
-                          value={signUpData.confirmPassword}
-                          onChange={(e) =>
-                            setSignUpData({
-                              ...signUpData,
-                              confirmPassword: e.target.value,
-                            })
-                          }
-                          required
-                        />
-                      </div>
-                      <Button
-                        type="submit"
-                        className="w-full"
-                        disabled={isLoading}
-                      >
-                        {isLoading ? "Inscription..." : "S'inscrire"}
-                      </Button>
-                    </form>
-                  </TabsContent>
-                </Tabs>
+                <div className="text-center">
+                  <p className="text-xs text-muted-foreground">
+                    Vous avez déjà un compte ?{" "}
+                    <Link
+                      href="/signin"
+                      className="text-primary hover:underline font-medium"
+                    >
+                      Connectez-vous ici
+                    </Link>
+                  </p>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -383,6 +250,75 @@ export default function LandingPage() {
                   d&apos;analyse intégrés
                 </CardDescription>
               </CardHeader>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing Section */}
+      <section id="pricing" className="py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center space-y-4 mb-16">
+            <h2 className="text-3xl font-bold">
+              Tarifs simples et transparents
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Commencez gratuitement, évoluez selon vos besoins
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            {/* Plan Gratuit */}
+            <Card className="relative">
+              <CardHeader>
+                <CardTitle>Gratuit</CardTitle>
+                <CardDescription>Parfait pour découvrir</CardDescription>
+                <div className="text-3xl font-bold">
+                  0€<span className="text-base font-normal">/mois</span>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <Link href="/signup">
+                  <Button className="w-full" variant="outline">
+                    Commencer gratuitement
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            {/* Plan Premium */}
+            <Card className="relative border-2 border-primary">
+              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                <span className="bg-primary text-primary-foreground px-3 py-1 rounded-full text-xs font-medium">
+                  Populaire
+                </span>
+              </div>
+              <CardHeader>
+                <CardTitle>Premium</CardTitle>
+                <CardDescription>Pour les professionnels</CardDescription>
+                <div className="text-3xl font-bold">
+                  29€<span className="text-base font-normal">/mois</span>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <Link href="/signup">
+                  <Button className="w-full">Essayer Premium</Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            {/* Plan Entreprise */}
+            <Card className="relative">
+              <CardHeader>
+                <CardTitle>Entreprise</CardTitle>
+                <CardDescription>Pour les grandes équipes</CardDescription>
+                <div className="text-3xl font-bold">Sur mesure</div>
+              </CardHeader>
+              <CardContent>
+                <Button className="w-full" variant="outline">
+                  Nous contacter
+                </Button>
+              </CardContent>
             </Card>
           </div>
         </div>

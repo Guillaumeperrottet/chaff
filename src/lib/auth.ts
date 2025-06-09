@@ -1,4 +1,4 @@
-// src/lib/auth.ts - Version optimisée avec Better Auth
+// src/lib/auth.ts - Version corrigée avec création d'organisation
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { prisma } from "./prisma";
@@ -54,20 +54,21 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true,
-    autoSignIn: true,
+    autoSignIn: false, // 🔧 IMPORTANT: Désactiver pour forcer la vérification email
   },
+
   emailVerification: {
     sendOnSignUp: true,
-    autoSignInAfterVerification: true,
+    autoSignInAfterVerification: true, // Se connecter après vérification
     sendVerificationEmail: async ({ user, url }) => {
       console.log("📧 Envoi email de vérification:", user.email);
       const name = user.name || user.email.split("@")[0];
-      const subject = "Finalisez votre inscription à PlanniKeeper";
+      const subject = "Finalisez votre inscription à Chaff.ch";
       const html = `
       <!DOCTYPE html>
       <html>
         <head>
-          <meta charset=\"utf-8\">
+          <meta charset="utf-8">
           <title>Finalisez votre inscription</title>
           <style>
             body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f5f5f5; }
@@ -79,23 +80,23 @@ export const auth = betterAuth({
           </style>
         </head>
         <body>
-          <div class=\"container\">
-            <div class=\"header\">
-              <h1>🏠 PlanniKeeper</h1>
+          <div class="container">
+            <div class="header">
+              <h1>🏠 Chaff.ch</h1>
               <h2>Finaliser votre inscription</h2>
             </div>
-            <div class=\"content\">
+            <div class="content">
               <p>Bonjour ${name},</p>
-              <p>Merci de votre intérêt pour PlanniKeeper ! Pour finaliser votre inscription et activer votre compte, veuillez cliquer sur le bouton ci-dessous :</p>
-              <div style=\"text-align: center; margin: 30px 0;\">
-                <a href=\"${url}\" class=\"button\">
+              <p>Merci de votre intérêt pour Chaff.ch ! Pour finaliser votre inscription et activer votre compte, veuillez cliquer sur le bouton ci-dessous :</p>
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${url}" class="button">
                   Activer mon compte
                 </a>
               </div>
               <p><strong>Important :</strong> Ce lien expire dans 24 heures.</p>
             </div>
-            <div class=\"footer\">
-              <p>© 2025 PlanniKeeper. Tous droits réservés.</p>
+            <div class="footer">
+              <p>© 2025 Chaff.ch. Tous droits réservés.</p>
             </div>
           </div>
         </body>
@@ -106,76 +107,53 @@ export const auth = betterAuth({
     },
   },
 
-  // Hooks simplifiés pour inscriptions normales uniquement
+  // 🔧 CORRECTION: Utiliser databaseHooks au lieu de hooks
+  databaseHooks: {
+    user: {
+      create: {
+        // Hook AVANT création utilisateur
+        before: async (user) => {
+          console.log("🆕 Création utilisateur:", user.email);
+          return { data: user };
+        },
+        // Hook APRÈS création utilisateur
+        after: async (user) => {
+          console.log("📝 Utilisateur créé, sauvegarde métadonnées:", user.id);
+
+          // Sauvegarder les métadonnées basiques pour traitement ultérieur
+          await prisma.user.update({
+            where: { id: user.id },
+            data: {
+              metadata: {
+                planType: "FREE",
+                signupTimestamp: new Date().toISOString(),
+                needsOrganization: true, // Flag pour indiquer qu'il faut créer l'organisation
+              },
+            },
+          });
+        },
+      },
+    },
+  },
+
+  // 🔧 NOUVEAU: Hooks pour les événements d'authentification
   hooks: {
-    after: async (inputContext) => {
-      const path =
-        ((inputContext as Record<string, unknown>)["path"] as string) ||
-        ((
-          (inputContext as Record<string, unknown>)["req"] as Record<
-            string,
-            unknown
-          >
-        )?.["path"] as string) ||
-        ((
-          (inputContext as Record<string, unknown>)["req"] as Record<
-            string,
-            unknown
-          >
-        )?.["url"] as string) ||
-        "";
-      const returned = (inputContext as Record<string, unknown>)["returned"] as
-        | Record<string, unknown>
-        | undefined;
+    after: async (context) => {
+      const path = context.request?.url || "";
 
-      console.log("🔄 Hook after déclenché pour path:", path);
-
-      // ✅ GARDER SEULEMENT LES INSCRIPTIONS NORMALES (sans invitation)
-      if (path.includes("sign-up") && !path.includes("invitation")) {
+      // 🔧 Hook spécifique pour la vérification email
+      if (path.includes("verify-email")) {
         try {
-          if (returned && typeof returned === "object" && "user" in returned) {
-            const user = returned["user"] as {
-              id: string;
-              email: string;
-              name?: string;
-            };
-            console.log("📝 Inscription normale pour:", user.email);
-            await handleRegularSignup(user);
+          // Access user data from the response body instead
+          const response = context.body as unknown as {
+            user?: { id: string; email: string; name?: string };
+          };
+          if (response?.user) {
+            console.log("✅ Email vérifié pour:", response.user.email);
+            await handleEmailVerificationComplete(response.user);
           }
         } catch (error) {
-          console.error("❌ Erreur dans hook inscription normale:", error);
-        }
-      }
-
-      // ✅ GARDER LA VÉRIFICATION EMAIL SEULEMENT POUR LES INSCRIPTIONS NORMALES
-      else if (path.includes("verify-email")) {
-        try {
-          if (returned && typeof returned === "object" && "user" in returned) {
-            const user = returned["user"] as {
-              id: string;
-              email: string;
-              name?: string;
-            };
-
-            // Vérifier si c'est une invitation (auquel cas ne rien faire)
-            const dbUser = await prisma.user.findUnique({
-              where: { id: user.id },
-              select: { metadata: true },
-            });
-
-            const metadata = dbUser?.metadata as Record<string, unknown> | null;
-            if (metadata && typeof metadata["inviteCode"] === "string") {
-              console.log(
-                "ℹ️ Invitation détectée, pas de traitement supplémentaire"
-              );
-              return {};
-            }
-
-            // Traitement normal pour les inscriptions classiques
-            await handleEmailVerificationForRegularUser(user);
-          }
-        } catch (error) {
-          console.error("❌ Erreur dans hook vérification email:", error);
+          console.error("❌ Erreur dans hook verify-email:", error);
         }
       }
 
@@ -196,148 +174,87 @@ export const auth = betterAuth({
 });
 
 // ============================================================================
-// FONCTIONS SIMPLIFIÉES POUR INSCRIPTIONS NORMALES UNIQUEMENT
+// FONCTION POUR GÉRER LA FINALISATION APRÈS VÉRIFICATION EMAIL
 // ============================================================================
-
-// Gérer inscription normale (nouveau propriétaire)
-async function handleRegularSignup(user: {
+async function handleEmailVerificationComplete(user: {
   id: string;
   email: string;
   name?: string;
 }) {
-  console.log("🆕 Nouveau propriétaire, création organisation:", user.email);
+  console.log("🔄 Finalisation de l'inscription pour:", user.email);
 
-  // Enregistrer les métadonnées basiques
-  await prisma.user.update({
-    where: { id: user.id },
-    data: {
-      metadata: {
-        planType: "FREE",
-        signupTimestamp: new Date().toISOString(),
+  try {
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      include: {
+        Organization: true,
+        OrganizationUser: true,
       },
-    },
-  });
+    });
 
-  // Pas de création d'organisation ici, on attend la vérification email
-  console.log("✅ Métadonnées sauvegardées, attente vérification email");
-}
+    if (!dbUser) {
+      console.error("❌ Utilisateur introuvable dans la DB");
+      return;
+    }
 
-// Fonction pour gérer la vérification email des utilisateurs normaux
-async function handleEmailVerificationForRegularUser(user: {
-  id: string;
-  email: string;
-  name?: string;
-}) {
-  console.log("✅ Email vérifié pour inscription normale:", user.email);
+    // Vérifier si l'organisation existe déjà
+    if (dbUser.Organization) {
+      console.log("✅ Organisation existe déjà:", dbUser.Organization.id);
+      return;
+    }
 
-  const dbUser = await prisma.user.findUnique({
-    where: { id: user.id },
-    include: {
-      Organization: true,
-      OrganizationUser: true,
-    },
-  });
+    // Créer l'organisation et tout configurer
+    console.log("🏢 Création organisation pour utilisateur normal");
 
-  if (!dbUser) {
-    console.error("❌ Utilisateur introuvable après vérification email");
-    return;
-  }
+    const organization = await prisma.organization.create({
+      data: {
+        name: `${user.name || user.email.split("@")[0]}'s Organization`,
+      },
+    });
 
-  // Si l'utilisateur n'a pas encore d'organisation, en créer une
-  if (!dbUser.Organization) {
-    await createDefaultOrganization(user);
-  } else {
-    // Finaliser la configuration si l'organisation existe déjà
-    const metadata = extractUserMetadata(dbUser.metadata);
-    await finalizeRegularUserSetup(user, dbUser.Organization.id, metadata);
-  }
+    // Lier l'utilisateur à l'organisation
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { organizationId: organization.id },
+    });
 
-  // Email de bienvenue
-  await sendWelcomeEmail(user);
-}
-
-// ============================================================================
-// FONCTIONS UTILITAIRES SIMPLIFIÉES
-// ============================================================================
-
-// Extraire métadonnées depuis l'utilisateur DB (simplifié)
-function extractUserMetadata(metadata: unknown) {
-  const meta =
-    metadata && typeof metadata === "object"
-      ? (metadata as Record<string, unknown>)
-      : {};
-
-  return {
-    planType: typeof meta["planType"] === "string" ? meta["planType"] : "FREE",
-  };
-}
-
-// ============================================================================
-// FONCTIONS DE FINALISATION (APRÈS VÉRIFICATION EMAIL)
-// ============================================================================
-
-// Finaliser configuration utilisateur normal
-async function finalizeRegularUserSetup(
-  user: { id: string; email: string; name?: string },
-  organizationId: string,
-  metadata: { planType?: string }
-) {
-  // S'assurer que l'association OrganizationUser existe
-  const existingOrgUser = await prisma.organizationUser.findFirst({
-    where: { userId: user.id, organizationId },
-  });
-
-  if (!existingOrgUser) {
+    // Créer la relation OrganizationUser
     await prisma.organizationUser.create({
       data: {
         userId: user.id,
-        organizationId,
+        organizationId: organization.id,
         role: "admin",
       },
     });
-    console.log("✅ Association OrganizationUser créée (admin)");
+
+    // Créer l'abonnement FREE
+    await createSubscriptionIfNeeded(organization.id, "FREE");
+
+    // Créer le stockage
+    await prisma.storageUsage.create({
+      data: {
+        organizationId: organization.id,
+        totalUsedBytes: 0,
+      },
+    });
+
+    console.log("✅ Organisation créée avec succès:", organization.id);
+
+    // Envoyer email de bienvenue
+    try {
+      await EmailService.sendWelcomeEmail(dbUser, organization.name);
+      console.log("📧 Email de bienvenue envoyé");
+    } catch (emailError) {
+      console.error("❌ Erreur envoi email bienvenue:", emailError);
+    }
+  } catch (error) {
+    console.error("❌ Erreur lors de la finalisation:", error);
   }
-
-  // Créer abonnement si nécessaire
-  await createSubscriptionIfNeeded(organizationId, metadata.planType || "FREE");
 }
 
 // ============================================================================
-// FONCTIONS UTILITAIRES COMMUNES
+// FONCTIONS UTILITAIRES
 // ============================================================================
-
-// Créer organisation par défaut
-async function createDefaultOrganization(user: {
-  id: string;
-  email: string;
-  name?: string;
-}) {
-  console.log("🏢 Création organisation par défaut pour:", user.email);
-
-  const organization = await prisma.organization.create({
-    data: {
-      name: `${user.name || user.email.split("@")[0]}'s Organization`,
-    },
-  });
-
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { organizationId: organization.id },
-  });
-
-  await prisma.organizationUser.create({
-    data: {
-      userId: user.id,
-      organizationId: organization.id,
-      role: "admin",
-    },
-  });
-
-  await createSubscriptionIfNeeded(organization.id, "FREE");
-
-  console.log("✅ Organisation par défaut créée:", organization.id);
-  return organization;
-}
 
 // Créer abonnement si nécessaire
 async function createSubscriptionIfNeeded(
@@ -370,29 +287,5 @@ async function createSubscriptionIfNeeded(
       },
     });
     console.log("💰 Abonnement créé avec plan:", plan.name);
-  }
-}
-
-// Envoyer email de bienvenue
-async function sendWelcomeEmail(user: {
-  id: string;
-  email: string;
-  name?: string;
-}) {
-  try {
-    const userWithOrg = await prisma.user.findUnique({
-      where: { id: user.id },
-      include: { Organization: true },
-    });
-
-    if (userWithOrg?.Organization) {
-      await EmailService.sendWelcomeEmail(
-        userWithOrg,
-        userWithOrg.Organization.name
-      );
-      console.log("✅ Email de bienvenue envoyé à:", user.email);
-    }
-  } catch (error) {
-    console.error("❌ Erreur envoi email de bienvenue:", error);
   }
 }
