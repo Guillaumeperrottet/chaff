@@ -58,6 +58,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import EmptyState from "@/app/components/EmptyState";
+import { FeatureButton } from "@/app/components/FeatureButton";
 import { Input } from "@/app/components/ui/input";
 import {
   Select,
@@ -763,23 +764,25 @@ export default function DashboardPage() {
             <div className="h-8 w-px bg-border"></div>
 
             <div className="flex items-center gap-2">
-              <Button
+              <FeatureButton
+                feature="advanced_reports"
                 onClick={() => router.push("/dashboard/analytics")}
                 variant="outline"
-                className="border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-colors"
+                className="border-slate-200 hover:bg-slate-50"
               >
                 <BarChart3 className="mr-2 h-4 w-4" />
                 Analytics
-              </Button>
+              </FeatureButton>
 
-              <Button
+              <FeatureButton
+                feature="payroll"
                 onClick={() => router.push("/dashboard/payroll")}
                 variant="outline"
-                className="border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-colors"
+                className="border-slate-200 hover:bg-slate-50"
               >
                 <Calculator className="mr-2 h-4 w-4" />
                 Masse salariale
-              </Button>
+              </FeatureButton>
 
               <Button
                 variant="outline"

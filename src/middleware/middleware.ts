@@ -1,7 +1,14 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { auth } from "@/lib/auth";
+import { hasFeatureAccess } from "@/lib/access-control";
 
-export function middleware(request: NextRequest) {
+const protectedRoutes = {
+  "/dashboard/payroll": "payroll",
+  "/dashboard/analytics": "advanced_reports",
+} as const;
+
+export async function middleware(request: NextRequest) {
   const isDev =
     process.env.NODE_ENV === "development" ||
     process.env.NEXT_PUBLIC_DEV_MODE === "true";
@@ -18,6 +25,30 @@ export function middleware(request: NextRequest) {
   // If user is on the landing page (root) but is authenticated, redirect to dashboard
   if (pathname === "/" && isAuthenticated) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+
+  // Vérifier si c'est une route protégée par fonctionnalité
+  const requiredFeature =
+    protectedRoutes[pathname as keyof typeof protectedRoutes];
+
+  if (requiredFeature) {
+    const session = await auth.api.getSession({
+      headers: request.headers,
+    });
+
+    if (!session) {
+      return NextResponse.redirect(new URL("/signin", request.url));
+    }
+
+    const hasAccess = await hasFeatureAccess(session.user.id, requiredFeature);
+
+    if (!hasAccess) {
+      // Rediriger vers une page d'upgrade
+      const upgradeUrl = new URL("/pricing", request.url);
+      upgradeUrl.searchParams.set("feature", requiredFeature);
+      upgradeUrl.searchParams.set("returnTo", pathname);
+      return NextResponse.redirect(upgradeUrl);
+    }
   }
 
   // IMPORTANT: Ignorer les routes de webhook Stripe
@@ -62,5 +93,10 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)", "/api/:path*"],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico).*)",
+    "/api/:path*",
+    "/dashboard/payroll/:path*",
+    "/dashboard/analytics/:path*",
+  ],
 };
