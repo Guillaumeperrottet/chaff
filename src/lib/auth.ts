@@ -179,7 +179,7 @@ export const auth = betterAuth({
 });
 
 // ============================================================================
-// FONCTION POUR CRÉER L'ORGANISATION AVEC PLAN FREE STRICT
+// FONCTION POUR CRÉER L'ORGANISATION AVEC PLAN FREE
 // ============================================================================
 
 async function createDefaultOrganizationForUser(user: {
@@ -202,7 +202,10 @@ async function createDefaultOrganizationForUser(user: {
       // 2. Lier l'utilisateur à l'organisation
       await tx.user.update({
         where: { id: user.id },
-        data: { organizationId: organization.id },
+        data: {
+          organizationId: organization.id,
+          planType: "FREE", // Marquer explicitement comme FREE
+        },
       });
       console.log("✅ Utilisateur lié à l'organisation");
 
@@ -216,61 +219,18 @@ async function createDefaultOrganizationForUser(user: {
       });
       console.log("✅ Association OrganizationUser créée (admin)");
 
-      // 4. Créer le plan FREE avec les VRAIES limitations
-      let freePlan = await tx.plan.findFirst({
+      // 4. 🔧 RÉCUPÉRER LE PLAN FREE (au lieu de le créer)
+      const freePlan = await tx.plan.findFirst({
         where: { name: "FREE" },
       });
 
       if (!freePlan) {
-        freePlan = await tx.plan.create({
-          data: {
-            name: "FREE",
-            price: 0,
-            monthlyPrice: 0,
-            yearlyPrice: 0,
-            // 🚫 LIMITATIONS STRICTES POUR LE PLAN GRATUIT
-            maxUsers: 1, // Seulement 1 utilisateur
-            maxStorage: 100, // 100MB seulement (réduit de 500MB)
-            features: [
-              "1 utilisateur maximum",
-              "1 mandat maximum",
-              "100MB de stockage",
-              "Accès dashboard uniquement",
-              "Support communauté",
-              "Pas d'accès masse salariale", // 🚫 Restriction explicite
-            ],
-            description: "Plan gratuit avec fonctionnalités limitées",
-            isActive: true,
-            // 🔧 Ajouter des champs spécifiques pour les restrictions
-            maxApiCalls: 100, // Limitation API
-            hasAdvancedReports: false, // Pas de rapports avancés
-            hasApiAccess: false, // Pas d'accès API
-            hasCustomBranding: false, // Pas de branding personnalisé
-          },
-        });
-        console.log("✅ Plan FREE strict créé");
-      } else {
-        // 🔧 Mettre à jour le plan existant pour être plus strict
-        freePlan = await tx.plan.update({
-          where: { id: freePlan.id },
-          data: {
-            maxUsers: 1,
-            maxStorage: 100, // Réduire à 100MB
-            features: [
-              "1 utilisateur maximum",
-              "1 mandat maximum",
-              "100MB de stockage",
-              "Accès dashboard uniquement",
-              "Support communauté",
-              "Pas d'accès masse salariale",
-            ],
-            hasAdvancedReports: false,
-            hasApiAccess: false,
-            hasCustomBranding: false,
-          },
-        });
-        console.log("✅ Plan FREE mis à jour avec restrictions strictes");
+        throw new Error(
+          "❌ Plan FREE non trouvé ! Exécutez d'abord le seeding des plans."
+        );
       }
+
+      console.log("✅ Plan FREE trouvé:", freePlan.id);
 
       // 5. Créer l'abonnement FREE
       await tx.subscription.create({
@@ -293,23 +253,7 @@ async function createDefaultOrganizationForUser(user: {
       });
       console.log("✅ Stockage initialisé");
 
-      // 7. Marquer l'utilisateur avec le planType FREE
-      await tx.user.update({
-        where: { id: user.id },
-        data: {
-          planType: "FREE",
-          metadata: {
-            planType: "FREE",
-            signupTimestamp: new Date().toISOString(),
-            signupSource: "normal",
-            organizationCreated: true,
-            hasRestrictedAccess: true, // 🚫 Marquer comme accès restreint
-          },
-        },
-      });
-      console.log("✅ Utilisateur marqué avec plan FREE");
-
-      // 8. Envoyer l'email de bienvenue
+      // 7. Envoyer l'email de bienvenue
       try {
         const fullUser = await tx.user.findUnique({
           where: { id: user.id },
@@ -324,7 +268,7 @@ async function createDefaultOrganizationForUser(user: {
       }
 
       console.log(
-        "🎉 Configuration complète de l'utilisateur terminée avec plan FREE strict"
+        "🎉 Configuration complète de l'utilisateur terminée avec plan FREE"
       );
     });
   } catch (error) {

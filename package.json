@@ -8,11 +8,7 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
-    "prisma:seed": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed.ts",
-    "update-super-admin": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/update-super-admin.ts",
-    "update-to-illimitate": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/update-to-illimitate.ts",
-    "setup-storage-limits": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/setup-storage-limits.ts",
-    "migrate-limits": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/migrate-to-new-limits.ts"
+    "prisma:seed": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed.ts"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.2",
