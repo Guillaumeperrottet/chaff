@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { useSession } from "@/hooks/useSession";
+import { useSession } from "@/lib/auth-client";
 import { useRouter, usePathname } from "next/navigation";
 import { SessionService } from "@/lib/session-service";
 

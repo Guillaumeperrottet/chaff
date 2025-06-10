@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { auth } from "@/lib/auth";
 
 export async function middleware(request: NextRequest) {
   const isDev =
@@ -38,14 +37,11 @@ export async function middleware(request: NextRequest) {
 
   if (isDashboardRoute || isApiRoute) {
     try {
-      const session = await auth.api.getSession({
-        headers: request.headers,
-      });
+      // ✅ Vérification simple des cookies de session pour Edge middleware
+      const sessionCookie = request.cookies.get("better-auth.session_token");
 
-      if (!session?.user) {
-        console.log(
-          `❌ Accès refusé - utilisateur non authentifié: ${pathname}`
-        );
+      if (!sessionCookie?.value) {
+        console.log(`❌ Accès refusé - pas de cookie de session: ${pathname}`);
 
         if (isApiRoute) {
           return NextResponse.json(
@@ -62,7 +58,7 @@ export async function middleware(request: NextRequest) {
       }
 
       console.log(
-        `✅ Accès autorisé: ${pathname} pour utilisateur ${session.user.id}`
+        `✅ Accès autorisé: ${pathname} avec cookie de session valide`
       );
     } catch (error) {
       console.error("❌ Erreur middleware:", error);

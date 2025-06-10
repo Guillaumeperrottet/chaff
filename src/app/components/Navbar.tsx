@@ -30,7 +30,7 @@ import {
   DropdownMenuTrigger,
 } from "@/app/components/ui/dropdown-menu";
 // import { Badge } from "@/app/components/ui/badge";
-import { useSession } from "@/hooks/useSession";
+import { useSession } from "@/lib/auth-client";
 import { authClient } from "@/lib/auth-client";
 import { toast } from "sonner";
 
