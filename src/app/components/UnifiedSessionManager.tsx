@@ -169,7 +169,7 @@ export function UnifiedSessionManager() {
       console.log("Current pathname:", pathname);
       console.log("📍 Début de la redirection...");
       setIsRedirecting(true);
-      
+
       // Ajouter un délai pour voir si la redirection se fait
       setTimeout(() => {
         console.log("🚀 Exécution de router.push('/dashboard')");
