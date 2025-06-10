@@ -23,6 +23,13 @@ import {
 import { Checkbox } from "@/app/components/ui/checkbox";
 import { BackButton } from "@/app/components/ui/BackButton";
 import { Building2, Plus, X, Loader2, MapPin, AlertCircle } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/app/components/ui/dialog";
 
 // Types basés sur le schema Prisma
 type MandateGroup = "HEBERGEMENT" | "RESTAURATION";
@@ -44,6 +51,12 @@ export default function CreateMandatePage() {
     group: "" as MandateGroup | "",
     active: true,
   });
+
+  // État pour l'ajout de nouveaux types
+  const [isAddTypeDialogOpen, setIsAddTypeDialogOpen] = useState(false);
+  const [newTypeName, setNewTypeName] = useState("");
+  const [newTypeDescription, setNewTypeDescription] = useState("");
+  const [isAddingType, setIsAddingType] = useState(false);
 
   // Gestion des erreurs
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -187,6 +200,37 @@ export default function CreateMandatePage() {
     }
   };
 
+  // Fonction pour ajouter un nouveau type (simulation)
+  const handleAddNewType = async () => {
+    if (!newTypeName.trim()) return;
+
+    setIsAddingType(true);
+
+    try {
+      // Simulation d'un appel API pour ajouter un nouveau type
+      // Dans une vraie application, vous feriez un appel à votre API
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      toast.success(`Type "${newTypeName}" ajouté avec succès`, {
+        description:
+          "Vous pouvez maintenant l&apos;utiliser pour vos établissements.",
+      });
+
+      // Fermer la modal et nettoyer les champs
+      setIsAddTypeDialogOpen(false);
+      setNewTypeName("");
+      setNewTypeDescription("");
+
+      // Optionnel : vous pourriez aussi sélectionner automatiquement le nouveau type
+      // handleInputChange("group", newTypeName.toUpperCase().replace(/\s+/g, '_'));
+    } catch (err) {
+      toast.error("Erreur lors de l&apos;ajout du type");
+      console.error("Erreur lors de l&apos;ajout du type:", err);
+    } finally {
+      setIsAddingType(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="container mx-auto px-4 py-8 max-w-2xl">
@@ -319,7 +363,7 @@ export default function CreateMandatePage() {
               </div>
 
               {/* Type */}
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <Label
                   htmlFor="group"
                   className="text-base font-medium text-slate-900"
@@ -333,7 +377,7 @@ export default function CreateMandatePage() {
                   disabled={isLoading}
                 >
                   <SelectTrigger
-                    className={`h-12 text-base transition-all duration-200 ${
+                    className={`h-14 text-base transition-all duration-200 ${
                       errors.group
                         ? "border-red-300 focus:border-red-500 focus:ring-red-500/20"
                         : "border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
@@ -343,7 +387,7 @@ export default function CreateMandatePage() {
                   </SelectTrigger>
                   <SelectContent className="max-h-80 overflow-y-auto">
                     <SelectItem value="HEBERGEMENT">
-                      <div className="flex items-center gap-3 py-2">
+                      <div className="flex items-center gap-3 py-3">
                         <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
                           <Building2 className="h-4 w-4 text-blue-600" />
                         </div>
@@ -359,7 +403,7 @@ export default function CreateMandatePage() {
                       </div>
                     </SelectItem>
                     <SelectItem value="RESTAURATION">
-                      <div className="flex items-center gap-3 py-2">
+                      <div className="flex items-center gap-3 py-3">
                         <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
                           <MapPin className="h-4 w-4 text-orange-600" />
                         </div>
@@ -374,6 +418,95 @@ export default function CreateMandatePage() {
                         </div>
                       </div>
                     </SelectItem>
+
+                    {/* Bouton pour ajouter un nouveau type */}
+                    <div className="border-t border-slate-200 mt-2 pt-2">
+                      <Dialog
+                        open={isAddTypeDialogOpen}
+                        onOpenChange={setIsAddTypeDialogOpen}
+                      >
+                        <DialogTrigger asChild>
+                          <button
+                            type="button"
+                            className="w-full flex items-center gap-3 px-3 py-3 text-left hover:bg-slate-50 rounded-sm transition-colors"
+                          >
+                            <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                              <Plus className="h-4 w-4 text-green-600" />
+                            </div>
+                            <div className="flex-1">
+                              <div className="font-medium text-slate-900">
+                                Ajouter un nouveau type
+                              </div>
+                              <div className="text-sm text-slate-500">
+                                Créer un type d&apos;établissement personnalisé
+                              </div>
+                            </div>
+                          </button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-md">
+                          <DialogHeader>
+                            <DialogTitle>Ajouter un nouveau type</DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="newTypeName">Nom du type</Label>
+                              <Input
+                                id="newTypeName"
+                                value={newTypeName}
+                                onChange={(e) => setNewTypeName(e.target.value)}
+                                placeholder="Ex: Camping, Spa, etc."
+                                className="h-10"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="newTypeDescription">
+                                Description (optionnel)
+                              </Label>
+                              <Input
+                                id="newTypeDescription"
+                                value={newTypeDescription}
+                                onChange={(e) =>
+                                  setNewTypeDescription(e.target.value)
+                                }
+                                placeholder="Description du type d'établissement"
+                                className="h-10"
+                              />
+                            </div>
+                            <div className="flex justify-end gap-3 pt-4">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                  setIsAddTypeDialogOpen(false);
+                                  setNewTypeName("");
+                                  setNewTypeDescription("");
+                                }}
+                              >
+                                Annuler
+                              </Button>
+                              <Button
+                                type="button"
+                                onClick={handleAddNewType}
+                                disabled={!newTypeName.trim() || isAddingType}
+                                className="bg-green-600 hover:bg-green-700"
+                              >
+                                {isAddingType ? (
+                                  <>
+                                    <Loader2 className="animate-spin h-4 w-4 mr-2" />
+                                    Ajout...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    Ajouter
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
                   </SelectContent>
                 </Select>
 
