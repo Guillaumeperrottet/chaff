@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { FeatureAccess } from "@/lib/access-control";
 
 export function useFeatureAccess(feature: FeatureAccess) {
-  const [hasAccess, setHasAccess] = useState<boolean>(false);
+  const [hasAccess, setHasAccess] = useState<boolean | undefined>(undefined);
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
@@ -22,5 +22,5 @@ export function useFeatureAccess(feature: FeatureAccess) {
     checkAccess();
   }, [feature]);
 
-  return { hasAccess, loading };
+  return { hasAccess: hasAccess ?? false, loading };
 }

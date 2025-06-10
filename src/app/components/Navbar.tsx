@@ -188,8 +188,20 @@ function ChaffNavbar() {
     icon: React.ComponentType<{ className?: string }>;
     label: string;
   }) => {
-    const { hasAccess } = useFeatureAccess(feature);
+    const { hasAccess, loading } = useFeatureAccess(feature);
 
+    // Pendant le chargement, afficher l'élément de menu avec un loader
+    if (loading) {
+      return (
+        <DropdownMenuItem disabled className="opacity-70">
+          <Icon className="mr-2 h-4 w-4 text-muted-foreground" />
+          <span className="text-muted-foreground">{label}</span>
+          <div className="ml-auto h-3 w-3 animate-spin rounded-full border border-muted-foreground border-t-transparent" />
+        </DropdownMenuItem>
+      );
+    }
+
+    // Si pas d'accès après le chargement, afficher avec le cadenas
     if (!hasAccess) {
       return (
         <Tooltip>
@@ -211,6 +223,7 @@ function ChaffNavbar() {
       );
     }
 
+    // Accès accordé
     return (
       <DropdownMenuItem onClick={onClick}>
         <Icon className="mr-2 h-4 w-4 text-primary" />
