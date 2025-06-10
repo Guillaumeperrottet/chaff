@@ -1,4 +1,3 @@
-// src/app/profile/invitations/page.tsx
 import { getUser } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
@@ -9,9 +8,7 @@ import {
   ArrowLeft,
   UserPlus,
   Mail,
-  Clock,
   Shield,
-  Users,
   Link as LinkIcon,
   Calendar,
   Building2,
@@ -44,14 +41,6 @@ export default async function InvitationsPage() {
     },
     orderBy: { createdAt: "desc" },
   });
-
-  // Statistiques des invitations
-  const totalInvitations = invitationCodes.length;
-  const expiringSoon = invitationCodes.filter((code) => {
-    const threeDaysFromNow = new Date();
-    threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
-    return new Date(code.expiresAt) <= threeDaysFromNow;
-  }).length;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
@@ -130,70 +119,6 @@ export default async function InvitationsPage() {
 
       {/* Contenu principal */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
-        {/* Statistiques rapides */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-          {/* Invitations actives */}
-          <div className="relative group">
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 rounded-lg blur opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            <div className="relative bg-white/80 backdrop-blur-sm border border-slate-200/60 rounded-lg p-4 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-slate-600">
-                    Invitations actives
-                  </p>
-                  <p className="text-2xl font-bold text-slate-800">
-                    {totalInvitations}
-                  </p>
-                </div>
-                <div className="p-2.5 bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-lg">
-                  <LinkIcon className="h-5 w-5 text-emerald-600" />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Expirant bientôt */}
-          <div className="relative group">
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-amber-500/20 to-amber-600/20 rounded-lg blur opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            <div className="relative bg-white/80 backdrop-blur-sm border border-slate-200/60 rounded-lg p-4 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-slate-600">
-                    Expirant bientôt
-                  </p>
-                  <p className="text-2xl font-bold text-slate-800">
-                    {expiringSoon}
-                  </p>
-                </div>
-                <div className="p-2.5 bg-gradient-to-br from-amber-50 to-amber-100 rounded-lg">
-                  <Clock className="h-5 w-5 text-amber-600" />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Équipe actuelle */}
-          <div className="relative group">
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500/20 to-blue-600/20 rounded-lg blur opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            <div className="relative bg-white/80 backdrop-blur-sm border border-slate-200/60 rounded-lg p-4 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-slate-600">
-                    Membres actuels
-                  </p>
-                  <p className="text-2xl font-bold text-slate-800">
-                    {/* Vous pouvez ajouter une prop pour le nombre de membres si nécessaire */}
-                    -
-                  </p>
-                </div>
-                <div className="p-2.5 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg">
-                  <Users className="h-5 w-5 text-blue-600" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Carte Générer une invitation */}
           <div className="relative group">

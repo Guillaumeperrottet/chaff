@@ -107,20 +107,22 @@ export default async function EditUserPage({
                   {userToEdit.name || "Utilisateur sans nom"}
                 </h1>
                 {isCurrentUser && (
-                  <span className="px-2 py-1 text-xs font-medium bg-emerald-100 text-emerald-700 rounded-full">
+                  <span className="px-3 py-1 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full border border-blue-200">
                     C&apos;est vous
                   </span>
                 )}
               </div>
 
-              <div className="flex items-center gap-4 text-sm text-slate-600">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-slate-600">
                 <div className="flex items-center gap-1">
                   <Mail size={14} />
-                  <span>{userToEdit.email}</span>
+                  <span className="truncate max-w-xs">{userToEdit.email}</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <Building2 size={14} />
-                  <span>{currentUserOrg.organization.name}</span>
+                  <span className="truncate">
+                    {currentUserOrg.organization.name}
+                  </span>
                 </div>
                 <div className="flex items-center gap-1">
                   <Calendar size={14} />
@@ -255,17 +257,25 @@ export default async function EditUserPage({
                   </div>
                   <div>
                     <span className="text-slate-500">Email</span>
-                    <p className="font-medium text-slate-800">
+                    <p className="font-medium text-slate-800 truncate">
                       {userToEdit.email}
                     </p>
                   </div>
                   <div>
                     <span className="text-slate-500">Rôle actuel</span>
-                    <p className="font-medium text-slate-800 capitalize">
-                      {userToEditOrg.role === "admin"
-                        ? "Administrateur"
-                        : "Membre"}
-                    </p>
+                    <div className="mt-1">
+                      {userToEditOrg.role === "admin" ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full border border-blue-200">
+                          <Crown size={10} />
+                          Administrateur
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold bg-slate-100 text-slate-700 rounded-full border border-slate-200">
+                          <UserIcon size={10} />
+                          Membre
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div>
                     <span className="text-slate-500">Statut</span>

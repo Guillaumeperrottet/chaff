@@ -5,15 +5,7 @@ import Link from "next/link";
 import { UsersTable } from "@/app/profile/edit/users-table";
 import { Button } from "@/app/components/ui/button";
 import { BackButton } from "@/app/components/ui/BackButton";
-import {
-  PlusCircle,
-  Users,
-  Shield,
-  UserCheck,
-  Building2,
-  Crown,
-  TrendingUp,
-} from "lucide-react";
+import { PlusCircle, Users, UserCheck, Building2, Crown } from "lucide-react";
 
 export default async function ProfileEditPage() {
   const user = await getUser();
@@ -121,9 +113,8 @@ export default async function ProfileEditPage() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
           {/* Total des membres */}
-          <div className="relative group">
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500/20 to-blue-600/20 rounded-lg blur opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            <div className="relative bg-white/80 backdrop-blur-sm border border-slate-200/60 rounded-lg p-4 shadow-sm">
+          <div className="relative">
+            <div className="bg-white/80 backdrop-blur-sm border border-slate-200/60 rounded-lg p-4 shadow-sm">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-slate-600">
@@ -141,9 +132,8 @@ export default async function ProfileEditPage() {
           </div>
 
           {/* Administrateurs */}
-          <div className="relative group">
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-amber-500/20 to-amber-600/20 rounded-lg blur opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            <div className="relative bg-white/80 backdrop-blur-sm border border-slate-200/60 rounded-lg p-4 shadow-sm">
+          <div className="relative">
+            <div className="bg-white/80 backdrop-blur-sm border border-slate-200/60 rounded-lg p-4 shadow-sm">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-slate-600">
@@ -161,9 +151,8 @@ export default async function ProfileEditPage() {
           </div>
 
           {/* Membres standards */}
-          <div className="relative group">
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 rounded-lg blur opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            <div className="relative bg-white/80 backdrop-blur-sm border border-slate-200/60 rounded-lg p-4 shadow-sm">
+          <div className="relative">
+            <div className="bg-white/80 backdrop-blur-sm border border-slate-200/60 rounded-lg p-4 shadow-sm">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-slate-600">Membres</p>
@@ -214,69 +203,6 @@ export default async function ProfileEditPage() {
               />
             </div>
           </div>
-        </div>
-
-        {/* Actions rapides en bas */}
-        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <Link
-            href="/profile/invitations"
-            className="group relative overflow-hidden bg-white/80 backdrop-blur-sm border border-slate-200/50 rounded-lg p-4 shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-[1.02] hover:border-blue-200/60"
-          >
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            <div className="relative flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100 text-blue-600 group-hover:from-blue-100 group-hover:to-blue-200 transition-all">
-                <PlusCircle size={18} />
-              </div>
-              <div>
-                <h3 className="font-semibold text-slate-800 group-hover:text-blue-700 transition-colors">
-                  Inviter des membres
-                </h3>
-                <p className="text-xs text-slate-600">
-                  Ajouter de nouveaux utilisateurs
-                </p>
-              </div>
-            </div>
-          </Link>
-
-          <Link
-            href="/profile/permissions"
-            className="group relative overflow-hidden bg-white/80 backdrop-blur-sm border border-slate-200/50 rounded-lg p-4 shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-[1.02] hover:border-amber-200/60"
-          >
-            <div className="absolute inset-0 bg-gradient-to-br from-amber-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            <div className="relative flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-gradient-to-br from-amber-50 to-amber-100 text-amber-600 group-hover:from-amber-100 group-hover:to-amber-200 transition-all">
-                <Shield size={18} />
-              </div>
-              <div>
-                <h3 className="font-semibold text-slate-800 group-hover:text-amber-700 transition-colors">
-                  Permissions
-                </h3>
-                <p className="text-xs text-slate-600">
-                  Gérer les accès et rôles
-                </p>
-              </div>
-            </div>
-          </Link>
-
-          <Link
-            href="/profile/activity"
-            className="group relative overflow-hidden bg-white/80 backdrop-blur-sm border border-slate-200/50 rounded-lg p-4 shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-[1.02] hover:border-emerald-200/60"
-          >
-            <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            <div className="relative flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-gradient-to-br from-emerald-50 to-emerald-100 text-emerald-600 group-hover:from-emerald-100 group-hover:to-emerald-200 transition-all">
-                <TrendingUp size={18} />
-              </div>
-              <div>
-                <h3 className="font-semibold text-slate-800 group-hover:text-emerald-700 transition-colors">
-                  Activité
-                </h3>
-                <p className="text-xs text-slate-600">
-                  Voir l&apos;activité des membres
-                </p>
-              </div>
-            </div>
-          </Link>
         </div>
       </div>
     </div>
