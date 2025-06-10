@@ -165,8 +165,16 @@ export function UnifiedSessionManager() {
     // Si utilisateur connecté sur une page publique d'auth, rediriger vers dashboard
     if (session?.user && (pathname === "/signin" || pathname === "/signup")) {
       console.log("👤 Utilisateur connecté, redirection vers /dashboard");
+      console.log("Session user:", session.user);
+      console.log("Current pathname:", pathname);
+      console.log("📍 Début de la redirection...");
       setIsRedirecting(true);
-      router.push("/dashboard");
+      
+      // Ajouter un délai pour voir si la redirection se fait
+      setTimeout(() => {
+        console.log("🚀 Exécution de router.push('/dashboard')");
+        router.push("/dashboard");
+      }, 1000);
       return;
     }
 
