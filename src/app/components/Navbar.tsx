@@ -33,6 +33,7 @@ import {
 import { useSession } from "@/lib/auth-client";
 import { authClient } from "@/lib/auth-client";
 import { toast } from "sonner";
+import { ThemeToggle } from "@/app/components/theme-provider";
 
 // Interface pour les éléments du breadcrumb
 interface BreadcrumbItem {
@@ -339,20 +340,8 @@ function ChaffNavbar() {
               )}
             </div>
 
-            {/* Notifications
-              <Button
-                variant="ghost"
-                size="sm"
-                className="relative h-8 w-8 p-0 hover:bg-primary/10"
-              >
-                <Bell className="h-4 w-4 text-primary" />
-                <Badge
-                  variant="destructive"
-                  className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
-                >
-                  3
-                </Badge>
-              </Button> */}
+            {/* Toggle thème */}
+            <ThemeToggle />
 
             {/* Menu utilisateur */}
             <DropdownMenu

@@ -1,14 +1,18 @@
-import "./globals.css";
+import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import "./globals.css";
 import { Toaster } from "sonner";
-import { defaultMetadata } from "@/lib/metadata";
+import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/app/components/theme-provider";
 import Navbar from "@/app/components/Navbar";
 import { UnifiedSessionManager } from "@/app/components/UnifiedSessionManager";
 
 const inter = Inter({ subsets: ["latin"] });
 
-export const metadata = defaultMetadata;
+export const metadata: Metadata = {
+  title: "Chaff.ch - Analytics Business",
+  description: "Plateforme d'analyse pour votre business",
+};
 
 export default function RootLayout({
   children,
@@ -17,7 +21,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="fr" suppressHydrationWarning>
-      <body className={inter.className}>
+      <body
+        className={cn(
+          inter.className,
+          "min-h-screen bg-background antialiased"
+        )}
+      >
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
