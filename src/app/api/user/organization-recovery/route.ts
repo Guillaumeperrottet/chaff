@@ -101,15 +101,16 @@ export async function POST() {
             monthlyPrice: 0,
             yearlyPrice: 0,
             maxUsers: 1,
+            maxMandates: 1, // ✨ Ajouter la limite de mandats
             maxStorage: 500,
-            features: [
-              "1 utilisateur",
-              "1 objet immobilier",
-              "500MB de stockage",
-              "Support communauté",
-            ],
             description: "Plan gratuit pour découvrir l'application",
             isActive: true,
+            hasAdvancedReports: false,
+            hasApiAccess: false,
+            hasCustomBranding: false,
+            maxApiCalls: 100,
+            sortOrder: 1,
+            supportLevel: "community",
           },
         });
       }
