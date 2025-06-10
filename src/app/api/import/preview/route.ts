@@ -165,8 +165,12 @@ async function processExcelDataOptimized(
             continue;
           }
 
-          // Mapper la catégorie
-          let group: "HEBERGEMENT" | "RESTAURATION";
+          // ✅ Mapper la catégorie vers les types par défaut
+          // Note: Dans le nouveau système, les mandats peuvent utiliser:
+          // - Types par défaut: "HEBERGEMENT", "RESTAURATION"
+          // - Types personnalisés: IDs des EstablishmentType de l'organisation
+          // L'import Excel utilise les types par défaut uniquement
+          let group: string; // ✅ Changer en string au lieu d'enum
           if (
             mandantRow.Catégorie.toLowerCase().includes("hébergement") ||
             mandantRow.Catégorie.toLowerCase().includes("hebergement")
@@ -183,9 +187,14 @@ async function processExcelDataOptimized(
             continue;
           }
 
-          // Utiliser upsert pour éviter les doublons
+          // ✅ Utiliser upsert avec la nouvelle contrainte unique (name + organizationId)
           const mandate = await tx.mandate.upsert({
-            where: { name: mandantRow.Nom },
+            where: {
+              name_organizationId: {
+                name: mandantRow.Nom,
+                organizationId: organizationId,
+              },
+            },
             update: {
               group,
               active: true,
@@ -200,16 +209,14 @@ async function processExcelDataOptimized(
 
           mandateMapping.set(mandantRow.Id, mandate.id);
 
-          if (mandate) {
-            // Vérifier si c'était une création ou une mise à jour
-            const existing = await tx.mandate.findFirst({
-              where: { name: mandantRow.Nom, id: { not: mandate.id } },
-            });
-            if (existing) {
-              stats.mandatesUpdated++;
-            } else {
-              stats.mandatesCreated++;
-            }
+          // ✅ Vérifier si c'était une création ou une mise à jour
+          // Compter en vérifiant l'âge du mandat (createdAt vs updatedAt)
+          if (mandate.createdAt.getTime() === mandate.updatedAt.getTime()) {
+            // Nouveau mandat (createdAt = updatedAt)
+            stats.mandatesCreated++;
+          } else {
+            // Mandat existant mis à jour
+            stats.mandatesUpdated++;
           }
         } catch (error) {
           stats.errors.push(

@@ -302,8 +302,12 @@ async function processExcelDataRobust(
           continue;
         }
 
-        // Mapper la catégorie
-        let group: "HEBERGEMENT" | "RESTAURATION";
+        // ✅ Mapper la catégorie vers les types par défaut
+        // Note: Dans le nouveau système, les mandats peuvent utiliser:
+        // - Types par défaut: "HEBERGEMENT", "RESTAURATION"
+        // - Types personnalisés: IDs des EstablishmentType de l'organisation
+        // L'import Excel utilise les types par défaut uniquement
+        let group: string; // ✅ Changer en string au lieu d'enum
         const category = mandantRow.Catégorie.toLowerCase().trim();
 
         if (
@@ -324,13 +328,14 @@ async function processExcelDataRobust(
           continue;
         }
 
-        // 🔧 UPSERT au lieu de find + create/update
-        const existingCount = await prisma.mandate.count({
-          where: { name: mandantRow.Nom.trim() },
-        });
-
+        // ✅ UPSERT avec la nouvelle contrainte unique (name + organizationId)
         const mandate = await prisma.mandate.upsert({
-          where: { name: mandantRow.Nom.trim() },
+          where: {
+            name_organizationId: {
+              name: mandantRow.Nom.trim(),
+              organizationId: organizationId,
+            },
+          },
           update: {
             group,
             active: true,
@@ -345,12 +350,16 @@ async function processExcelDataRobust(
 
         mandateMapping.set(mandantRow.Id, mandate.id);
 
-        if (existingCount > 0) {
-          stats.mandatesUpdated++;
-          console.log(`🔄 Mandat mis à jour: ${mandantRow.Nom}`);
-        } else {
+        // ✅ Vérifier si c'était une création ou une mise à jour
+        // Compter en vérifiant l'âge du mandat (createdAt vs updatedAt)
+        if (mandate.createdAt.getTime() === mandate.updatedAt.getTime()) {
+          // Nouveau mandat (createdAt = updatedAt)
           stats.mandatesCreated++;
           console.log(`🆕 Nouveau mandat: ${mandantRow.Nom}`);
+        } else {
+          // Mandat existant mis à jour
+          stats.mandatesUpdated++;
+          console.log(`🔄 Mandat mis à jour: ${mandantRow.Nom}`);
         }
       } catch (error) {
         const errorMsg = `Erreur mandat ${mandantRow.Nom}: ${error}`;

@@ -229,8 +229,12 @@ async function processChunkDataFixed(
             continue;
           }
 
-          // Mapper la catégorie
-          let group: "HEBERGEMENT" | "RESTAURATION";
+          // ✅ Mapper la catégorie vers les types par défaut
+          // Note: Dans le nouveau système, les mandats peuvent utiliser:
+          // - Types par défaut: "HEBERGEMENT", "RESTAURATION"
+          // - Types personnalisés: IDs des EstablishmentType de l'organisation
+          // L'import CSV utilise les types par défaut uniquement
+          let group: string; // ✅ Changer en string au lieu d'enum
           const category = mandateRow.Catégorie.toLowerCase().trim();
 
           if (
@@ -251,9 +255,14 @@ async function processChunkDataFixed(
             continue;
           }
 
-          // 🔧 UTILISER UPSERT au lieu de findFirst + update/create
+          // ✅ UTILISER UPSERT avec la nouvelle contrainte unique (name + organizationId)
           const mandate = await prisma.mandate.upsert({
-            where: { name: mandateRow.Nom.trim() },
+            where: {
+              name_organizationId: {
+                name: mandateRow.Nom.trim(),
+                organizationId: organizationId,
+              },
+            },
             update: {
               group,
               active: true,
@@ -268,15 +277,17 @@ async function processChunkDataFixed(
 
           session.mandateMapping[mandateRow.Id] = mandate.id;
 
-          // Compter si c'était une création ou mise à jour
-          const wasExisting = await prisma.mandate.count({
+          // ✅ Compter si c'était une création ou mise à jour
+          // Vérifier si le mandat existait déjà avant cette opération
+          const existingMandateCount = await prisma.mandate.count({
             where: {
               name: mandateRow.Nom.trim(),
+              organizationId: organizationId,
               createdAt: { lt: mandate.updatedAt },
             },
           });
 
-          if (wasExisting > 0) {
+          if (existingMandateCount > 0) {
             result.mandatesUpdated++;
           } else {
             result.mandatesCreated++;
