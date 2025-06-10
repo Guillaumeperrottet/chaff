@@ -7,7 +7,6 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   LogOut,
   User,
-  Settings,
   ChevronDown,
   Home,
   ChevronRight,
@@ -17,6 +16,7 @@ import {
   DollarSign,
   BarChart3,
   Lock,
+  MessageSquarePlus,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -484,11 +484,9 @@ function ChaffNavbar() {
                     <span>Profil</span>
                   </DropdownMenuItem>
 
-                  <DropdownMenuItem
-                    onClick={() => router.push("/dashboard/settings")}
-                  >
-                    <Settings className="mr-2 h-4 w-4" />
-                    <span>Paramètres</span>
+                  <DropdownMenuItem onClick={() => router.push("/feedback")}>
+                    <MessageSquarePlus className="mr-2 h-4 w-4" />
+                    <span>Feedback</span>
                   </DropdownMenuItem>
 
                   <DropdownMenuSeparator />
