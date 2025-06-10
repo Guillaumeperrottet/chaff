@@ -26,12 +26,10 @@ export function UnifiedSessionManager() {
   const router = useRouter();
   const pathname = usePathname();
 
-  // 🔧 États pour éviter les boucles et optimiser les performances
-  const [hasCheckedOrganization, setHasCheckedOrganization] = useState(false);
+  // 🔧 États pour éviter les boucles
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const checkedUserIds = useRef(new Set<string>()); // ✨ useRef pour éviter re-renders
   const organizationCheckRef = useRef<Promise<void> | null>(null);
-  const lastCheckedUserId = useRef<string | null>(null);
-  const redirectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Fonction pour vérifier si la page actuelle est publique
   const isPublicPage = useCallback(() => {
@@ -43,26 +41,19 @@ export function UnifiedSessionManager() {
     );
   }, [pathname]);
 
-  // 🧹 Cleanup function pour nettoyer les timeouts
-  useEffect(() => {
-    return () => {
-      if (redirectTimeoutRef.current) {
-        clearTimeout(redirectTimeoutRef.current);
-      }
-    };
-  }, []);
-
   // Fonction pour vérifier et créer l'organisation si nécessaire
   const ensureUserHasOrganization = useCallback(
     async (userId: string) => {
-      // 🛡️ Éviter les appels multiples
-      if (organizationCheckRef.current) {
-        return organizationCheckRef.current;
+      // 🛡️ Si déjà vérifié pour cet utilisateur, ne pas refaire
+      if (checkedUserIds.current.has(userId)) {
+        console.log("✅ Organisation déjà vérifiée pour:", userId);
+        return;
       }
 
-      // 🛡️ Ne pas refaire si déjà vérifié pour cette session
-      if (hasCheckedOrganization) {
-        return;
+      // 🛡️ Éviter les appels multiples simultanés
+      if (organizationCheckRef.current) {
+        console.log("⏳ Vérification déjà en cours, attente...");
+        return organizationCheckRef.current;
       }
 
       const checkPromise = (async () => {
@@ -76,6 +67,9 @@ export function UnifiedSessionManager() {
 
           const data = await response.json();
           console.log("📊 Résultat vérification organisation:", data);
+
+          // ✅ TOUJOURS marquer comme vérifié, même si tout va bien
+          checkedUserIds.current.add(userId);
 
           // Si l'utilisateur n'a pas d'organisation, tenter la récupération
           if (!data.user?.organizationId) {
@@ -96,17 +90,16 @@ export function UnifiedSessionManager() {
             } else {
               console.error("❌ Échec de la récupération d'organisation");
             }
+          } else {
+            console.log("✅ Utilisateur a déjà une organisation valide");
           }
-
-          // ✅ Marquer comme vérifié
-          setHasCheckedOrganization(true);
         } catch (error) {
           console.error(
             "❌ Erreur lors de la vérification d'organisation:",
             error
           );
-          // En cas d'erreur, marquer quand même comme vérifié pour éviter la boucle
-          setHasCheckedOrganization(true);
+          // ✅ Marquer comme vérifié même en cas d'erreur pour éviter la boucle
+          checkedUserIds.current.add(userId);
         } finally {
           // 🧹 Nettoyer la référence
           organizationCheckRef.current = null;
@@ -116,20 +109,18 @@ export function UnifiedSessionManager() {
       organizationCheckRef.current = checkPromise;
       return checkPromise;
     },
-    [hasCheckedOrganization]
+    [] // ✨ Pas de dépendances car on utilise des refs
   );
 
-  // 🔧 Reset des états quand l'utilisateur change
+  // 🔧 Nettoyer le Set quand l'utilisateur change
   useEffect(() => {
-    // Reset seulement si l'utilisateur a vraiment changé
-    if (session?.user?.id && session.user.id !== lastCheckedUserId.current) {
-      setHasCheckedOrganization(false);
-      setIsRedirecting(false);
-      lastCheckedUserId.current = session.user.id;
+    if (session?.user?.id) {
+      // Ne garder que l'utilisateur actuel dans le Set
+      checkedUserIds.current.clear();
     }
   }, [session?.user?.id]);
 
-  // 🔧 Reset quand la route change vers une page publique
+  // 🔧 Reset la redirection quand la route change vers une page publique
   useEffect(() => {
     if (isPublicPage()) {
       setIsRedirecting(false);
@@ -143,7 +134,7 @@ export function UnifiedSessionManager() {
     }
   }, []);
 
-  // Gestion de l'authentification et des redirections
+  // 🔧 EFFET PRINCIPAL - Gestion de l'authentification
   useEffect(() => {
     // 🛡️ Éviter les actions si déjà en cours de redirection
     if (isRedirecting) {
@@ -159,10 +150,7 @@ export function UnifiedSessionManager() {
     if (error && !isPublicPage()) {
       console.log("❌ Erreur de session, redirection vers /signin");
       setIsRedirecting(true);
-      // 🕐 Délai pour éviter les redirections trop rapides
-      redirectTimeoutRef.current = setTimeout(() => {
-        router.push("/signin");
-      }, 100);
+      router.push("/signin");
       return;
     }
 
@@ -170,9 +158,7 @@ export function UnifiedSessionManager() {
     if (!session?.user && !isPublicPage()) {
       console.log("🔐 Pas de session, redirection vers /signin");
       setIsRedirecting(true);
-      redirectTimeoutRef.current = setTimeout(() => {
-        router.push("/signin");
-      }, 100);
+      router.push("/signin");
       return;
     }
 
@@ -180,19 +166,29 @@ export function UnifiedSessionManager() {
     if (session?.user && (pathname === "/signin" || pathname === "/signup")) {
       console.log("👤 Utilisateur connecté, redirection vers /dashboard");
       setIsRedirecting(true);
-      redirectTimeoutRef.current = setTimeout(() => {
-        router.push("/dashboard");
-      }, 100);
+      router.push("/dashboard");
       return;
     }
 
-    // 🔧 Vérification organisation uniquement si nécessaire
+    // 🔧 Vérification email
+    if (session?.user && !session.user.emailVerified && !isPublicPage()) {
+      console.log("📧 Email non vérifié, redirection vers vérification");
+      setIsRedirecting(true);
+      router.push("/auth/email-verification-required");
+      return;
+    }
+
+    // 🔧 Vérification organisation - UNIQUEMENT si pas encore vérifiée
     if (
       session?.user &&
       !isPublicPage() &&
-      !hasCheckedOrganization &&
+      !checkedUserIds.current.has(session.user.id) &&
       !organizationCheckRef.current
     ) {
+      console.log(
+        "🏢 Lancement vérification organisation pour:",
+        session.user.id
+      );
       ensureUserHasOrganization(session.user.id);
     }
   }, [
@@ -201,27 +197,10 @@ export function UnifiedSessionManager() {
     error,
     pathname,
     router,
-    hasCheckedOrganization,
     ensureUserHasOrganization,
     isPublicPage,
     isRedirecting,
   ]);
-
-  // Gestion de l'email non vérifié
-  useEffect(() => {
-    // 🛡️ Éviter si déjà en redirection
-    if (isRedirecting) {
-      return;
-    }
-
-    if (session?.user && !session.user.emailVerified && !isPublicPage()) {
-      console.log("📧 Email non vérifié, redirection vers vérification");
-      setIsRedirecting(true);
-      redirectTimeoutRef.current = setTimeout(() => {
-        router.push("/auth/email-verification-required");
-      }, 100);
-    }
-  }, [session, pathname, router, isPublicPage, isRedirecting]);
 
   // Ce composant ne rend rien, il ne fait que gérer la logique de session
   return null;
