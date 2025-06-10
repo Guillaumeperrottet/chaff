@@ -171,7 +171,7 @@ export default async function ProfilePage() {
           </Link>
 
           <Link
-            href="/features"
+            href="/feedback"
             className="group relative overflow-hidden bg-white/80 backdrop-blur-sm border border-slate-200/50 rounded-xl p-5 shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-[1.02] hover:border-purple-200/60"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-purple-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>

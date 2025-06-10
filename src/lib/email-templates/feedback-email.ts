@@ -46,7 +46,7 @@ export function getFeedbackEmailTemplate({
       <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Nouveau feedback PlanniKeeper</title>
+        <title>Nouveau feedback Chaff.ch</title>
         <style>
           body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -149,7 +149,7 @@ export function getFeedbackEmailTemplate({
             width: 50px;
             height: 50px;
             border-radius: 50%;
-            background-color: #d9840d;
+            background: linear-gradient(135deg, hsl(221, 83%, 53%) 0%, hsl(240, 100%, 66%) 100%);
             color: white;
             display: flex;
             align-items: center;
@@ -209,7 +209,7 @@ export function getFeedbackEmailTemplate({
           <div class="header" style="background-color: ${typeColors[type]};">
             <div class="header-icon">${typeIcons[type]}</div>
             <h1 class="header-title">${typeLabels[type]}</h1>
-            <p class="header-subtitle">Nouveau feedback PlanniKeeper</p>
+            <p class="header-subtitle">Nouveau feedback Chaff.ch</p>
           </div>
           
           <div class="content">
@@ -252,8 +252,8 @@ export function getFeedbackEmailTemplate({
           </div>
           
           <div class="footer">
-            <p>Ce message a été envoyé automatiquement depuis PlanniKeeper.</p>
-            <p>© 2025 PlanniKeeper. Tous droits réservés.</p>
+            <p>Ce message a été envoyé automatiquement depuis Chaff.ch.</p>
+            <p>© 2025 Chaff.ch. Tous droits réservés.</p>
           </div>
         </div>
       </body>

@@ -59,16 +59,15 @@ export async function POST(req: NextRequest) {
       title,
       description,
       type,
-      appUrl: process.env.NEXT_PUBLIC_APP_URL || "https://plannikeeper.ch",
+      appUrl: process.env.NEXT_PUBLIC_APP_URL || "https://chaff.ch",
     });
 
     // Envoyer l'email
     const { error } = await resend.emails.send({
       from:
-        process.env.RESEND_FROM_EMAIL ||
-        "PlanniKeeper <notifications@plannikeeper.ch>",
+        process.env.RESEND_FROM_EMAIL || "Chaff.ch <notifications@chaff.ch>",
       to: ["perrottet.guillaume.97@gmail.com"], // Email du destinataire
-      subject: `[PlanniKeeper Feedback] ${typeLabels[type]}: ${title}`,
+      subject: `[Chaff.ch Feedback] ${typeLabels[type]}: ${title}`,
       html: htmlContent,
       replyTo: user.email || undefined,
     });
