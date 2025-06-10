@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
 
     const result = await EmailService.sendEmail({
       to: email,
-      subject: "Test PlanniKeeper - Configuration Email",
+      subject: "Test Chaff.ch - Configuration Email",
       html: `
         <!DOCTYPE html>
         <html>
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
             <style>
               body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f5f5f5; }
               .container { max-width: 600px; margin: 0 auto; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-              .header { background-color: #d9840d; color: white; padding: 24px; text-align: center; }
+              .header { background-color: #3b82f6; color: white; padding: 24px; text-align: center; }
               .content { padding: 32px 24px; }
               .success { color: #16a34a; font-weight: bold; }
               .error { color: #dc2626; font-weight: bold; }
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
           <body>
             <div class="container">
               <div class="header">
-                <h1>🏠 PlanniKeeper</h1>
+                <h1>📊 Chaff.ch</h1>
                 <h2>Test de Configuration Email</h2>
               </div>
               

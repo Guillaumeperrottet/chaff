@@ -9,7 +9,7 @@ export function getWelcomeEmailTemplate(
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Bienvenue sur PlanniKeeper</title>
+      <title>Bienvenue sur Chaff.ch</title>
       <style>
         body {
           font-family: 'Helvetica Neue', Arial, sans-serif;
@@ -28,7 +28,7 @@ export function getWelcomeEmailTemplate(
           box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
         .email-header {
-          background-color: #d9840d;
+          background-color: #3b82f6;
           color: white;
           padding: 24px;
           text-align: center;
@@ -76,7 +76,7 @@ export function getWelcomeEmailTemplate(
           top: 10px;
           width: 26px;
           height: 26px;
-          background-color: #d9840d;
+          background-color: #3b82f6;
           color: white;
           border-radius: 50%;
           display: flex;
@@ -86,7 +86,7 @@ export function getWelcomeEmailTemplate(
         }
         .cta-button {
           display: inline-block;
-          background-color: #d9840d;
+          background-color: #3b82f6;
           color: white;
           text-decoration: none;
           padding: 12px 24px;
@@ -121,16 +121,16 @@ export function getWelcomeEmailTemplate(
     <body>
       <div class="email-container">
         <div class="email-header">
-          <div class="logo">PlanniKeeper</div>
-          <div>Votre solution de gestion immobilière</div>
+          <div class="logo">Chaff.ch</div>
+          <div>Votre solution d'analytics business</div>
         </div>
         
         <div class="email-body">
-          <div class="welcome-message">Bienvenue sur PlanniKeeper, ${userName} !</div>
+          <div class="welcome-message">Bienvenue sur Chaff.ch, ${userName} !</div>
           
           <div class="section">
-            <p>Nous sommes ravis de vous accueillir sur PlanniKeeper. Votre organisation <strong>${organizationName}</strong> est maintenant configurée et prête à être utilisée.</p>
-            <p>PlanniKeeper va vous aider à gérer vos biens immobiliers de façon simple et efficace.</p>
+            <p>Nous sommes ravis de vous accueillir sur Chaff.ch. Votre organisation <strong>${organizationName}</strong> est maintenant configurée et prête à être utilisée.</p>
+            <p>Chaff.ch va vous aider à analyser vos données business de façon simple et efficace.</p>
           </div>
           
           <div class="section">
@@ -143,8 +143,8 @@ export function getWelcomeEmailTemplate(
               </li>
               <li class="step-item">
                 <div class="step-number">2</div>
-                <strong>Créez votre premier objet</strong><br>
-                Ajoutez un bien immobilier avec tous ses détails.
+                <strong>Créez votre premier projet d'analyse</strong><br>
+                Ajoutez un projet avec toutes ses données.
               </li>
               <li class="step-item">
                 <div class="step-number">3</div>
@@ -160,18 +160,18 @@ export function getWelcomeEmailTemplate(
           
           <div class="tips-section">
             <div class="section-title">Conseils pour démarrer</div>
-            <p>Voici quelques conseils qui vous aideront à tirer le meilleur parti de PlanniKeeper :</p>
+            <p>Voici quelques conseils qui vous aideront à tirer le meilleur parti de Chaff.ch :</p>
             <ul>
               <li>Configurez vos préférences de notification pour rester informé</li>
-              <li>Structurez vos secteurs logiquement pour faciliter la navigation</li>
-              <li>Utilisez le système de tâches pour suivre les travaux et maintenance</li>
+              <li>Structurez vos projets logiquement pour faciliter l'analyse</li>
+              <li>Utilisez les tableaux de bord pour visualiser vos données</li>
             </ul>
           </div>
         </div>
         
         <div class="email-footer">
           <p>Besoin d'aide ? Notre équipe de support est disponible pour vous aider.</p>
-          <p>Contactez-nous à <a href="mailto:support@plannikeeper.ch">support@plannikeeper.ch</a></p>
+          <p>Contactez-nous à <a href="mailto:support@chaff.ch">support@chaff.ch</a></p>
           
           <div class="social-links">
             <a href="#" class="social-link">Twitter</a> |
@@ -179,7 +179,7 @@ export function getWelcomeEmailTemplate(
             <a href="#" class="social-link">Facebook</a>
           </div>
           
-          <p>© 2025 PlanniKeeper. Tous droits réservés.</p>
+          <p>© 2025 Chaff.ch. Tous droits réservés.</p>
         </div>
       </div>
     </body>

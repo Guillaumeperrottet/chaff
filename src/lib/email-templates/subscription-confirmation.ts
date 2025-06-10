@@ -31,7 +31,7 @@ export function getSubscriptionConfirmationTemplate(
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Confirmation d'abonnement - PlanniKeeper</title>
+      <title>Confirmation d'abonnement - Chaff.ch</title>
       <style>
         body {
           font-family: 'Helvetica Neue', Arial, sans-serif;
@@ -50,7 +50,7 @@ export function getSubscriptionConfirmationTemplate(
           box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
         .email-header {
-          background-color: #d9840d;
+          background-color: #3b82f6;
           color: white;
           padding: 24px;
           text-align: center;
@@ -114,12 +114,12 @@ export function getSubscriptionConfirmationTemplate(
           top: 11px;
           width: 16px;
           height: 16px;
-          background-image: url('data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="%23d9840d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>');
+          background-image: url('data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="%233b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>');
           background-repeat: no-repeat;
         }
         .cta-button {
           display: inline-block;
-          background-color: #d9840d;
+          background-color: #3b82f6;
           color: white;
           text-decoration: none;
           padding: 12px 24px;
@@ -164,14 +164,14 @@ export function getSubscriptionConfirmationTemplate(
     <body>
       <div class="email-container">
         <div class="email-header">
-          <div class="logo">PlanniKeeper</div>
+          <div class="logo">Chaff.ch</div>
           <div>Confirmation d'abonnement</div>
         </div>
         
         <div class="email-body">
           <div class="section">
             <h2>Bonjour ${userName},</h2>
-            <p>Nous sommes ravis de vous confirmer que votre abonnement à PlanniKeeper a été activé avec succès. Voici un récapitulatif de votre abonnement :</p>
+            <p>Nous sommes ravis de vous confirmer que votre abonnement à Chaff.ch a été activé avec succès. Voici un récapitulatif de votre abonnement :</p>
           </div>
           
           <div class="section">
@@ -211,15 +211,15 @@ export function getSubscriptionConfirmationTemplate(
             <strong>Prochaines étapes recommandées :</strong>
             <ul>
               <li>Invitez les membres de votre équipe à rejoindre votre espace</li>
-              <li>Configurez votre premier objet et créez vos secteurs</li>
+              <li>Configurez votre premier projet d'analyse</li>
               <li>Explorez toutes les fonctionnalités disponibles dans votre plan</li>
             </ul>
           </div>
         </div>
         
         <div class="email-footer">
-          <p>Merci d'avoir choisi PlanniKeeper pour la gestion de vos projets immobiliers.</p>
-          <p>Si vous avez des questions, n'hésitez pas à contacter notre équipe de support à <a href="mailto:support@plannikeeper.ch">support@plannikeeper.ch</a>.</p>
+          <p>Merci d'avoir choisi Chaff.ch pour vos analyses business.</p>
+          <p>Si vous avez des questions, n'hésitez pas à contacter notre équipe de support à <a href="mailto:support@chaff.ch">support@chaff.ch</a>.</p>
           
           <div class="social-links">
             <a href="#" class="social-link">Twitter</a> |
@@ -227,7 +227,7 @@ export function getSubscriptionConfirmationTemplate(
             <a href="#" class="social-link">Facebook</a>
           </div>
           
-          <p>© 2025 PlanniKeeper. Tous droits réservés.</p>
+          <p>© 2025 Chaff.ch. Tous droits réservés.</p>
         </div>
       </div>
     </body>

@@ -1,4 +1,3 @@
-// src/app/profile/subscription/page.tsx - Version nettoyée
 import { getUser } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
@@ -63,6 +62,10 @@ export default async function SubscriptionPage() {
         ? Number(plan.yearlyPrice)
         : plan.yearlyPrice
       : null,
+    // Propriétés legacy pour compatibilité
+    features: [], // Plus utilisé mais requis par le composant
+    hasCustomPricing: false, // Plus utilisé mais requis par le composant
+    trialDays: 0, // Plus utilisé mais requis par le composant
   }));
 
   const formattedSubscription = subscription
@@ -84,14 +87,19 @@ export default async function SubscriptionPage() {
               : subscription.plan.yearlyPrice
             : null,
           maxUsers: subscription.plan.maxUsers,
+          maxMandates: subscription.plan.maxMandates, // ✨ Ajouter maxMandates
           maxStorage: subscription.plan.maxStorage,
-          features: subscription.plan.features || [],
-          hasCustomPricing: subscription.plan.hasCustomPricing || false,
-          trialDays: subscription.plan.trialDays || 0,
-          // Ajout des nouvelles propriétés
+          // Propriétés existantes dans le nouveau schéma
           hasAdvancedReports: subscription.plan.hasAdvancedReports || false,
           hasApiAccess: subscription.plan.hasApiAccess || false,
           hasCustomBranding: subscription.plan.hasCustomBranding || false,
+          description: subscription.plan.description || "",
+          maxApiCalls: subscription.plan.maxApiCalls,
+          supportLevel: subscription.plan.supportLevel || "community",
+          // Propriétés legacy pour compatibilité
+          features: [], // Plus utilisé mais requis par le composant
+          hasCustomPricing: false, // Plus utilisé mais requis par le composant
+          trialDays: 0, // Plus utilisé mais requis par le composant
         },
       }
     : null;

@@ -51,9 +51,9 @@ export const auth = betterAuth({
           <style>
             body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f5f5f5; }
             .container { max-width: 600px; margin: 0 auto; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-            .header { background-color: #d9840d; color: white; padding: 24px; text-align: center; }
+            .header { background-color: #3b82f6; color: white; padding: 24px; text-align: center; }
             .content { padding: 32px 24px; }
-            .button { display: inline-block; background-color: #d9840d; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold; }
+            .button { display: inline-block; background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold; }
             .footer { background-color: #f8f9fa; padding: 20px; text-align: center; color: #666; font-size: 14px; }
           </style>
         </head>

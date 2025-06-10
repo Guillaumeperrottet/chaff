@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
 
     // Upload vers Cloudinary
     const uploadResult = await CloudinaryService.uploadFile(buffer, file.name, {
-      folder: `plannikeeper/users/${user.id}/profile`,
+      folder: `chaff/users/${user.id}/profile`,
       resourceType: "image",
       tags: ["profile", `user_${user.id}`],
       // Ajouter des transformations pour optimiser l'image de profil

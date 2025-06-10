@@ -76,8 +76,8 @@ export class CloudinaryService {
     // Options par défaut
     const defaultOptions: UploadOptions = {
       resourceType: "auto",
-      folder: "plannikeeper",
-      tags: ["plannikeeper"],
+      folder: "chaff",
+      tags: ["chaff"],
     };
 
     // Fusion des options

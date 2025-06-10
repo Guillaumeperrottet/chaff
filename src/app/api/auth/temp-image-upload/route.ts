@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
     const uploadResult = await new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
-          folder: `plannikeeper/temp_signup/${tempUserId}`,
+          folder: `chaff/temp_signup/${tempUserId}`,
           resource_type: "image",
           tags: ["profile", "temp_signup"],
           transformation: {

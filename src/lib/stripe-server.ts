@@ -22,9 +22,9 @@ export const stripe = stripeSecretKey
   ? new Stripe(stripeSecretKey, {
       apiVersion: "2025-05-28.basil",
       appInfo: {
-        name: "PlanniKeeper",
+        name: "Chaff.ch",
         version: "1.0.0",
-        url: isProduction ? "https://plannikeeper.ch" : "http://localhost:3000",
+        url: isProduction ? "https://chaff.ch" : "http://localhost:3000",
       },
       typescript: true,
       timeout: isProduction ? 30000 : 10000,

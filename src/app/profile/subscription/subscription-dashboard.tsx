@@ -1,4 +1,3 @@
-// src/app/profile/subscription/subscription-dashboard.tsx - Version finale nettoyée
 "use client";
 
 import { useState } from "react";
@@ -41,6 +40,7 @@ type Plan = {
   monthlyPrice: number;
   yearlyPrice: number | null;
   maxUsers: number | null;
+  maxMandates: number | null;
   maxStorage: number | null;
   features: string[];
   hasCustomPricing: boolean;

@@ -1,6 +1,39 @@
-// src/lib/email-templates/plan-change-email.ts
-
 import { Plan } from "@prisma/client";
+
+// Fonction helper pour obtenir les fonctionnalités d'un plan
+function getPlanFeatures(planName: string): string[] {
+  switch (planName) {
+    case "FREE":
+      return [
+        "1 utilisateur",
+        "1 projet d'analyse",
+        "500 MB de stockage",
+        "Rapports de base",
+        "Support communautaire",
+      ];
+    case "PREMIUM":
+      return [
+        "5 utilisateurs",
+        "Projets illimités",
+        "10 GB de stockage",
+        "Analytics avancés",
+        "Tableaux de bord personnalisés",
+        "Accès API",
+        "Support prioritaire",
+      ];
+    case "SUPER_ADMIN":
+      return [
+        "Utilisateurs illimités",
+        "Projets illimités",
+        "Stockage illimité",
+        "Analytics en temps réel",
+        "Accès administrateur complet",
+        "Toutes les fonctionnalités",
+      ];
+    default:
+      return ["Fonctionnalités du plan personnalisé"];
+  }
+}
 
 export function getPlanChangeEmailTemplate(
   userName: string,
@@ -29,7 +62,7 @@ export function getPlanChangeEmailTemplate(
 
   // Déterminer le type de changement
   const isUpgrade = getUpgradeStatus(oldPlanName, newPlanName);
-  const headerColor = isUpgrade ? "#16a34a" : "#d9840d"; // Vert pour upgrade, orange sinon
+  const headerColor = isUpgrade ? "#16a34a" : "#3b82f6"; // Vert pour upgrade, bleu Chaff.ch sinon
 
   // Formater le prix
   type PriceInput =
@@ -54,7 +87,7 @@ export function getPlanChangeEmailTemplate(
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Changement de plan - PlanniKeeper</title>
+      <title>Changement de plan - Chaff.ch</title>
       <style>
         body {
           font-family: 'Helvetica Neue', Arial, sans-serif;
@@ -158,7 +191,7 @@ export function getPlanChangeEmailTemplate(
         }
         .cta-button {
           display: inline-block;
-          background-color: #d9840d;
+          background-color: #3b82f6;
           color: white;
           text-decoration: none;
           padding: 12px 24px;
@@ -193,7 +226,7 @@ export function getPlanChangeEmailTemplate(
     <body>
       <div class="email-container">
         <div class="email-header" style="background-color: ${headerColor};">
-          <div class="logo">PlanniKeeper</div>
+          <div class="logo">Chaff.ch</div>
           <div>Changement de plan</div>
         </div>
         
@@ -226,7 +259,7 @@ export function getPlanChangeEmailTemplate(
           <div class="features-section">
             <div class="features-title">Fonctionnalités de votre plan ${newPlanDisplay}</div>
             <ul class="feature-list">
-              ${newPlan.features
+              ${getPlanFeatures(newPlan.name)
                 .map(
                   (feature) => `
                 <li class="feature-item">${feature}</li>
@@ -250,8 +283,8 @@ export function getPlanChangeEmailTemplate(
         
         <div class="email-footer">
           <p>Merci de votre confiance.</p>
-          <p>Pour toute question, contactez notre support à <a href="mailto:support@plannikeeper.ch">support@plannikeeper.ch</a></p>
-          <p>© 2025 PlanniKeeper. Tous droits réservés.</p>
+          <p>Pour toute question, contactez notre support à <a href="mailto:support@chaff.ch">support@chaff.ch</a></p>
+          <p>© 2025 Chaff.ch. Tous droits réservés.</p>
         </div>
       </div>
     </body>
@@ -276,11 +309,11 @@ function getUpgradeStatus(oldPlan: string, newPlan: string): boolean {
 function getContextualMessage(oldPlan: string, newPlan: string): string {
   if (oldPlan === "FREE" && newPlan !== "FREE") {
     return `
-      <p>Bienvenue dans l'univers premium de PlanniKeeper ! Vous avez maintenant accès à toutes les fonctionnalités avancées pour optimiser la gestion de vos biens immobiliers.</p>
+      <p>Bienvenue dans l'univers premium de Chaff.ch ! Vous avez maintenant accès à toutes les fonctionnalités avancées pour optimiser vos analyses business.</p>
     `;
   } else if (newPlan === "FREE") {
     return `
-      <p>Votre organisation est maintenant sur le plan gratuit. Certaines fonctionnalités premium ne sont plus disponibles, mais vous pouvez toujours gérer vos biens essentiels.</p>
+      <p>Votre organisation est maintenant sur le plan gratuit. Certaines fonctionnalités premium ne sont plus disponibles, mais vous pouvez toujours gérer vos analyses essentielles.</p>
     `;
   } else if (getUpgradeStatus(oldPlan, newPlan)) {
     return `

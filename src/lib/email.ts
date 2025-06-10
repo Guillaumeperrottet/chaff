@@ -1,4 +1,3 @@
-// src/lib/email.ts
 import { Resend } from "resend";
 import { Plan, Organization, User } from "@prisma/client";
 
@@ -31,8 +30,7 @@ export const EmailService = {
     to,
     subject,
     html,
-    from = process.env.RESEND_FROM_EMAIL ||
-      "PlanniKeeper <notifications@plannikeeper.ch>",
+    from = process.env.RESEND_FROM_EMAIL || "Chaff.ch <notifications@chaff.ch>",
     replyTo = process.env.RESEND_REPLY_TO_EMAIL,
   }: {
     to: string;
@@ -77,10 +75,9 @@ export const EmailService = {
 
       const { data, error } = await getResend().emails.send({
         from:
-          process.env.RESEND_FROM_EMAIL ||
-          "PlanniKeeper <notifications@plannikeeper.ch>",
+          process.env.RESEND_FROM_EMAIL || "Chaff.ch <notifications@chaff.ch>",
         to: [user.email],
-        subject: `Bienvenue sur PlanniKeeper !`,
+        subject: `Bienvenue sur Chaff.ch !`,
         html: htmlContent,
         replyTo: process.env.RESEND_REPLY_TO_EMAIL,
         headers: {
@@ -117,17 +114,16 @@ export const EmailService = {
         typeof plan.monthlyPrice === "object" && "toNumber" in plan.monthlyPrice
           ? plan.monthlyPrice.toNumber()
           : Number(plan.monthlyPrice),
-        plan.features,
+        this.getPlanFeatures(plan),
         currentPeriodEnd,
         dashboardUrl
       );
 
       const { data, error } = await getResend().emails.send({
         from:
-          process.env.RESEND_FROM_EMAIL ||
-          "PlanniKeeper <notifications@resend.dev>",
+          process.env.RESEND_FROM_EMAIL || "Chaff.ch <notifications@chaff.ch>",
         to: [user.email],
-        subject: `Confirmation d'abonnement - ${this.getPlanDisplayName(plan.name)} - PlanniKeeper`,
+        subject: `Confirmation d'abonnement - ${this.getPlanDisplayName(plan.name)} - Chaff.ch`,
         html: htmlContent,
         replyTo: process.env.RESEND_REPLY_TO_EMAIL,
       });
@@ -168,10 +164,9 @@ export const EmailService = {
 
       const { data, error } = await getResend().emails.send({
         from:
-          process.env.RESEND_FROM_EMAIL ||
-          "PlanniKeeper <notifications@plannikeeper.ch>",
+          process.env.RESEND_FROM_EMAIL || "Chaff.ch <notifications@chaff.ch>",
         to: [user.email],
-        subject: `Changement de plan - ${organizationName} - PlanniKeeper`,
+        subject: `Changement de plan - ${organizationName} - Chaff.ch`,
         html: htmlContent,
         replyTo: process.env.RESEND_REPLY_TO_EMAIL,
         headers: {
@@ -209,5 +204,36 @@ export const EmailService = {
       default:
         return planType;
     }
+  },
+
+  // Fonction utilitaire pour obtenir les fonctionnalités du plan
+  getPlanFeatures(plan: Plan): string[] {
+    const features: string[] = [];
+
+    if (plan.maxUsers) {
+      features.push(`${plan.maxUsers} utilisateurs`);
+    } else {
+      features.push("Utilisateurs illimités");
+    }
+
+    if (plan.maxMandates) {
+      features.push(`${plan.maxMandates} mandats`);
+    } else {
+      features.push("Mandats illimités");
+    }
+
+    if (plan.hasAdvancedReports) {
+      features.push("Rapports avancés");
+    }
+
+    if (plan.hasApiAccess) {
+      features.push("Accès API");
+    }
+
+    if (plan.hasCustomBranding) {
+      features.push("Personnalisation");
+    }
+
+    return features;
   },
 };
