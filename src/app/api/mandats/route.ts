@@ -6,12 +6,40 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { canCreateMandate } from "@/lib/subscription-limits";
 
-// Schéma de validation pour créer un mandat
+// ✅ SCHÉMA DE VALIDATION AMÉLIORÉ
 const CreateMandateSchema = z.object({
   name: z.string().min(1, "Le nom est obligatoire").max(100),
-  group: z.enum(["HEBERGEMENT", "RESTAURATION"]),
+  group: z.string().min(1, "Le type est obligatoire"), // ✅ Accepter string au lieu d'enum
   active: z.boolean().default(true),
 });
+
+// ✅ FONCTION POUR VALIDER LE TYPE
+async function validateEstablishmentType(
+  typeId: string,
+  organizationId: string
+) {
+  // Types par défaut acceptés
+  const defaultTypes = ["HEBERGEMENT", "RESTAURATION"];
+
+  if (defaultTypes.includes(typeId)) {
+    return { isValid: true, isDefault: true };
+  }
+
+  // Vérifier si c'est un type personnalisé de l'organisation
+  const customType = await prisma.establishmentType.findFirst({
+    where: {
+      id: typeId,
+      organizationId: organizationId,
+      isActive: true,
+    },
+  });
+
+  if (customType) {
+    return { isValid: true, isDefault: false, customType };
+  }
+
+  return { isValid: false };
+}
 
 // GET /api/mandats - Récupérer tous les mandats (+ stats payroll si demandé)
 export async function GET(request: NextRequest) {
@@ -229,7 +257,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/mandats - Créer un nouveau mandat avec vérification des limites
+// POST /api/mandats - Créer un nouveau mandat avec validation des types
 export async function POST(request: NextRequest) {
   try {
     // Vérifier l'authentification
@@ -254,8 +282,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const organizationId = userWithOrg.Organization.id;
+
     // Vérifier les limites de mandats
-    const limitCheck = await canCreateMandate(userWithOrg.Organization.id);
+    const limitCheck = await canCreateMandate(organizationId);
 
     if (!limitCheck.allowed) {
       return NextResponse.json(
@@ -276,46 +306,111 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
 
+    console.log("📝 Données reçues pour création de mandat:", body);
+
     // Valider les données
     const validatedData = CreateMandateSchema.parse(body);
 
-    // Vérifier que le nom n'existe pas déjà
-    const existingMandate = await prisma.mandate.findUnique({
-      where: { name: validatedData.name },
+    console.log("✅ Données validées:", validatedData);
+
+    // ✅ VALIDER LE TYPE D'ÉTABLISSEMENT
+    const typeValidation = await validateEstablishmentType(
+      validatedData.group,
+      organizationId
+    );
+
+    if (!typeValidation.isValid) {
+      console.log("❌ Type d'établissement invalide:", validatedData.group);
+      return NextResponse.json(
+        {
+          error: "Type d'établissement invalide",
+          providedType: validatedData.group,
+          hint: "Utilisez 'HEBERGEMENT', 'RESTAURATION' ou un type personnalisé valide",
+        },
+        { status: 400 }
+      );
+    }
+
+    console.log("✅ Type d'établissement validé:", {
+      typeId: validatedData.group,
+      isDefault: typeValidation.isDefault,
+      customType: typeValidation.customType?.label,
+    });
+
+    // ✅ VÉRIFIER L'UNICITÉ DU NOM DANS L'ORGANISATION
+    const existingMandate = await prisma.mandate.findFirst({
+      where: {
+        name: validatedData.name,
+        organizationId: organizationId,
+      },
     });
 
     if (existingMandate) {
+      console.log(
+        "❌ Mandat avec ce nom existe déjà dans l'organisation:",
+        validatedData.name
+      );
       return NextResponse.json(
-        { error: "Un mandat avec ce nom existe déjà" },
-        { status: 400 }
+        {
+          error: "Un mandat avec ce nom existe déjà dans votre organisation",
+          existingMandate: existingMandate.name,
+        },
+        { status: 409 }
       );
     }
 
     // Créer le mandat avec l'organisation
     const mandate = await prisma.mandate.create({
       data: {
-        ...validatedData,
-        organizationId: userWithOrg.Organization.id, // ✨ Lier à l'organisation
+        name: validatedData.name,
+        group: validatedData.group, // ✅ Peut être HEBERGEMENT/RESTAURATION ou un ID de type personnalisé
+        active: validatedData.active,
+        organizationId: organizationId,
       },
     });
 
-    // Log de la création avec limite
-    console.log(
-      `✅ Mandat créé: ${mandate.name} (${limitCheck.current + 1}/${limitCheck.limit || "∞"})`
-    );
+    console.log("✅ Mandat créé avec succès:", {
+      id: mandate.id,
+      name: mandate.name,
+      group: mandate.group,
+      current: limitCheck.current + 1,
+      limit: limitCheck.limit || "∞",
+    });
 
     return NextResponse.json(mandate, { status: 201 });
   } catch (error) {
+    console.error("❌ Erreur lors de la création du mandat:", error);
+
     if (error instanceof z.ZodError) {
+      console.log("❌ Erreur de validation Zod:", error.errors);
       return NextResponse.json(
-        { error: "Données invalides", details: error.errors },
+        {
+          error: "Données invalides",
+          details: error.errors,
+          receivedData: request.body,
+        },
         { status: 400 }
       );
     }
 
-    console.error("Erreur lors de la création du mandat:", error);
+    // ✅ GESTION SPÉCIFIQUE DES ERREURS PRISMA
+    if (error && typeof error === "object" && "code" in error) {
+      if (error.code === "P2002") {
+        return NextResponse.json(
+          {
+            error: "Un mandat avec ces caractéristiques existe déjà",
+            code: "DUPLICATE_MANDATE",
+          },
+          { status: 409 }
+        );
+      }
+    }
+
     return NextResponse.json(
-      { error: "Erreur interne du serveur" },
+      {
+        error: "Erreur interne du serveur",
+        details: process.env.NODE_ENV === "development" ? error : undefined,
+      },
       { status: 500 }
     );
   }

@@ -264,8 +264,8 @@ model Notification {
 
 model Mandate {
   id          String      @id @default(cuid())
-  name        String      @unique
-  group       MandateGroup
+  name        String      // ✅ ENLEVER @unique car on veut l'unicité par organisation
+  group       String      // ✅ CHANGER en String au lieu d'enum MandateGroup
   active      Boolean     @default(true)
   lastEntry   DateTime?   // Dernière saisie
   totalRevenue Float      @default(0) // Cache du total
@@ -293,6 +293,8 @@ model Mandate {
   // Relation pour l'historique des imports
   payrollImports   PayrollImportHistory[]
 
+  // ✅ CONTRAINTE UNIQUE SUR (name, organizationId) au lieu de juste name
+  @@unique([name, organizationId])
   @@map("mandates")
 }
 
@@ -309,10 +311,7 @@ model DayValue {
   @@map("day_values")
 }
 
-enum MandateGroup {
-  HEBERGEMENT
-  RESTAURATION
-}
+// ✅ ENUM MandateGroup SUPPRIMÉ - remplacé par String dans le modèle Mandate
 
 // ==========================================
 // SYSTÈME DE TYPES D'ÉTABLISSEMENT PERSONNALISÉS
@@ -350,6 +349,8 @@ model EstablishmentType {
   // Relations
   organization   Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   
+  // ✅ CONTRAINTE UNIQUE SUR (label, organizationId) pour éviter les doublons
+  @@unique([label, organizationId])
   // Index pour les performances
   @@index([organizationId])
   @@index([isCustom])

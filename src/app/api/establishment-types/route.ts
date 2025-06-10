@@ -1,4 +1,4 @@
-// src/app/api/establishment-types/route.ts
+// src/app/api/establishment-types/route.ts - VERSION CORRIGÉE
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
@@ -126,6 +126,7 @@ export async function POST(request: NextRequest) {
       bgColor,
     });
 
+    // ✅ VALIDATION PLUS STRICTE
     if (!label || typeof label !== "string" || label.trim().length < 2) {
       console.log("❌ Validation échouée: label invalide", { label });
       return NextResponse.json(
@@ -136,6 +137,15 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Valider les champs optionnels
+    const validatedData = {
+      label: label.trim(),
+      description: description?.trim() || `Type personnalisé: ${label.trim()}`,
+      icon: (icon as EstablishmentIcon) || "BUILDING2",
+      iconColor: iconColor || "text-purple-600",
+      bgColor: bgColor || "bg-purple-100",
+    };
 
     // Récupérer l'organisation de l'utilisateur
     const user = await prisma.user.findUnique({
@@ -156,25 +166,55 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // ✅ VÉRIFIER L'UNICITÉ DU LABEL DANS L'ORGANISATION
+    const existingType = await prisma.establishmentType.findFirst({
+      where: {
+        organizationId: user.organizationId,
+        label: validatedData.label,
+        isActive: true,
+      },
+    });
+
+    if (existingType) {
+      console.log("❌ Type avec ce nom existe déjà:", validatedData.label);
+      return NextResponse.json(
+        {
+          error: "Un type avec ce nom existe déjà dans votre organisation",
+          existingType: existingType.label,
+        },
+        { status: 409 }
+      );
+    }
+
+    // ✅ VÉRIFIER AUSSI CONTRE LES TYPES PAR DÉFAUT
+    const isDefaultType = DEFAULT_TYPES.some(
+      (defaultType) =>
+        defaultType.label.toLowerCase() === validatedData.label.toLowerCase()
+    );
+
+    if (isDefaultType) {
+      console.log("❌ Conflit avec type par défaut:", validatedData.label);
+      return NextResponse.json(
+        {
+          error: "Ce nom est réservé pour les types par défaut",
+          suggestion: `Essayez "${validatedData.label} personnalisé" ou "${validatedData.label} custom"`,
+        },
+        { status: 409 }
+      );
+    }
+
     // Créer le nouveau type en base de données
     console.log("💾 Tentative de création en base avec les données:", {
-      label: label.trim(),
-      description: description?.trim() || `Type personnalisé: ${label}`,
-      icon: (icon as EstablishmentIcon) || "BUILDING2",
-      iconColor: iconColor || "text-purple-600",
-      bgColor: bgColor || "bg-purple-100",
+      ...validatedData,
       organizationId: user.organizationId,
       createdBy: session.user.id,
     });
 
     const newType = await prisma.establishmentType.create({
       data: {
-        label: label.trim(),
-        description: description?.trim() || `Type personnalisé: ${label}`,
-        icon: (icon as EstablishmentIcon) || "BUILDING2",
-        iconColor: iconColor || "text-purple-600",
-        bgColor: bgColor || "bg-purple-100",
+        ...validatedData,
         isCustom: true,
+        isActive: true,
         organizationId: user.organizationId,
         createdBy: session.user.id,
       },
@@ -191,15 +231,35 @@ export async function POST(request: NextRequest) {
       createdBy: newType.createdBy,
     };
 
+    console.log("✅ Type créé avec succès:", responseType);
+
     return NextResponse.json({
       success: true,
       type: responseType,
-      message: `Type "${label}" créé avec succès`,
+      message: `Type "${validatedData.label}" créé avec succès`,
     });
   } catch (error) {
-    console.error("Erreur lors de la création du type:", error);
+    console.error("❌ Erreur lors de la création du type:", error);
+
+    // ✅ GESTION SPÉCIFIQUE DES ERREURS PRISMA
+    if (error && typeof error === "object" && "code" in error) {
+      if (error.code === "P2002") {
+        // Contrainte unique violée
+        return NextResponse.json(
+          {
+            error: "Un type avec ces caractéristiques existe déjà",
+            code: "DUPLICATE_TYPE",
+          },
+          { status: 409 }
+        );
+      }
+    }
+
     return NextResponse.json(
-      { error: "Erreur lors de la création du type" },
+      {
+        error: "Erreur lors de la création du type",
+        details: process.env.NODE_ENV === "development" ? error : undefined,
+      },
       { status: 500 }
     );
   }
