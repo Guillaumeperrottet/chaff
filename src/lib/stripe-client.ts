@@ -1,38 +1,39 @@
-// src/lib/stripe-client.ts - Version nettoyée
-
-// Configuration centralisée des plans (sans restrictions d'accès)
 export const PLAN_DETAILS = {
   FREE: {
     id: "FREE",
     name: "Gratuit",
-    description: "Pour découvrir l'application",
+    description: "Plan de découverte",
     price: 0,
     monthlyPrice: 0,
     yearlyPrice: 0,
     maxUsers: 1,
-    maxStorage: 100, // MB
+    maxMandates: 1, // ✨ NOUVEAU: Limite de 1 mandat
+    maxStorage: 100, // 100MB
     features: [
-      "1 utilisateur",
+      "1 utilisateur maximum",
+      "1 mandat/entreprise", // ✨ NOUVEAU
       "Toutes les fonctionnalités",
       "100MB de stockage",
-      "Support communauté",
+      "Support communauté/FAQ",
     ],
     popular: false,
   },
   PREMIUM: {
     id: "PREMIUM",
     name: "Premium",
-    description: "Plan complet pour professionnels",
+    description: "Plan professionnel complet",
     price: 29,
     monthlyPrice: 29,
     yearlyPrice: 290, // 10 mois payés sur 12
-    maxUsers: 10,
+    maxUsers: 5, // ✨ MODIFIÉ: 5 utilisateurs au lieu de 10
+    maxMandates: null, // ✨ NOUVEAU: Illimité
     maxStorage: 10240, // 10GB
     features: [
-      "Jusqu'à 10 utilisateurs",
+      "Jusqu'à 5 utilisateurs", // ✨ MODIFIÉ
+      "Mandats/entreprises illimités", // ✨ NOUVEAU
       "Toutes les fonctionnalités",
       "10GB de stockage",
-      "Support prioritaire",
+      "Support email prioritaire", // ✨ MODIFIÉ
     ],
     popular: true,
   },
@@ -43,8 +44,9 @@ export const PLAN_DETAILS = {
     price: 0,
     monthlyPrice: 0,
     yearlyPrice: 0,
-    maxUsers: null, // Illimité
-    maxStorage: null, // Illimité
+    maxUsers: null,
+    maxMandates: null, // ✨ NOUVEAU: Illimité
+    maxStorage: null,
     features: ["Accès administrateur complet"],
     popular: false,
   },
@@ -64,4 +66,14 @@ export function isValidPlanId(planId: string): planId is PlanId {
 // Helper pour obtenir les plans payants
 export function getPayablePlans() {
   return Object.values(PLAN_DETAILS).filter((plan) => plan.price > 0);
+}
+
+// ✨ NOUVEAU: Helper pour vérifier les limites
+export function getPlanLimits(planId: string) {
+  const plan = getPlanDetails(planId);
+  return {
+    maxUsers: plan.maxUsers,
+    maxMandates: plan.maxMandates,
+    maxStorage: plan.maxStorage,
+  };
 }

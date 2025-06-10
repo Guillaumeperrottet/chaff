@@ -31,6 +31,12 @@ export default function CreateMandatePage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [limitStatus, setLimitStatus] = useState<{
+    canCreate: boolean;
+    current: number;
+    limit: number | null;
+    unlimited: boolean;
+  } | null>(null);
 
   // État du formulaire
   const [formData, setFormData] = useState({
@@ -51,6 +57,38 @@ export default function CreateMandatePage() {
     checkMobile();
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  // Vérification des limites au chargement
+  useEffect(() => {
+    const checkLimits = async () => {
+      try {
+        const response = await fetch("/api/limits/mandates");
+        if (response.ok) {
+          const data = await response.json();
+          setLimitStatus({
+            canCreate:
+              data.canCreate ||
+              data.unlimited ||
+              (data.limit && data.current < data.limit),
+            current: data.current,
+            limit: data.limit,
+            unlimited: data.unlimited,
+          });
+        }
+      } catch (error) {
+        console.error("Erreur lors de la vérification des limites:", error);
+        // En cas d'erreur, on assume qu'on peut créer
+        setLimitStatus({
+          canCreate: true,
+          current: 0,
+          limit: null,
+          unlimited: true,
+        });
+      }
+    };
+
+    checkLimits();
   }, []);
 
   // Validation du formulaire
@@ -97,6 +135,19 @@ export default function CreateMandatePage() {
 
       if (!response.ok) {
         const errorData = await response.json();
+
+        // Gestion spécifique des limites d'abonnement
+        if (response.status === 403 && errorData.limits) {
+          setErrors({
+            general:
+              "Vous avez atteint la limite de mandats autorisés pour votre plan actuel.",
+          });
+          toast.error("Limite atteinte", {
+            description:
+              "Vous ne pouvez pas créer plus d'établissements avec votre plan actuel.",
+          });
+          return;
+        }
 
         if (errorData.code === "UNIQUE_CONSTRAINT_VIOLATION") {
           setErrors({ name: "Un établissement avec ce nom existe déjà" });
@@ -154,6 +205,29 @@ export default function CreateMandatePage() {
           <p className="text-slate-600">
             Créez un nouveau mandat pour suivre son activité
           </p>
+
+          {/* Indicateur de limites */}
+          {limitStatus && (
+            <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-lg text-sm text-slate-600">
+              <Building2 className="h-4 w-4" />
+              <span>
+                {limitStatus.unlimited
+                  ? "Établissements illimités"
+                  : `${limitStatus.current}/${limitStatus.limit} établissements utilisés`}
+              </span>
+              {!limitStatus.unlimited && limitStatus.limit && (
+                <span
+                  className={`font-medium ${
+                    limitStatus.current >= limitStatus.limit * 0.8
+                      ? "text-orange-600"
+                      : "text-green-600"
+                  }`}
+                >
+                  ({limitStatus.limit - limitStatus.current} disponibles)
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Formulaire */}
@@ -165,6 +239,53 @@ export default function CreateMandatePage() {
           </CardHeader>
 
           <CardContent>
+            {/* Bannière d'alerte préventive si proche de la limite */}
+            {limitStatus &&
+              !limitStatus.unlimited &&
+              limitStatus.limit &&
+              limitStatus.current >= limitStatus.limit * 0.9 &&
+              limitStatus.canCreate && (
+                <div className="mb-6 p-3 bg-amber-50 border-l-4 border-amber-400 rounded">
+                  <p className="text-sm text-amber-800">
+                    Plus que {limitStatus.limit - limitStatus.current}{" "}
+                    établissement(s) disponible(s)
+                  </p>
+                </div>
+              )}
+
+            {/* Bannière d'erreur pour les limites */}
+            {errors.general && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-red-800">
+                      Impossible de créer l&apos;établissement
+                    </p>
+                    <p className="text-xs text-red-700 mt-1">
+                      {errors.general}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Message simple si limite atteinte */}
+            {limitStatus?.canCreate === false && (
+              <div className="mb-6 p-3 bg-gray-50 border-l-4 border-gray-400 rounded">
+                <p className="text-sm text-gray-700">
+                  Limite d&apos;établissements atteinte ({limitStatus.current}/
+                  {limitStatus.limit}).
+                  <a
+                    href="/pricing"
+                    className="text-blue-600 hover:underline ml-1"
+                  >
+                    Voir les options d&apos;upgrade
+                  </a>
+                </p>
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Nom */}
               <div className="space-y-3">
@@ -293,15 +414,20 @@ export default function CreateMandatePage() {
               >
                 <Button
                   type="submit"
-                  disabled={isLoading}
+                  disabled={isLoading || limitStatus?.canCreate === false}
                   className={`bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 ${
                     isMobile ? "w-full h-11 order-2" : "px-8 py-2.5"
-                  }`}
+                  } ${limitStatus?.canCreate === false ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   {isLoading ? (
                     <>
                       <Loader2 className="animate-spin h-4 w-4 mr-2" />
                       Création...
+                    </>
+                  ) : limitStatus?.canCreate === false ? (
+                    <>
+                      <AlertCircle className="mr-2 h-4 w-4" />
+                      Limite atteinte
                     </>
                   ) : (
                     <>

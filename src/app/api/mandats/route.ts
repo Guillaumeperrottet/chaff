@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { canCreateMandate } from "@/lib/subscription-limits";
 
 // Schéma de validation pour créer un mandat
 const CreateMandateSchema = z.object({
@@ -24,14 +25,30 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
 
+    // Récupérer l'organisation de l'utilisateur
+    const userWithOrg = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      include: { Organization: true },
+    });
+
+    if (!userWithOrg?.Organization) {
+      return NextResponse.json(
+        { error: "Organisation non trouvée" },
+        { status: 404 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const includeInactive = searchParams.get("includeInactive") === "true";
     const includePayrollStats =
       searchParams.get("includePayrollStats") === "true";
 
-    // Base query
+    // Base query - filtrer par organisation
     const mandates = await prisma.mandate.findMany({
-      where: includeInactive ? {} : { active: true },
+      where: {
+        organizationId: userWithOrg.Organization.id, // ✨ Filtrer par organisation
+        ...(includeInactive ? {} : { active: true }),
+      },
       include: {
         _count: {
           select: { dayValues: true },
@@ -212,7 +229,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/mandats - Créer un nouveau mandat (inchangé)
+// POST /api/mandats - Créer un nouveau mandat avec vérification des limites
 export async function POST(request: NextRequest) {
   try {
     // Vérifier l'authentification
@@ -222,6 +239,39 @@ export async function POST(request: NextRequest) {
 
     if (!session) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+    }
+
+    // Récupérer l'organisation de l'utilisateur
+    const userWithOrg = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      include: { Organization: true },
+    });
+
+    if (!userWithOrg?.Organization) {
+      return NextResponse.json(
+        { error: "Organisation non trouvée" },
+        { status: 404 }
+      );
+    }
+
+    // Vérifier les limites de mandats
+    const limitCheck = await canCreateMandate(userWithOrg.Organization.id);
+
+    if (!limitCheck.allowed) {
+      return NextResponse.json(
+        {
+          error: limitCheck.reason,
+          limits: {
+            current: limitCheck.current,
+            limit: limitCheck.limit,
+            type: "mandates",
+          },
+          upgradeRequired: true,
+          upgradeMessage:
+            "Passez au plan Premium pour créer plus d'entreprises/mandats",
+        },
+        { status: 403 }
+      );
     }
 
     const body = await request.json();
@@ -241,10 +291,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Créer le mandat
+    // Créer le mandat avec l'organisation
     const mandate = await prisma.mandate.create({
-      data: validatedData,
+      data: {
+        ...validatedData,
+        organizationId: userWithOrg.Organization.id, // ✨ Lier à l'organisation
+      },
     });
+
+    // Log de la création avec limite
+    console.log(
+      `✅ Mandat créé: ${mandate.name} (${limitCheck.current + 1}/${limitCheck.limit || "∞"})`
+    );
 
     return NextResponse.json(mandate, { status: 201 });
   } catch (error) {

@@ -96,6 +96,7 @@ model Organization {
   planChangeAudits PlanChangeAudit[]
   storageUsage     StorageUsage?
   users            User[]
+  mandates         Mandate[]          // ✨ NOUVEAU: Relations vers les mandats
   
   @@map("organization")
 }
@@ -138,11 +139,7 @@ model Plan {
   monthlyPrice       Decimal
   yearlyPrice        Decimal?
   maxUsers           Int?
-  hasCustomPricing   Boolean        @default(false)
-  trialDays          Int            @default(0)
-  features           String[]
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
+  maxMandates        Int?           // ✨ NOUVEAU: Limite de mandats/entreprises
   maxStorage         Int?
   description        String?
   hasAdvancedReports Boolean        @default(false)
@@ -271,6 +268,7 @@ model Mandate {
   active      Boolean     @default(true)
   lastEntry   DateTime?   // Dernière saisie
   totalRevenue Float      @default(0) // Cache du total
+  organizationId String   // ✨ Lien vers l'organisation propriétaire
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   dayValues   DayValue[]
@@ -287,6 +285,9 @@ model Mandate {
   // Nouveaux champs pour la masse salariale
   totalPayrollCost Float @default(0) // Cache du coût total masse salariale
   lastPayrollCalculation DateTime? // Dernière fois que la masse salariale a été calculée
+  
+  // Relations
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   
   // Relation pour l'historique des imports
   payrollImports   PayrollImportHistory[]

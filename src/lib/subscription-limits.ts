@@ -3,7 +3,7 @@ import { prisma } from "./prisma";
 import { getPlanDetails } from "@/lib/stripe-client";
 
 // Types simplifiés - suppression des objets et tâches
-export type LimitType = "users" | "storage";
+export type LimitType = "users" | "storage" | "mandates";
 
 interface LimitCheckResult {
   allowed: boolean;
@@ -36,6 +36,9 @@ export async function checkOrganizationLimits(
       limit = planDetails.maxStorage
         ? planDetails.maxStorage * 1024 * 1024
         : null;
+      break;
+    case "mandates":
+      limit = planDetails.maxMandates;
       break;
   }
 
@@ -122,9 +125,40 @@ async function getCurrentCount(
       });
       return Number(storageUsage?.totalUsedBytes || 0);
 
+    case "mandates":
+      // Compter les mandats de l'organisation
+      const mandateCount = await prisma.mandate.count({
+        where: { organizationId }
+      });
+      return mandateCount;
+
     default:
       return 0;
   }
+}
+
+/**
+ * Vérifie spécifiquement les limites de mandats avant création
+ */
+export async function canCreateMandate(organizationId: string): Promise<{
+  allowed: boolean;
+  reason?: string;
+  current: number;
+  limit: number | null;
+}> {
+  return canPerformAction(organizationId, "mandates", 1);
+}
+
+/**
+ * Vérifie les limites d'utilisateurs avant invitation
+ */
+export async function canInviteUser(organizationId: string): Promise<{
+  allowed: boolean;
+  reason?: string;
+  current: number;
+  limit: number | null;
+}> {
+  return canPerformAction(organizationId, "users", 1);
 }
 
 /**
@@ -158,8 +192,7 @@ export async function updateCustomLimits(
           monthlyPrice: 0,
           maxUsers: customLimits.maxUsers,
           maxStorage: customLimits.maxStorage,
-          hasCustomPricing: true,
-          features: ["Limites personnalisées"],
+          description: "Limites personnalisées",
         },
       });
     }
@@ -214,9 +247,15 @@ export async function canPerformAction(
     limitCheck.limit &&
     limitCheck.current + additionalCount > limitCheck.limit
   ) {
+    const messages = {
+      users: `Limite d'utilisateurs atteinte (${limitCheck.current}/${limitCheck.limit}). Passez au plan Premium pour inviter plus d'utilisateurs.`,
+      mandates: `Limite d'entreprises/mandats atteinte (${limitCheck.current}/${limitCheck.limit}). Passez au plan Premium pour créer plus d'entreprises.`,
+      storage: `Limite de stockage atteinte (${limitCheck.current}/${limitCheck.limit} bytes).`,
+    };
+
     return {
       allowed: false,
-      reason: `Limite ${action} atteinte (${limitCheck.current}/${limitCheck.limit})`,
+      reason: messages[action] || `Limite ${action} atteinte`,
       current: limitCheck.current,
       limit: limitCheck.limit,
     };
@@ -226,5 +265,29 @@ export async function canPerformAction(
     allowed: true,
     current: limitCheck.current,
     limit: limitCheck.limit,
+  };
+}
+
+/**
+ * Helper pour obtenir un résumé des limites d'une organisation
+ */
+export async function getOrganizationLimitsSummary(organizationId: string) {
+  const [usersLimit, mandatesLimit, storageLimit] = await Promise.all([
+    checkOrganizationLimits(organizationId, "users"),
+    checkOrganizationLimits(organizationId, "mandates"),
+    checkOrganizationLimits(organizationId, "storage"),
+  ]);
+
+  const subscription = await getOrganizationSubscription(organizationId);
+
+  return {
+    planName: subscription.planName,
+    planId: subscription.planId,
+    isActive: subscription.isActive,
+    limits: {
+      users: usersLimit,
+      mandates: mandatesLimit,
+      storage: storageLimit,
+    },
   };
 }
