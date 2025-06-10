@@ -1,4 +1,3 @@
-// src/app/api/import/template/route.ts - Version corrigée
 import { NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 
