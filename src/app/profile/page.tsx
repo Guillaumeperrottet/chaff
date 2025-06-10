@@ -195,8 +195,7 @@ export default async function ProfilePage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Carte Informations personnelles avec design financier */}
-          <div className="group relative">
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+          <div className="relative">
             <div className="relative bg-white/90 backdrop-blur-sm border border-slate-200/60 rounded-xl shadow-sm">
               <div className="p-6 border-b border-slate-100 bg-gradient-to-r from-blue-50/50 via-transparent to-indigo-50/30 rounded-t-xl">
                 <div className="flex items-center gap-3">
@@ -269,8 +268,7 @@ export default async function ProfilePage() {
 
           {/* Carte Organisation avec design financier */}
           {orgUser?.organization && (
-            <div className="group relative">
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-500/10 to-blue-500/10 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+            <div className="relative">
               <div className="relative bg-white/90 backdrop-blur-sm border border-slate-200/60 rounded-xl shadow-sm">
                 <div className="p-6 border-b border-slate-100 bg-gradient-to-r from-emerald-50/50 via-transparent to-blue-50/30 rounded-t-xl">
                   <div className="flex items-center justify-between">
