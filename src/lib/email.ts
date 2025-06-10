@@ -87,13 +87,29 @@ export const EmailService = {
       });
 
       if (error) {
-        console.error("Erreur lors de l'envoi de l'email de bienvenue:", error);
+        console.error(
+          "❌ Erreur lors de l'envoi de l'email de bienvenue:",
+          error
+        );
+
+        // Gestion spéciale pour les domaines de test bloqués par Resend
+        if (
+          error.message?.includes("Invalid `to` field") &&
+          error.message?.includes("testing email address")
+        ) {
+          console.warn(
+            "⚠️ Email de bienvenue non envoyé : adresse de test bloquée par Resend"
+          );
+          return { success: false, error: { ...error, isTestDomain: true } };
+        }
+
         return { success: false, error };
       }
 
+      console.log("✅ Email de bienvenue envoyé avec succès à:", user.email);
       return { success: true, data };
     } catch (error) {
-      console.error("Erreur dans le service d'email:", error);
+      console.error("❌ Exception dans sendWelcomeEmail:", error);
       return { success: false, error };
     }
   },

@@ -258,12 +258,34 @@ async function createDefaultOrganizationForUser(user: {
         const fullUser = await tx.user.findUnique({
           where: { id: user.id },
         });
+        console.log(
+          "🔍 Utilisateur trouvé pour email bienvenue:",
+          fullUser?.email
+        );
         if (fullUser) {
-          await EmailService.sendWelcomeEmail(fullUser, organization.name);
-          console.log("📧 Email de bienvenue envoyé");
+          console.log("🚀 Tentative d'envoi email de bienvenue...");
+          const emailResult = await EmailService.sendWelcomeEmail(
+            fullUser,
+            organization.name
+          );
+          console.log("📧 Résultat email bienvenue:", emailResult);
+          if (emailResult.success) {
+            console.log("✅ Email de bienvenue envoyé avec succès");
+          } else {
+            const error = emailResult.error as { isTestDomain?: boolean };
+            if (error?.isTestDomain) {
+              console.log(
+                "⚠️ Email non envoyé : domaine de test bloqué par Resend"
+              );
+            } else {
+              console.log("❌ Échec envoi email bienvenue:", emailResult.error);
+            }
+          }
+        } else {
+          console.log("❌ Utilisateur non trouvé pour email bienvenue");
         }
       } catch (emailError) {
-        console.error("❌ Erreur envoi email bienvenue:", emailError);
+        console.error("❌ Exception lors envoi email bienvenue:", emailError);
         // Ne pas faire échouer la transaction pour autant
       }
 
