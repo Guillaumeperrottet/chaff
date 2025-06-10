@@ -56,6 +56,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
 
+    // Récupérer l'organisation de l'utilisateur pour les mandats
+    const userWithOrg = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      include: { Organization: true },
+    });
+
+    if (!userWithOrg?.Organization) {
+      return NextResponse.json(
+        { error: "Organisation non trouvée" },
+        { status: 404 }
+      );
+    }
+
     const body: ChunkedImportRequest = await request.json();
     const {
       chunkIndex,
@@ -105,7 +118,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const result = await processChunkDataFixed(
       mandates,
       dayValues,
-      importSession
+      importSession,
+      userWithOrg.Organization.id // ✨ Passer l'organizationId
     );
 
     // Mettre à jour la progression
@@ -179,7 +193,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 async function processChunkDataFixed(
   mandates: MandateRow[],
   dayValues: DayValueRow[],
-  session: ImportSession
+  session: ImportSession,
+  organizationId: string // ✨ Ajouter l'organizationId
 ): Promise<{
   processed: number;
   mandatesCreated: number;
@@ -247,6 +262,7 @@ async function processChunkDataFixed(
               name: mandateRow.Nom.trim(),
               group,
               active: true,
+              organizationId, // ✨ Ajouter l'organizationId pour la création
             },
           });
 

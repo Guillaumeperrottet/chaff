@@ -128,7 +128,7 @@ async function getCurrentCount(
     case "mandates":
       // Compter les mandats de l'organisation
       const mandateCount = await prisma.mandate.count({
-        where: { organizationId }
+        where: { organizationId },
       });
       return mandateCount;
 
