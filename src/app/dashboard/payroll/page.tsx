@@ -11,7 +11,6 @@ import {
 } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
-import { FeatureButton } from "@/app/components/FeatureButton";
 import {
   Select,
   SelectContent,
@@ -182,30 +181,25 @@ export default function PayrollIndexPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <FeatureButton
-            feature="payroll"
+          <Button
             variant="outline"
             onClick={() => router.push("/dashboard/payroll/simple-import")}
           >
             <Upload className="mr-2 h-4 w-4" />
             Import Gastrotime
-          </FeatureButton>
-          <FeatureButton
-            feature="payroll"
+          </Button>
+          <Button
             onClick={() =>
               router.push("/dashboard/payroll/import-with-validation")
             }
           >
             <Upload className="mr-2 h-4 w-4" />
             Import avec validation
-          </FeatureButton>
-          <FeatureButton
-            feature="advanced_reports"
-            onClick={() => router.push("/dashboard/analytics")}
-          >
+          </Button>
+          <Button onClick={() => router.push("/dashboard/analytics")}>
             <BarChart3 className="mr-2 h-4 w-4" />
             Analytics
-          </FeatureButton>
+          </Button>
         </div>
       </div>
 
@@ -423,15 +417,14 @@ export default function PayrollIndexPage() {
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <FeatureButton
-                        feature="payroll"
+                      <Button
                         onClick={() => handleViewPayroll(mandate.id)}
                         size="sm"
                         className="bg-blue-600 hover:bg-blue-700"
                       >
                         <Calculator className="mr-2 h-4 w-4" />
                         Gérer MS
-                      </FeatureButton>
+                      </Button>
                     </TableCell>
                   </TableRow>
                 );

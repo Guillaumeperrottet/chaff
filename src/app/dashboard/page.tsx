@@ -56,11 +56,8 @@ import {
   Filter,
   Menu,
   ChevronRight,
-  Lock,
 } from "lucide-react";
 import EmptyState from "@/app/components/EmptyState";
-import { useFeatureAccess } from "@/hooks/useFeatureAccess";
-import { FeatureAccess } from "@/lib/access-control";
 import { Input } from "@/app/components/ui/input";
 import {
   Select,
@@ -159,58 +156,6 @@ interface PayrollRatiosResponse {
     };
   };
 }
-
-// Composant simple pour boutons premium sobres
-const SimpleFeatureButton = ({
-  feature,
-  children,
-  onClick,
-  variant = "outline",
-  className = "",
-}: {
-  feature: FeatureAccess;
-  children: React.ReactNode;
-  onClick?: () => void;
-  variant?: "outline" | "default" | "ghost" | "secondary" | "destructive";
-  className?: string;
-}) => {
-  const { hasAccess, loading } = useFeatureAccess(feature);
-
-  if (loading) {
-    return (
-      <Button variant={variant} disabled className={className}>
-        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-        {children}
-      </Button>
-    );
-  }
-
-  if (!hasAccess) {
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant={variant}
-            className={`${className} opacity-50 cursor-not-allowed hover:opacity-50`}
-            disabled
-          >
-            <Lock className="mr-2 h-4 w-4" />
-            {children}
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>Fonctionnalité premium requise</p>
-        </TooltipContent>
-      </Tooltip>
-    );
-  }
-
-  return (
-    <Button variant={variant} onClick={onClick} className={className}>
-      {children}
-    </Button>
-  );
-};
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -823,25 +768,23 @@ export default function DashboardPage() {
               <div className="h-8 w-px bg-border"></div>
 
               <div className="flex items-center gap-2">
-                <SimpleFeatureButton
-                  feature="advanced_reports"
+                <Button
                   onClick={() => router.push("/dashboard/analytics")}
                   variant="outline"
                   className="border-slate-200 hover:bg-slate-50"
                 >
                   <BarChart3 className="mr-2 h-4 w-4" />
                   Analytics
-                </SimpleFeatureButton>
+                </Button>
 
-                <SimpleFeatureButton
-                  feature="payroll"
+                <Button
                   onClick={() => router.push("/dashboard/payroll")}
                   variant="outline"
                   className="border-slate-200 hover:bg-slate-50"
                 >
                   <Calculator className="mr-2 h-4 w-4" />
                   Masse salariale
-                </SimpleFeatureButton>
+                </Button>
 
                 <Button
                   variant="outline"

@@ -13,7 +13,6 @@ import {
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
-import { FeatureButton } from "@/app/components/FeatureButton";
 import {
   Select,
   SelectContent,
@@ -381,14 +380,10 @@ export default function SimpleImportPage() {
                   )}
                 </Button>
               ) : (
-                <FeatureButton
-                  feature="payroll"
-                  onClick={handleImport}
-                  className="flex-1"
-                >
+                <Button onClick={handleImport} className="flex-1">
                   <Calculator className="mr-2 h-4 w-4" />
                   Calculer la masse salariale
-                </FeatureButton>
+                </Button>
               )}
 
               {(selectedFile || importResult) && (
@@ -556,8 +551,7 @@ export default function SimpleImportPage() {
 
             {/* Actions après import */}
             <div className="flex gap-2 pt-4 border-t">
-              <FeatureButton
-                feature="payroll"
+              <Button
                 onClick={() =>
                   router.push(
                     `/dashboard/mandates/${selectedMandateId}/payroll`
@@ -565,7 +559,7 @@ export default function SimpleImportPage() {
                 }
               >
                 Voir la masse salariale
-              </FeatureButton>
+              </Button>
               <Button variant="outline" onClick={handleReset}>
                 Nouvel import
               </Button>

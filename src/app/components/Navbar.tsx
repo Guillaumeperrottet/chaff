@@ -15,7 +15,6 @@ import {
   Users,
   DollarSign,
   BarChart3,
-  Lock,
   MessageSquarePlus,
 } from "lucide-react";
 import Link from "next/link";
@@ -30,18 +29,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/app/components/ui/dropdown-menu";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/app/components/ui/tooltip";
 // import { Badge } from "@/app/components/ui/badge";
 import { useSession } from "@/hooks/useSession";
 import { authClient } from "@/lib/auth-client";
 import { toast } from "sonner";
-import { useFeatureAccess } from "@/hooks/useFeatureAccess";
-import { FeatureAccess } from "@/lib/access-control";
 
 // Interface pour les éléments du breadcrumb
 interface BreadcrumbItem {
@@ -176,62 +167,6 @@ function ChaffNavbar() {
   // État pour les breadcrumbs
   const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbItem[]>([]);
 
-  // Composant pour les éléments de menu premium avec style sobre
-  const SimpleMenuFeature = ({
-    feature,
-    onClick,
-    icon: Icon,
-    label,
-  }: {
-    feature: FeatureAccess;
-    onClick: () => void;
-    icon: React.ComponentType<{ className?: string }>;
-    label: string;
-  }) => {
-    const { hasAccess, loading } = useFeatureAccess(feature);
-
-    // Pendant le chargement, afficher l'élément de menu avec un loader
-    if (loading) {
-      return (
-        <DropdownMenuItem disabled className="opacity-70">
-          <Icon className="mr-2 h-4 w-4 text-muted-foreground" />
-          <span className="text-muted-foreground">{label}</span>
-          <div className="ml-auto h-3 w-3 animate-spin rounded-full border border-muted-foreground border-t-transparent" />
-        </DropdownMenuItem>
-      );
-    }
-
-    // Si pas d'accès après le chargement, afficher avec le cadenas
-    if (!hasAccess) {
-      return (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="relative cursor-not-allowed">
-              <DropdownMenuItem disabled className="opacity-50">
-                <div className="flex items-center">
-                  <Icon className="mr-2 h-4 w-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">{label}</span>
-                  <Lock className="ml-auto h-3 w-3 text-muted-foreground" />
-                </div>
-              </DropdownMenuItem>
-            </div>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Fonctionnalité premium requise</p>
-          </TooltipContent>
-        </Tooltip>
-      );
-    }
-
-    // Accès accordé
-    return (
-      <DropdownMenuItem onClick={onClick}>
-        <Icon className="mr-2 h-4 w-4 text-primary" />
-        <span>{label}</span>
-      </DropdownMenuItem>
-    );
-  };
-
   // Générer les breadcrumbs au chargement et quand le pathname change
   useEffect(() => {
     // Générer les breadcrumbs initiaux
@@ -317,215 +252,38 @@ function ChaffNavbar() {
   };
 
   return (
-    <TooltipProvider>
-      <nav className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:bg-gray-950/95 dark:supports-[backdrop-filter]:bg-gray-950/80">
-        <div className="container mx-auto px-4">
-          <div className="flex h-16 items-center justify-between">
-            {/* Logo/Brand Chaff.ch à gauche */}
-            <div className="flex items-center">
-              <Link
-                href="/dashboard"
-                className="flex items-center space-x-3 text-xl font-bold text-primary hover:opacity-80 transition-opacity group"
-              >
-                <div className="flex items-center justify-center w-10 h-10 bg-chaff-gradient text-white rounded-xl shadow-lg group-hover:shadow-xl transition-all duration-300">
-                  <BarChart3 className="text-lg font-bold" />
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-primary text-xl font-bold">
-                    Chaff.ch
-                  </span>
-                  <span className="text-xs text-muted-foreground font-normal">
-                    Analytics Business
-                  </span>
-                </div>
-              </Link>
-            </div>
-
-            {/* Breadcrumbs au centre */}
-            <div className="hidden md:flex items-center flex-1 justify-center">
-              <nav aria-label="Breadcrumb">
-                <ol className="flex items-center space-x-1 text-sm text-muted-foreground">
-                  {breadcrumbs.map((item, index) => (
-                    <li key={item.href} className="flex items-center">
-                      {index > 0 && (
-                        <ChevronRight className="h-4 w-4 mx-1 text-muted-foreground/50" />
-                      )}
-                      {index === 0 && (
-                        <Home className="h-4 w-4 mr-2 text-muted-foreground/70" />
-                      )}
-                      {item.isActive ? (
-                        <span className="font-medium text-foreground">
-                          {item.label}
-                        </span>
-                      ) : (
-                        <Link
-                          href={item.href}
-                          className="hover:text-foreground transition-colors"
-                        >
-                          {item.label}
-                        </Link>
-                      )}
-                    </li>
-                  ))}
-                </ol>
-              </nav>
-            </div>
-
-            {/* Actions à droite */}
-            <div className="flex items-center space-x-3">
-              {/* Recherche */}
-              <div className="relative">
-                {showSearch ? (
-                  <motion.form
-                    initial={{ width: 0, opacity: 0 }}
-                    animate={{ width: "200px", opacity: 1 }}
-                    exit={{ width: 0, opacity: 0 }}
-                    onSubmit={handleSearch}
-                    className="flex items-center"
-                  >
-                    <Input
-                      ref={searchInputRef}
-                      type="text"
-                      placeholder="Rechercher..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      onBlur={() => {
-                        if (!searchQuery) setShowSearch(false);
-                      }}
-                      className="h-8 text-sm border-primary/30 focus:border-primary"
-                    />
-                  </motion.form>
-                ) : (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowSearch(true)}
-                    className="h-8 w-8 p-0 hover:bg-primary/10"
-                  >
-                    <Search className="h-4 w-4 text-primary" />
-                  </Button>
-                )}
+    <nav className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:bg-gray-950/95 dark:supports-[backdrop-filter]:bg-gray-950/80">
+      <div className="container mx-auto px-4">
+        <div className="flex h-16 items-center justify-between">
+          {/* Logo/Brand Chaff.ch à gauche */}
+          <div className="flex items-center">
+            <Link
+              href="/dashboard"
+              className="flex items-center space-x-3 text-xl font-bold text-primary hover:opacity-80 transition-opacity group"
+            >
+              <div className="flex items-center justify-center w-10 h-10 bg-chaff-gradient text-white rounded-xl shadow-lg group-hover:shadow-xl transition-all duration-300">
+                <BarChart3 className="text-lg font-bold" />
               </div>
-
-              {/* Notifications
-              <Button
-                variant="ghost"
-                size="sm"
-                className="relative h-8 w-8 p-0 hover:bg-primary/10"
-              >
-                <Bell className="h-4 w-4 text-primary" />
-                <Badge
-                  variant="destructive"
-                  className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
-                >
-                  3
-                </Badge>
-              </Button> */}
-
-              {/* Menu utilisateur */}
-              <DropdownMenu
-                open={isUserMenuOpen}
-                onOpenChange={setIsUserMenuOpen}
-              >
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="relative h-8 rounded-full px-2 hover:bg-primary/10"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <div className="relative w-6 h-6 rounded-full overflow-hidden bg-chaff-gradient text-white flex items-center justify-center text-xs font-medium shadow-md">
-                        {session?.user?.image ? (
-                          <Image
-                            src={session.user.image}
-                            alt={session.user.name || "User"}
-                            fill
-                            className="object-cover"
-                          />
-                        ) : (
-                          <span>{getUserInitials()}</span>
-                        )}
-                      </div>
-                      <div className="hidden sm:block text-left">
-                        <p className="text-sm font-medium leading-none">
-                          {session?.user?.name || "Utilisateur"}
-                        </p>
-                      </div>
-                      <ChevronDown className="h-3 w-3 text-muted-foreground" />
-                    </div>
-                  </Button>
-                </DropdownMenuTrigger>
-
-                <DropdownMenuContent className="w-56" align="end" forceMount>
-                  <div className="flex items-center justify-start gap-2 p-2">
-                    <div className="flex flex-col space-y-1 leading-none">
-                      <p className="font-medium text-sm">
-                        {session?.user?.name || "Utilisateur"}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {session?.user?.email}
-                      </p>
-                    </div>
-                  </div>
-
-                  <DropdownMenuSeparator />
-
-                  <SimpleMenuFeature
-                    feature="team_management"
-                    onClick={() => router.push("/dashboard/employees")}
-                    icon={Users}
-                    label="Employés"
-                  />
-
-                  <SimpleMenuFeature
-                    feature="payroll"
-                    onClick={() => router.push("/dashboard/payroll")}
-                    icon={DollarSign}
-                    label="Masse salariale"
-                  />
-
-                  <SimpleMenuFeature
-                    feature="advanced_reports"
-                    onClick={() => router.push("/dashboard/analytics")}
-                    icon={BarChart3}
-                    label="Analytics"
-                  />
-
-                  <DropdownMenuSeparator />
-
-                  <DropdownMenuItem onClick={() => router.push("/profile")}>
-                    <User className="mr-2 h-4 w-4" />
-                    <span>Profil</span>
-                  </DropdownMenuItem>
-
-                  <DropdownMenuItem onClick={() => router.push("/feedback")}>
-                    <MessageSquarePlus className="mr-2 h-4 w-4" />
-                    <span>Feedback</span>
-                  </DropdownMenuItem>
-
-                  <DropdownMenuSeparator />
-
-                  <DropdownMenuItem
-                    onClick={handleSignOut}
-                    className="text-red-600"
-                  >
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Se déconnecter</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+              <div className="flex flex-col">
+                <span className="text-primary text-xl font-bold">Chaff.ch</span>
+                <span className="text-xs text-muted-foreground font-normal">
+                  Analytics Business
+                </span>
+              </div>
+            </Link>
           </div>
-          {/* Breadcrumbs mobile (en dessous sur petits écrans) */}
-          <div className="md:hidden pb-3">
-            <nav aria-label="Breadcrumb mobile">
-              <ol className="flex items-center space-x-1 text-sm text-muted-foreground overflow-x-auto">
-                {breadcrumbs.slice(-2).map((item, index) => (
-                  <li
-                    key={item.href}
-                    className="flex items-center whitespace-nowrap"
-                  >
+
+          {/* Breadcrumbs au centre */}
+          <div className="hidden md:flex items-center flex-1 justify-center">
+            <nav aria-label="Breadcrumb">
+              <ol className="flex items-center space-x-1 text-sm text-muted-foreground">
+                {breadcrumbs.map((item, index) => (
+                  <li key={item.href} className="flex items-center">
                     {index > 0 && (
                       <ChevronRight className="h-4 w-4 mx-1 text-muted-foreground/50" />
+                    )}
+                    {index === 0 && (
+                      <Home className="h-4 w-4 mr-2 text-muted-foreground/70" />
                     )}
                     {item.isActive ? (
                       <span className="font-medium text-foreground">
@@ -543,10 +301,183 @@ function ChaffNavbar() {
                 ))}
               </ol>
             </nav>
-          </div>{" "}
+          </div>
+
+          {/* Actions à droite */}
+          <div className="flex items-center space-x-3">
+            {/* Recherche */}
+            <div className="relative">
+              {showSearch ? (
+                <motion.form
+                  initial={{ width: 0, opacity: 0 }}
+                  animate={{ width: "200px", opacity: 1 }}
+                  exit={{ width: 0, opacity: 0 }}
+                  onSubmit={handleSearch}
+                  className="flex items-center"
+                >
+                  <Input
+                    ref={searchInputRef}
+                    type="text"
+                    placeholder="Rechercher..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onBlur={() => {
+                      if (!searchQuery) setShowSearch(false);
+                    }}
+                    className="h-8 text-sm border-primary/30 focus:border-primary"
+                  />
+                </motion.form>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowSearch(true)}
+                  className="h-8 w-8 p-0 hover:bg-primary/10"
+                >
+                  <Search className="h-4 w-4 text-primary" />
+                </Button>
+              )}
+            </div>
+
+            {/* Notifications
+              <Button
+                variant="ghost"
+                size="sm"
+                className="relative h-8 w-8 p-0 hover:bg-primary/10"
+              >
+                <Bell className="h-4 w-4 text-primary" />
+                <Badge
+                  variant="destructive"
+                  className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+                >
+                  3
+                </Badge>
+              </Button> */}
+
+            {/* Menu utilisateur */}
+            <DropdownMenu
+              open={isUserMenuOpen}
+              onOpenChange={setIsUserMenuOpen}
+            >
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="relative h-8 rounded-full px-2 hover:bg-primary/10"
+                >
+                  <div className="flex items-center space-x-2">
+                    <div className="relative w-6 h-6 rounded-full overflow-hidden bg-chaff-gradient text-white flex items-center justify-center text-xs font-medium shadow-md">
+                      {session?.user?.image ? (
+                        <Image
+                          src={session.user.image}
+                          alt={session.user.name || "User"}
+                          fill
+                          className="object-cover"
+                        />
+                      ) : (
+                        <span>{getUserInitials()}</span>
+                      )}
+                    </div>
+                    <div className="hidden sm:block text-left">
+                      <p className="text-sm font-medium leading-none">
+                        {session?.user?.name || "Utilisateur"}
+                      </p>
+                    </div>
+                    <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                  </div>
+                </Button>
+              </DropdownMenuTrigger>
+
+              <DropdownMenuContent className="w-56" align="end" forceMount>
+                <div className="flex items-center justify-start gap-2 p-2">
+                  <div className="flex flex-col space-y-1 leading-none">
+                    <p className="font-medium text-sm">
+                      {session?.user?.name || "Utilisateur"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {session?.user?.email}
+                    </p>
+                  </div>
+                </div>
+
+                <DropdownMenuSeparator />
+
+                <DropdownMenuItem
+                  onClick={() => router.push("/dashboard/employees")}
+                >
+                  <Users className="mr-2 h-4 w-4" />
+                  <span>Employés</span>
+                </DropdownMenuItem>
+
+                <DropdownMenuItem
+                  onClick={() => router.push("/dashboard/payroll")}
+                >
+                  <DollarSign className="mr-2 h-4 w-4" />
+                  <span>Masse salariale</span>
+                </DropdownMenuItem>
+
+                <DropdownMenuItem
+                  onClick={() => router.push("/dashboard/analytics")}
+                >
+                  <BarChart3 className="mr-2 h-4 w-4" />
+                  <span>Analytics</span>
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator />
+
+                <DropdownMenuItem onClick={() => router.push("/profile")}>
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Profil</span>
+                </DropdownMenuItem>
+
+                <DropdownMenuItem onClick={() => router.push("/feedback")}>
+                  <MessageSquarePlus className="mr-2 h-4 w-4" />
+                  <span>Feedback</span>
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator />
+
+                <DropdownMenuItem
+                  onClick={handleSignOut}
+                  className="text-red-600"
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Se déconnecter</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
-      </nav>
-    </TooltipProvider>
+        {/* Breadcrumbs mobile (en dessous sur petits écrans) */}
+        <div className="md:hidden pb-3">
+          <nav aria-label="Breadcrumb mobile">
+            <ol className="flex items-center space-x-1 text-sm text-muted-foreground overflow-x-auto">
+              {breadcrumbs.slice(-2).map((item, index) => (
+                <li
+                  key={item.href}
+                  className="flex items-center whitespace-nowrap"
+                >
+                  {index > 0 && (
+                    <ChevronRight className="h-4 w-4 mx-1 text-muted-foreground/50" />
+                  )}
+                  {item.isActive ? (
+                    <span className="font-medium text-foreground">
+                      {item.label}
+                    </span>
+                  ) : (
+                    <Link
+                      href={item.href}
+                      className="hover:text-foreground transition-colors"
+                    >
+                      {item.label}
+                    </Link>
+                  )}
+                </li>
+              ))}
+            </ol>
+          </nav>
+        </div>{" "}
+      </div>
+    </nav>
   );
 }
 

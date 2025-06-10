@@ -1,49 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
-import { hasFeatureAccess, FeatureAccess } from "@/lib/access-control";
-
-// Configuration des routes protégées avec gestion des routes dynamiques
-const protectedRoutes = {
-  "/dashboard/payroll": "payroll" as FeatureAccess,
-  "/dashboard/analytics": "advanced_reports" as FeatureAccess,
-} as const;
-
-// Routes qui commencent par certains préfixes (pour les routes dynamiques)
-const DYNAMIC_PROTECTED_ROUTES = [
-  {
-    prefix: "/dashboard/mandates/",
-    suffix: "/payroll",
-    feature: "payroll" as FeatureAccess,
-    redirectTo: "/pricing?feature=payroll&reason=access_denied",
-  },
-  {
-    prefix: "/api/mandats/",
-    suffix: "/payroll",
-    feature: "payroll" as FeatureAccess,
-    isApi: true,
-  },
-  {
-    prefix: "/api/payroll",
-    feature: "payroll" as FeatureAccess,
-    isApi: true,
-  },
-  {
-    prefix: "/api/employees",
-    feature: "payroll" as FeatureAccess,
-    isApi: true,
-  },
-  {
-    prefix: "/api/dashboard/payroll-ratios",
-    feature: "payroll" as FeatureAccess,
-    isApi: true,
-  },
-  {
-    prefix: "/api/dashboard/analytics",
-    feature: "advanced_reports" as FeatureAccess,
-    isApi: true,
-  },
-];
 
 export async function middleware(request: NextRequest) {
   const isDev =
@@ -72,37 +29,14 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  // 🔍 VÉRIFIER si c'est une route protégée (statique ou dynamique)
-  let requiredFeature =
-    protectedRoutes[pathname as keyof typeof protectedRoutes];
-  let isApiRoute = false;
-  let redirectTo = "/pricing";
+  // 🔍 Check if it's a protected route that requires authentication
+  const isDashboardRoute = pathname.startsWith("/dashboard");
+  const isApiRoute =
+    pathname.startsWith("/api/") &&
+    !pathname.startsWith("/api/auth/") &&
+    !pathname.startsWith("/api/webhooks/");
 
-  // Vérifier aussi les routes dynamiques si pas trouvé dans les routes statiques
-  if (!requiredFeature) {
-    const dynamicRoute = DYNAMIC_PROTECTED_ROUTES.find((route) => {
-      if (route.prefix && route.suffix) {
-        return (
-          pathname.startsWith(route.prefix) && pathname.endsWith(route.suffix)
-        );
-      } else if (route.prefix) {
-        return pathname.startsWith(route.prefix);
-      }
-      return false;
-    });
-
-    if (dynamicRoute) {
-      requiredFeature = dynamicRoute.feature;
-      isApiRoute = dynamicRoute.isApi || false;
-      redirectTo = dynamicRoute.redirectTo || "/pricing";
-    }
-  }
-
-  if (requiredFeature) {
-    console.log(
-      `🔍 Vérification accès pour route protégée: ${pathname} (feature: ${requiredFeature})`
-    );
-
+  if (isDashboardRoute || isApiRoute) {
     try {
       const session = await auth.api.getSession({
         headers: request.headers,
@@ -127,44 +61,8 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL("/signin", request.url));
       }
 
-      // 🎯 VÉRIFIER LES PERMISSIONS avec votre système existant
-      const hasAccess = await hasFeatureAccess(
-        session.user.id,
-        requiredFeature
-      );
-
-      if (!hasAccess) {
-        console.log(`❌ Accès refusé - permissions insuffisantes:`, {
-          userId: session.user.id,
-          feature: requiredFeature,
-          route: pathname,
-        });
-
-        if (isApiRoute) {
-          return NextResponse.json(
-            {
-              error: "Accès refusé",
-              message: `Cette fonctionnalité nécessite un plan supérieur.`,
-              code: "PLAN_UPGRADE_REQUIRED",
-              feature: requiredFeature,
-              upgradeUrl: "/pricing",
-            },
-            { status: 403 }
-          );
-        }
-
-        // Pour les pages, rediriger vers pricing avec contexte
-        const upgradeUrl = new URL(redirectTo, request.url);
-        if (!redirectTo.includes("feature=")) {
-          upgradeUrl.searchParams.set("feature", requiredFeature);
-        }
-        upgradeUrl.searchParams.set("returnTo", pathname);
-
-        return NextResponse.redirect(upgradeUrl);
-      }
-
       console.log(
-        `✅ Accès autorisé: ${pathname} pour fonctionnalité ${requiredFeature}`
+        `✅ Accès autorisé: ${pathname} pour utilisateur ${session.user.id}`
       );
     } catch (error) {
       console.error("❌ Erreur middleware:", error);
@@ -173,7 +71,7 @@ export async function middleware(request: NextRequest) {
         return NextResponse.json(
           {
             error: "Erreur interne",
-            message: "Erreur lors de la vérification des permissions",
+            message: "Erreur lors de la vérification de l'authentification",
             code: "INTERNAL_ERROR",
           },
           { status: 500 }
@@ -228,18 +126,6 @@ function handleCorsAndNext(request: NextRequest, isDev: boolean) {
 
 export const config = {
   matcher: [
-    // Pages dashboard - plus spécifique
-    "/dashboard/payroll/:path*",
-    "/dashboard/analytics/:path*",
-    "/dashboard/mandates/:path*/payroll/:path*",
-
-    // API routes protégées
-    "/api/payroll/:path*",
-    "/api/employees/:path*",
-    "/api/mandats/:path*/payroll/:path*",
-    "/api/dashboard/payroll-ratios/:path*",
-    "/api/dashboard/analytics/:path*",
-
     // Matcher général pour les redirections et CORS
     "/((?!_next/static|_next/image|favicon.ico|api/auth|api/webhooks).*)",
   ],

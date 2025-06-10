@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { hasFeatureAccess } from "@/lib/access-control";
 
 interface AnalyticsData {
   overview: {
@@ -72,20 +71,6 @@ export async function GET(request: NextRequest) {
 
     if (!session) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
-    }
-
-    const hasAnalyticsAccess = await hasFeatureAccess(
-      session.user.id,
-      "advanced_reports"
-    );
-    if (!hasAnalyticsAccess) {
-      return NextResponse.json(
-        {
-          error: "Accès refusé",
-          message: "Cette fonctionnalité nécessite un plan Premium",
-        },
-        { status: 403 }
-      );
     }
 
     const { searchParams } = new URL(request.url);

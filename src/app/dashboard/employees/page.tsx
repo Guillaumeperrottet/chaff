@@ -10,7 +10,6 @@ import {
   CardTitle,
 } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
-import { FeatureButton } from "@/app/components/FeatureButton";
 import { Input } from "@/app/components/ui/input";
 import {
   Select,
@@ -231,22 +230,17 @@ export default function EmployeesPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <FeatureButton
-            feature="advanced_reports"
-            variant="outline"
-            onClick={handleExport}
-          >
+          <Button variant="outline" onClick={handleExport}>
             <Download className="mr-2 h-4 w-4" />
             Exporter
-          </FeatureButton>
-          <FeatureButton
-            feature="payroll"
+          </Button>
+          <Button
             variant="outline"
             onClick={() => router.push("/dashboard/payroll/simple-import")}
           >
             <Upload className="mr-2 h-4 w-4" />
             Import Gastrotime
-          </FeatureButton>
+          </Button>
           <Button onClick={handleCreateNew}>
             <Plus className="mr-2 h-4 w-4" />
             Nouvel employé

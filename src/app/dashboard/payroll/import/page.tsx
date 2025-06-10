@@ -11,7 +11,6 @@ import {
   CardTitle,
 } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
-import { FeatureButton } from "@/app/components/FeatureButton";
 import { Label } from "@/app/components/ui/label";
 import {
   Select,
@@ -333,14 +332,10 @@ export default function PayrollImportPage() {
                   Lancer l&apos;import
                 </Button>
               ) : (
-                <FeatureButton
-                  feature="payroll"
-                  onClick={handleImport}
-                  className="flex-1"
-                >
+                <Button onClick={handleImport} className="flex-1">
                   <Upload className="mr-2 h-4 w-4" />
                   Lancer l&apos;import
-                </FeatureButton>
+                </Button>
               )}
 
               {(selectedFile || importResult) && (

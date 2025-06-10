@@ -1,6 +1,6 @@
 // src/lib/stripe-client.ts - Version nettoyée
 
-// Configuration centralisée des plans (sans variables serveur)
+// Configuration centralisée des plans (sans restrictions d'accès)
 export const PLAN_DETAILS = {
   FREE: {
     id: "FREE",
@@ -13,17 +13,11 @@ export const PLAN_DETAILS = {
     maxStorage: 100, // MB
     features: [
       "1 utilisateur",
-      "Accès dashboard de base",
+      "Toutes les fonctionnalités",
       "100MB de stockage",
       "Support communauté",
-      "Fonctionnalités limitées",
     ],
     popular: false,
-    // Restrictions spécifiques
-    allowPayrollAccess: false,
-    allowAdvancedReports: false,
-    allowBulkImport: false,
-    allowAPIAccess: false,
   },
   PREMIUM: {
     id: "PREMIUM",
@@ -39,15 +33,8 @@ export const PLAN_DETAILS = {
       "Toutes les fonctionnalités",
       "10GB de stockage",
       "Support prioritaire",
-      "Rapports avancés",
-      "Accès API",
     ],
     popular: true,
-    // Accès complet
-    allowPayrollAccess: true,
-    allowAdvancedReports: true,
-    allowBulkImport: true,
-    allowAPIAccess: true,
   },
   SUPER_ADMIN: {
     id: "SUPER_ADMIN",
@@ -60,11 +47,6 @@ export const PLAN_DETAILS = {
     maxStorage: null, // Illimité
     features: ["Accès administrateur complet"],
     popular: false,
-    // Accès total
-    allowPayrollAccess: true,
-    allowAdvancedReports: true,
-    allowBulkImport: true,
-    allowAPIAccess: true,
   },
 } as const;
 
@@ -82,17 +64,4 @@ export function isValidPlanId(planId: string): planId is PlanId {
 // Helper pour obtenir les plans payants
 export function getPayablePlans() {
   return Object.values(PLAN_DETAILS).filter((plan) => plan.price > 0);
-}
-
-// Helper pour vérifier les limites
-export function getPlanLimits(planId: string) {
-  const plan = getPlanDetails(planId);
-  return {
-    maxUsers: plan.maxUsers,
-    maxStorage: plan.maxStorage,
-    allowPayrollAccess: plan.allowPayrollAccess,
-    allowAdvancedReports: plan.allowAdvancedReports,
-    allowBulkImport: plan.allowBulkImport,
-    allowAPIAccess: plan.allowAPIAccess,
-  };
 }

@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { hasFeatureAccess } from "@/lib/access-control";
 
 interface PayrollRatioData {
   mandateId: string;
@@ -70,17 +69,6 @@ export async function GET(request: NextRequest) {
 
     if (!session) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
-    }
-
-    const hasPayrollAccess = await hasFeatureAccess(session.user.id, "payroll");
-    if (!hasPayrollAccess) {
-      return NextResponse.json(
-        {
-          error: "Accès refusé",
-          message: "L'accès à la masse salariale nécessite un plan Premium",
-        },
-        { status: 403 }
-      );
     }
 
     const { searchParams } = new URL(request.url);

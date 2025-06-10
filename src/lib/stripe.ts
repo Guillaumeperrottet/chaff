@@ -51,29 +51,22 @@ export const stripe =
       })
     : null;
 
-// Configuration centralisée des plans (nettoyée)
+// Configuration centralisée des plans (sans restrictions d'accès)
 export const PLAN_DETAILS = {
   FREE: {
     id: "FREE",
     name: "Gratuit",
-    description: "Plan de découverte limité",
+    description: "Plan de découverte",
     price: 0,
     monthlyPrice: 0,
     yearlyPrice: 0,
     maxUsers: 1,
-    maxStorage: 100, // 100MB seulement
-    // 🚫 RESTRICTIONS D'ACCÈS
-    allowPayrollAccess: false,
-    allowAdvancedReports: false,
-    allowBulkImport: false,
-    allowAPIAccess: false,
+    maxStorage: 100, // 100MB
     features: [
       "1 utilisateur maximum",
-      "Accès dashboard de base",
+      "Toutes les fonctionnalités",
       "100MB de stockage",
       "Support communauté",
-      "❌ Pas d'accès masse salariale",
-      "❌ Pas de rapports avancés",
     ],
     popular: false,
   },
@@ -86,18 +79,10 @@ export const PLAN_DETAILS = {
     yearlyPrice: 290, // 10 mois payés sur 12
     maxUsers: 10,
     maxStorage: 10240, // 10GB
-    // ✅ TOUS LES ACCÈS
-    allowPayrollAccess: true,
-    allowAdvancedReports: true,
-    allowBulkImport: true,
-    allowAPIAccess: true,
     features: [
       "Jusqu'à 10 utilisateurs",
       "Toutes les fonctionnalités",
       "10GB de stockage",
-      "✅ Accès complet masse salariale",
-      "✅ Rapports et analytics avancés",
-      "✅ Import/export en lot",
       "Support prioritaire",
     ],
     popular: true,
@@ -111,10 +96,6 @@ export const PLAN_DETAILS = {
     yearlyPrice: 0,
     maxUsers: null,
     maxStorage: null,
-    allowPayrollAccess: true,
-    allowAdvancedReports: true,
-    allowBulkImport: true,
-    allowAPIAccess: true,
     features: ["Accès administrateur complet"],
     popular: false,
   },
