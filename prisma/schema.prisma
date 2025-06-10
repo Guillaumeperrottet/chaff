@@ -97,6 +97,7 @@ model Organization {
   storageUsage     StorageUsage?
   users            User[]
   mandates         Mandate[]          // ✨ NOUVEAU: Relations vers les mandats
+  establishmentTypes EstablishmentType[] // ✨ NOUVEAU: Relations vers les types d'établissement personnalisés
   
   @@map("organization")
 }
@@ -311,6 +312,49 @@ model DayValue {
 enum MandateGroup {
   HEBERGEMENT
   RESTAURATION
+}
+
+// ==========================================
+// SYSTÈME DE TYPES D'ÉTABLISSEMENT PERSONNALISÉS
+// ==========================================
+
+enum EstablishmentIcon {
+  BUILDING2     // Bâtiment générique
+  MAP_PIN       // Pin de localisation
+  HOTEL         // Hôtel
+  UTENSILS      // Restaurant/Cuisine
+  TENT          // Camping
+  WAVES         // Spa/Piscine
+  TREE_PINE     // Nature/Montagne
+  COFFEE        // Café/Bar
+  SHOPPING_BAG  // Commerce
+  BRIEFCASE     // Business
+  HEART         // Services personnels
+  MUSIC         // Divertissement
+}
+
+model EstablishmentType {
+  id             String             @id @default(cuid())
+  label          String
+  description    String
+  icon           EstablishmentIcon  @default(BUILDING2)
+  iconColor      String             @default("text-purple-600")
+  bgColor        String             @default("bg-purple-100")
+  isCustom       Boolean            @default(true)
+  isActive       Boolean            @default(true)
+  organizationId String             // Lié à l'organisation
+  createdBy      String             // ID de l'utilisateur créateur
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  
+  // Relations
+  organization   Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  // Index pour les performances
+  @@index([organizationId])
+  @@index([isCustom])
+  @@index([isActive])
+  @@map("establishment_types")
 }
 
 // ==========================================

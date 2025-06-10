@@ -22,7 +22,9 @@ import {
 } from "@/app/components/ui/select";
 import { Checkbox } from "@/app/components/ui/checkbox";
 import { BackButton } from "@/app/components/ui/BackButton";
-import { Building2, Plus, X, Loader2, MapPin, AlertCircle } from "lucide-react";
+import { Building2, Plus, X, Loader2, AlertCircle } from "lucide-react";
+import { getIconById, EstablishmentIconType } from "@/lib/establishment-icons";
+import { IconSelector } from "@/app/components/ui/icon-selector";
 import {
   Dialog,
   DialogContent,
@@ -31,8 +33,15 @@ import {
   DialogTrigger,
 } from "@/app/components/ui/dialog";
 
-// Types basés sur le schema Prisma
-type MandateGroup = "HEBERGEMENT" | "RESTAURATION";
+// Interface pour les types d'établissement
+interface EstablishmentType {
+  id: string;
+  label: string;
+  description: string;
+  icon: string; // Maintenant on stocke l'ID de l'icône
+  iconColor: string;
+  bgColor: string;
+}
 
 export default function CreateMandatePage() {
   const router = useRouter();
@@ -45,10 +54,97 @@ export default function CreateMandatePage() {
     unlimited: boolean;
   } | null>(null);
 
+  // Types d'établissement disponibles avec API pour la persistance
+  const [availableTypes, setAvailableTypes] = useState<EstablishmentType[]>([]);
+
+  // Charger les types depuis l'API au démarrage
+  useEffect(() => {
+    const loadTypes = async () => {
+      try {
+        const response = await fetch("/api/establishment-types");
+        if (response.ok) {
+          const { types } = await response.json();
+          setAvailableTypes(types);
+
+          // Vérifier s'il y a des données localStorage à migrer
+          await migrateLocalStorageData();
+        } else {
+          throw new Error("Erreur lors du chargement des types");
+        }
+      } catch (error) {
+        console.error("Erreur lors du chargement des types:", error);
+        // Fallback vers les types par défaut si l'API échoue
+        const defaultTypes: EstablishmentType[] = [
+          {
+            id: "HEBERGEMENT",
+            label: "Hébergement",
+            description:
+              "Hôtels, auberges, gîtes • Suivi des nuitées et revenus",
+            icon: "BUILDING2",
+            iconColor: "text-blue-600",
+            bgColor: "bg-blue-100",
+          },
+          {
+            id: "RESTAURATION",
+            label: "Restauration",
+            description:
+              "Restaurants, bars, cafés • Suivi des ventes et revenus",
+            icon: "UTENSILS",
+            iconColor: "text-orange-600",
+            bgColor: "bg-orange-100",
+          },
+        ];
+        setAvailableTypes(defaultTypes);
+      }
+    };
+
+    loadTypes();
+  }, []);
+
+  // Fonction pour migrer les données localStorage vers la base de données
+  const migrateLocalStorageData = async () => {
+    try {
+      const savedCustomTypes = localStorage.getItem(
+        "chaff-custom-establishment-types"
+      );
+      if (savedCustomTypes) {
+        const customTypes = JSON.parse(savedCustomTypes);
+        if (customTypes.length > 0) {
+          const response = await fetch("/api/establishment-types/migrate", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ customTypes }),
+          });
+
+          if (response.ok) {
+            const { migratedCount } = await response.json();
+            if (migratedCount > 0) {
+              console.log(
+                `${migratedCount} type(s) migré(s) depuis localStorage`
+              );
+              // Supprimer les données localStorage après migration réussie
+              localStorage.removeItem("chaff-custom-establishment-types");
+              // Recharger les types pour inclure les nouveaux
+              const refreshResponse = await fetch("/api/establishment-types");
+              if (refreshResponse.ok) {
+                const { types } = await refreshResponse.json();
+                setAvailableTypes(types);
+              }
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Erreur lors de la migration localStorage:", error);
+    }
+  };
+
   // État du formulaire
   const [formData, setFormData] = useState({
     name: "",
-    group: "" as MandateGroup | "",
+    group: "" as string,
     active: true,
   });
 
@@ -56,6 +152,10 @@ export default function CreateMandatePage() {
   const [isAddTypeDialogOpen, setIsAddTypeDialogOpen] = useState(false);
   const [newTypeName, setNewTypeName] = useState("");
   const [newTypeDescription, setNewTypeDescription] = useState("");
+  const [selectedIcon, setSelectedIcon] =
+    useState<EstablishmentIconType>("BUILDING2");
+  const [selectedIconColor, setSelectedIconColor] = useState("text-purple-600");
+  const [selectedBgColor, setSelectedBgColor] = useState("bg-purple-100");
   const [isAddingType, setIsAddingType] = useState(false);
 
   // Gestion des erreurs
@@ -200,32 +300,62 @@ export default function CreateMandatePage() {
     }
   };
 
-  // Fonction pour ajouter un nouveau type (simulation)
+  // Fonction pour ajouter un nouveau type avec persistance
   const handleAddNewType = async () => {
     if (!newTypeName.trim()) return;
 
     setIsAddingType(true);
 
     try {
-      // Simulation d'un appel API pour ajouter un nouveau type
-      // Dans une vraie application, vous feriez un appel à votre API
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      toast.success(`Type "${newTypeName}" ajouté avec succès`, {
-        description:
-          "Vous pouvez maintenant l&apos;utiliser pour vos établissements.",
+      // Appel API pour enregistrer côté serveur
+      const response = await fetch("/api/establishment-types", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          label: newTypeName.trim(),
+          description: newTypeDescription.trim(),
+          icon: selectedIcon,
+          iconColor: selectedIconColor,
+          bgColor: selectedBgColor,
+        }),
       });
 
-      // Fermer la modal et nettoyer les champs
-      setIsAddTypeDialogOpen(false);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          errorData.error || "Erreur lors de la création du type"
+        );
+      }
+
+      const { type: newTypeFromAPI } = await response.json();
+
+      // Ajouter le nouveau type à la liste
+      setAvailableTypes((prev) => [...prev, newTypeFromAPI]);
+
+      // Sélectionner automatiquement le nouveau type
+      setFormData((prev) => ({
+        ...prev,
+        group: newTypeFromAPI.id,
+      }));
+
+      // Réinitialiser les champs et fermer le dialog
       setNewTypeName("");
       setNewTypeDescription("");
+      setSelectedIcon("BUILDING2");
+      setSelectedIconColor("text-purple-600");
+      setSelectedBgColor("bg-purple-100");
+      setIsAddTypeDialogOpen(false);
 
-      // Optionnel : vous pourriez aussi sélectionner automatiquement le nouveau type
-      // handleInputChange("group", newTypeName.toUpperCase().replace(/\s+/g, '_'));
-    } catch (err) {
-      toast.error("Erreur lors de l&apos;ajout du type");
-      console.error("Erreur lors de l&apos;ajout du type:", err);
+      toast.success(`Type "${newTypeFromAPI.label}" créé avec succès !`);
+    } catch (error) {
+      console.error("Erreur lors de l'ajout du type:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Erreur lors de la création du type"
+      );
     } finally {
       setIsAddingType(false);
     }
@@ -363,7 +493,7 @@ export default function CreateMandatePage() {
               </div>
 
               {/* Type */}
-              <div className="space-y-4">
+              <div className="space-y-5">
                 <Label
                   htmlFor="group"
                   className="text-base font-medium text-slate-900"
@@ -377,7 +507,7 @@ export default function CreateMandatePage() {
                   disabled={isLoading}
                 >
                   <SelectTrigger
-                    className={`h-14 text-base transition-all duration-200 ${
+                    className={`h-16 text-base transition-all duration-200 px-4 py-3 ${
                       errors.group
                         ? "border-red-300 focus:border-red-500 focus:ring-red-500/20"
                         : "border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
@@ -386,41 +516,36 @@ export default function CreateMandatePage() {
                     <SelectValue placeholder="Sélectionnez le type d'établissement" />
                   </SelectTrigger>
                   <SelectContent className="max-h-80 overflow-y-auto">
-                    <SelectItem value="HEBERGEMENT">
-                      <div className="flex items-center gap-3 py-3">
-                        <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                          <Building2 className="h-4 w-4 text-blue-600" />
-                        </div>
-                        <div className="flex-1">
-                          <div className="font-medium text-slate-900">
-                            Hébergement
+                    {availableTypes.map((type) => {
+                      const iconData = getIconById(
+                        type.icon as EstablishmentIconType
+                      );
+                      const IconComponent = iconData.component;
+                      return (
+                        <SelectItem key={type.id} value={type.id}>
+                          <div className="flex items-center gap-4 py-4">
+                            <div
+                              className={`w-10 h-10 ${type.bgColor} rounded-lg flex items-center justify-center`}
+                            >
+                              <IconComponent
+                                className={`h-5 w-5 ${type.iconColor}`}
+                              />
+                            </div>
+                            <div className="flex-1">
+                              <div className="font-medium text-slate-900 text-base">
+                                {type.label}
+                              </div>
+                              <div className="text-sm text-slate-500 mt-1">
+                                {type.description}
+                              </div>
+                            </div>
                           </div>
-                          <div className="text-sm text-slate-500">
-                            Hôtels, auberges, gîtes • Suivi des nuitées et
-                            revenus
-                          </div>
-                        </div>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="RESTAURATION">
-                      <div className="flex items-center gap-3 py-3">
-                        <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
-                          <MapPin className="h-4 w-4 text-orange-600" />
-                        </div>
-                        <div className="flex-1">
-                          <div className="font-medium text-slate-900">
-                            Restauration
-                          </div>
-                          <div className="text-sm text-slate-500">
-                            Restaurants, bars, cafés • Suivi des ventes et
-                            revenus
-                          </div>
-                        </div>
-                      </div>
-                    </SelectItem>
+                        </SelectItem>
+                      );
+                    })}
 
                     {/* Bouton pour ajouter un nouveau type */}
-                    <div className="border-t border-slate-200 mt-2 pt-2">
+                    <div className="border-t border-slate-200 mt-3 pt-3">
                       <Dialog
                         open={isAddTypeDialogOpen}
                         onOpenChange={setIsAddTypeDialogOpen}
@@ -428,16 +553,16 @@ export default function CreateMandatePage() {
                         <DialogTrigger asChild>
                           <button
                             type="button"
-                            className="w-full flex items-center gap-3 px-3 py-3 text-left hover:bg-slate-50 rounded-sm transition-colors"
+                            className="w-full flex items-center gap-4 px-4 py-4 text-left hover:bg-slate-50 rounded-lg transition-colors"
                           >
-                            <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                              <Plus className="h-4 w-4 text-green-600" />
+                            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                              <Plus className="h-5 w-5 text-green-600" />
                             </div>
                             <div className="flex-1">
-                              <div className="font-medium text-slate-900">
+                              <div className="font-medium text-slate-900 text-base">
                                 Ajouter un nouveau type
                               </div>
-                              <div className="text-sm text-slate-500">
+                              <div className="text-sm text-slate-500 mt-1">
                                 Créer un type d&apos;établissement personnalisé
                               </div>
                             </div>
@@ -472,6 +597,16 @@ export default function CreateMandatePage() {
                                 className="h-10"
                               />
                             </div>
+
+                            {/* Sélection d'icône */}
+                            <IconSelector
+                              selectedIcon={selectedIcon}
+                              onIconSelect={(iconId, iconColor, bgColor) => {
+                                setSelectedIcon(iconId);
+                                setSelectedIconColor(iconColor);
+                                setSelectedBgColor(bgColor);
+                              }}
+                            />
                             <div className="flex justify-end gap-3 pt-4">
                               <Button
                                 type="button"
@@ -480,6 +615,9 @@ export default function CreateMandatePage() {
                                   setIsAddTypeDialogOpen(false);
                                   setNewTypeName("");
                                   setNewTypeDescription("");
+                                  setSelectedIcon("BUILDING2");
+                                  setSelectedIconColor("text-purple-600");
+                                  setSelectedBgColor("bg-purple-100");
                                 }}
                               >
                                 Annuler
