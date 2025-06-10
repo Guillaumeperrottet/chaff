@@ -43,6 +43,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
 
+    // Récupérer l'organisation de l'utilisateur
+    const userWithOrg = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      include: { Organization: true },
+    });
+
+    if (!userWithOrg?.Organization) {
+      return NextResponse.json(
+        { error: "Organisation non trouvée" },
+        { status: 404 }
+      );
+    }
+
     // Récupérer le fichier depuis FormData
     const formData = await request.formData();
     const file = formData.get("file") as File;
@@ -106,7 +119,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Traitement des données avec la méthode robuste
-    const result = await processExcelDataRobust(workbook);
+    const result = await processExcelDataRobust(
+      workbook,
+      userWithOrg.Organization.id
+    );
 
     console.log("✅ Import terminé avec succès");
     return NextResponse.json(result);
@@ -253,7 +269,8 @@ function parseSmartValue(valueStr: string | number): number {
 
 // Nouvelle fonction robuste pour le traitement des données Excel
 async function processExcelDataRobust(
-  workbook: XLSX.WorkBook
+  workbook: XLSX.WorkBook,
+  organizationId: string // ✨ Ajouter l'organizationId
 ): Promise<ImportResult> {
   const stats = {
     mandatesCreated: 0,
@@ -322,6 +339,7 @@ async function processExcelDataRobust(
             name: mandantRow.Nom.trim(),
             group,
             active: true,
+            organizationId, // ✨ Ajouter l'organizationId
           },
         });
 
