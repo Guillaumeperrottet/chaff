@@ -921,7 +921,6 @@ export default function DashboardPage() {
           </CardHeader>
 
           <CardContent>
-            {" "}
             {/* Affichage conditionnel : Cards sur mobile, Table sur desktop */}
             {isMobile ? (
               /* Version MOBILE - Cards */
@@ -940,167 +939,173 @@ export default function DashboardPage() {
                 )}
               </div>
             ) : (
-              /* Version DESKTOP - Table EXACTEMENT comme votre code original */
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="min-w-[150px]">Campus</TableHead>
-                      <TableHead className="min-w-[120px]">
-                        Dernière saisie
-                      </TableHead>
-                      <TableHead className="min-w-[150px]">Top</TableHead>
-                      <TableHead className="text-center min-w-[120px]">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div className="flex items-center justify-center gap-1 cursor-help group">
-                                <span className="font-medium">Ratio %</span>
-                                <Info className="h-3 w-3 text-muted-foreground/40 group-hover:text-muted-foreground/60 transition-colors" />
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent
-                              side="top"
-                              className="max-w-xs bg-white border border-gray-200 shadow-sm p-3"
-                              sideOffset={8}
+              /* Version DESKTOP - Table OU EmptyState */
+              <>
+                {mergedData.length === 0 ? (
+                  /* EmptyState en pleine largeur quand pas de données */
+                  <div className="w-full">
+                    <EmptyState
+                      type="mandates"
+                      onPrimaryAction={() =>
+                        router.push("/dashboard/mandates/create")
+                      }
+                      className="min-h-[500px]"
+                    />
+                  </div>
+                ) : (
+                  /* Table normale quand il y a des données */
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="min-w-[150px]">
+                            Campus
+                          </TableHead>
+                          <TableHead className="min-w-[120px]">
+                            Dernière saisie
+                          </TableHead>
+                          <TableHead className="min-w-[150px]">Top</TableHead>
+                          <TableHead className="text-center min-w-[120px]">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="flex items-center justify-center gap-1 cursor-help group">
+                                    <span className="font-medium">Ratio %</span>
+                                    <Info className="h-3 w-3 text-muted-foreground/40 group-hover:text-muted-foreground/60 transition-colors" />
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent
+                                  side="top"
+                                  className="max-w-xs bg-white border border-gray-200 shadow-sm p-3"
+                                  sideOffset={8}
+                                >
+                                  <div className="space-y-2.5 text-xs">
+                                    <div>
+                                      <div className="text-gray-600 mb-1">
+                                        Formule :
+                                      </div>
+                                      <div className="font-mono text-gray-900 bg-gray-50 px-2 py-1 rounded text-center">
+                                        (Masse Salariale ÷ CA) × 100
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <div className="text-gray-600 mb-1.5">
+                                        Seuils :
+                                      </div>
+                                      <div className="space-y-1">
+                                        <div className="flex items-center gap-2 text-gray-700">
+                                          <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+                                          <span>&lt; 25%</span>
+                                          <span className="text-gray-500">
+                                            Excellent
+                                          </span>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-gray-700">
+                                          <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                                          <span>25-35%</span>
+                                          <span className="text-gray-500">
+                                            Bon
+                                          </span>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-gray-700">
+                                          <div className="w-1.5 h-1.5 bg-amber-500 rounded-full"></div>
+                                          <span>35-50%</span>
+                                          <span className="text-gray-500">
+                                            Attention
+                                          </span>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-gray-700">
+                                          <div className="w-1.5 h-1.5 bg-red-500 rounded-full"></div>
+                                          <span>&gt; 50%</span>
+                                          <span className="text-gray-500">
+                                            Critique
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </TableHead>
+                          {dashboardData.columnLabels.map((col) => (
+                            <TableHead
+                              key={col.key}
+                              className="text-center min-w-[100px]"
                             >
-                              <div className="space-y-2.5 text-xs">
-                                <div>
-                                  <div className="text-gray-600 mb-1">
-                                    Formule :
-                                  </div>
-                                  <div className="font-mono text-gray-900 bg-gray-50 px-2 py-1 rounded text-center">
-                                    (Masse Salariale ÷ CA) × 100
-                                  </div>
-                                </div>
-                                <div>
-                                  <div className="text-gray-600 mb-1.5">
-                                    Seuils :
-                                  </div>
-                                  <div className="space-y-1">
-                                    <div className="flex items-center gap-2 text-gray-700">
-                                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
-                                      <span>&lt; 25%</span>
-                                      <span className="text-gray-500">
-                                        Excellent
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center gap-2 text-gray-700">
-                                      <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                                      <span>25-35%</span>
-                                      <span className="text-gray-500">Bon</span>
-                                    </div>
-                                    <div className="flex items-center gap-2 text-gray-700">
-                                      <div className="w-1.5 h-1.5 bg-amber-500 rounded-full"></div>
-                                      <span>35-50%</span>
-                                      <span className="text-gray-500">
-                                        Attention
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center gap-2 text-gray-700">
-                                      <div className="w-1.5 h-1.5 bg-red-500 rounded-full"></div>
-                                      <span>&gt; 50%</span>
-                                      <span className="text-gray-500">
-                                        Critique
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </TableHead>
-                      {dashboardData.columnLabels.map((col) => (
-                        <TableHead
-                          key={col.key}
-                          className="text-center min-w-[100px]"
-                        >
-                          <div className="font-medium">{col.label}</div>
-                        </TableHead>
-                      ))}
-                      <TableHead className="w-[50px]"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {/* Section Hébergement */}
-                    {(categoryFilter === "all" ||
-                      categoryFilter === "hebergement") && (
-                      <>
-                        {grouped.hebergement.map((campus) => (
-                          <CampusRow key={campus.id} campus={campus} />
-                        ))}
-                        {grouped.hebergement.length > 0 && (
-                          <SubtotalRow
-                            label="Hébergement"
-                            totals={hebergementTotals}
-                            bgColor="bg-slate-50"
-                            textColor="text-slate-700"
-                            groupData={grouped.hebergement}
-                          />
+                              <div className="font-medium">{col.label}</div>
+                            </TableHead>
+                          ))}
+                          <TableHead className="w-[50px]"></TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {/* Section Hébergement */}
+                        {(categoryFilter === "all" ||
+                          categoryFilter === "hebergement") && (
+                          <>
+                            {grouped.hebergement.map((campus) => (
+                              <CampusRow key={campus.id} campus={campus} />
+                            ))}
+                            {grouped.hebergement.length > 0 && (
+                              <SubtotalRow
+                                label="Hébergement"
+                                totals={hebergementTotals}
+                                bgColor="bg-slate-50"
+                                textColor="text-slate-700"
+                                groupData={grouped.hebergement}
+                              />
+                            )}
+                          </>
                         )}
-                      </>
-                    )}
 
-                    {/* Section Restauration */}
-                    {(categoryFilter === "all" ||
-                      categoryFilter === "restauration") && (
-                      <>
-                        {grouped.restauration.map((campus) => (
-                          <CampusRow key={campus.id} campus={campus} />
-                        ))}
-                        {grouped.restauration.length > 0 && (
-                          <SubtotalRow
-                            label="Restauration"
-                            totals={restaurationTotals}
-                            bgColor="bg-slate-50"
-                            textColor="text-slate-700"
-                          />
+                        {/* Section Restauration */}
+                        {(categoryFilter === "all" ||
+                          categoryFilter === "restauration") && (
+                          <>
+                            {grouped.restauration.map((campus) => (
+                              <CampusRow key={campus.id} campus={campus} />
+                            ))}
+                            {grouped.restauration.length > 0 && (
+                              <SubtotalRow
+                                label="Restauration"
+                                totals={restaurationTotals}
+                                bgColor="bg-slate-50"
+                                textColor="text-slate-700"
+                              />
+                            )}
+                          </>
                         )}
-                      </>
-                    )}
+                      </TableBody>
 
-                    {/* Message si aucun campus */}
-                    {mergedData.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8">
-                          <EmptyState
-                            type="mandates"
-                            onPrimaryAction={() =>
-                              router.push("/dashboard/mandates/create")
-                            }
-                          />
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-
-                  {/* Total général EXACTEMENT comme votre code original */}
-                  {mergedData.length > 0 && categoryFilter === "all" && (
-                    <TableFooter>
-                      <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-150 border-t-4 border-gray-300">
-                        <TableCell
-                          colSpan={4}
-                          className="font-bold text-gray-900 py-4"
-                        >
-                          <span className="text-lg">Total général</span>
-                        </TableCell>
-                        {dashboardData.columnLabels.map((col) => (
-                          <TableCell
-                            key={col.key}
-                            className="text-center font-bold text-gray-900 py-4"
-                          >
-                            <div className="text-xl">
-                              {formatCurrency(grandTotals[col.key] || 0)}
-                            </div>
-                          </TableCell>
-                        ))}
-                        <TableCell></TableCell>
-                      </TableRow>
-                    </TableFooter>
-                  )}
-                </Table>
-              </div>
+                      {/* Total général EXACTEMENT comme votre code original */}
+                      {categoryFilter === "all" && (
+                        <TableFooter>
+                          <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-150 border-t-4 border-gray-300">
+                            <TableCell
+                              colSpan={4}
+                              className="font-bold text-gray-900 py-4"
+                            >
+                              <span className="text-lg">Total général</span>
+                            </TableCell>
+                            {dashboardData.columnLabels.map((col) => (
+                              <TableCell
+                                key={col.key}
+                                className="text-center font-bold text-gray-900 py-4"
+                              >
+                                <div className="text-xl">
+                                  {formatCurrency(grandTotals[col.key] || 0)}
+                                </div>
+                              </TableCell>
+                            ))}
+                            <TableCell></TableCell>
+                          </TableRow>
+                        </TableFooter>
+                      )}
+                    </Table>
+                  </div>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
