@@ -118,7 +118,16 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { label, description, icon, iconColor, bgColor } = body;
 
+    console.log("📝 Données reçues pour création de type:", {
+      label,
+      description,
+      icon,
+      iconColor,
+      bgColor,
+    });
+
     if (!label || typeof label !== "string" || label.trim().length < 2) {
+      console.log("❌ Validation échouée: label invalide", { label });
       return NextResponse.json(
         {
           error:
@@ -134,7 +143,13 @@ export async function POST(request: NextRequest) {
       select: { organizationId: true },
     });
 
+    console.log("👤 Utilisateur trouvé:", {
+      userId: session.user.id,
+      organizationId: user?.organizationId,
+    });
+
     if (!user?.organizationId) {
+      console.log("❌ Utilisateur sans organisation");
       return NextResponse.json(
         { error: "Utilisateur non associé à une organisation" },
         { status: 400 }
@@ -142,6 +157,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Créer le nouveau type en base de données
+    console.log("💾 Tentative de création en base avec les données:", {
+      label: label.trim(),
+      description: description?.trim() || `Type personnalisé: ${label}`,
+      icon: (icon as EstablishmentIcon) || "BUILDING2",
+      iconColor: iconColor || "text-purple-600",
+      bgColor: bgColor || "bg-purple-100",
+      organizationId: user.organizationId,
+      createdBy: session.user.id,
+    });
+
     const newType = await prisma.establishmentType.create({
       data: {
         label: label.trim(),
