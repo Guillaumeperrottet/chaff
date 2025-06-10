@@ -116,9 +116,9 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, description, icon, iconColor, bgColor } = body;
+    const { label, description, icon, iconColor, bgColor } = body;
 
-    if (!name || typeof name !== "string" || name.trim().length < 2) {
+    if (!label || typeof label !== "string" || label.trim().length < 2) {
       return NextResponse.json(
         {
           error:
@@ -144,8 +144,8 @@ export async function POST(request: NextRequest) {
     // Créer le nouveau type en base de données
     const newType = await prisma.establishmentType.create({
       data: {
-        label: name.trim(),
-        description: description?.trim() || `Type personnalisé: ${name}`,
+        label: label.trim(),
+        description: description?.trim() || `Type personnalisé: ${label}`,
         icon: (icon as EstablishmentIcon) || "BUILDING2",
         iconColor: iconColor || "text-purple-600",
         bgColor: bgColor || "bg-purple-100",
@@ -169,7 +169,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       type: responseType,
-      message: `Type "${name}" créé avec succès`,
+      message: `Type "${label}" créé avec succès`,
     });
   } catch (error) {
     console.error("Erreur lors de la création du type:", error);
