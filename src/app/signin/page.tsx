@@ -2,13 +2,11 @@
 "use client";
 
 import { useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   Eye,
   EyeOff,
@@ -51,10 +49,6 @@ function SignInFormWithParams() {
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
-  const searchParams = useSearchParams();
-  const redirectPath = searchParams.get("redirect") || "/dashboard";
-  const router = useRouter();
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
@@ -64,7 +58,6 @@ function SignInFormWithParams() {
       const { error: authError } = await authClient.signIn.email({
         email,
         password,
-        callbackURL: redirectPath,
       });
 
       if (authError) {
@@ -72,9 +65,8 @@ function SignInFormWithParams() {
         return;
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      router.push(redirectPath);
-      router.refresh();
+      // Ne pas faire de redirection manuelle, laisser le UnifiedSessionManager s'en charger
+      // La redirection sera automatique une fois la session établie
     } catch (err) {
       console.error("Login error:", err);
       setError("Une erreur est survenue, veuillez réessayer");
