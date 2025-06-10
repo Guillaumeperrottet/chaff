@@ -14,14 +14,8 @@ interface DashboardStats {
     name: string;
     totalRevenue: number;
   } | null;
-  mandatesByGroup: {
-    HEBERGEMENT: number;
-    RESTAURATION: number;
-  };
-  revenueByGroup: {
-    HEBERGEMENT: number;
-    RESTAURATION: number;
-  };
+  mandatesByGroup: Record<string, number>; // ✅ Support types personnalisés
+  revenueByGroup: Record<string, number>; // ✅ Support types personnalisés
   last7Days: {
     date: string;
     totalRevenue: number;
@@ -85,23 +79,24 @@ export async function GET() {
       },
     });
 
-    // 5. Répartition par groupe
+    // 5. Répartition par groupe (support types personnalisés)
     const mandatesByGroup = await prisma.mandate.groupBy({
       by: ["group"],
       _count: { _all: true },
     });
 
-    const mandatesGroupCount = {
-      HEBERGEMENT: 0,
-      RESTAURATION: 0,
-    };
+    // ✅ Utiliser Record<string, number> pour supporter les types personnalisés
+    const mandatesGroupCount: Record<string, number> = {};
+
+    // Initialiser avec les types par défaut
+    mandatesGroupCount["HEBERGEMENT"] = 0;
+    mandatesGroupCount["RESTAURATION"] = 0;
 
     mandatesByGroup.forEach((group) => {
       mandatesGroupCount[group.group] = group._count._all;
     });
 
-    // 6. Revenus par groupe
-    // Utilisons une approche directe avec les mandats
+    // 6. Revenus par groupe (support types personnalisés)
     const mandatesWithRevenue = await prisma.mandate.findMany({
       select: {
         group: true,
@@ -109,12 +104,17 @@ export async function GET() {
       },
     });
 
-    const revenueGroupTotals = {
-      HEBERGEMENT: 0,
-      RESTAURATION: 0,
-    };
+    // ✅ Utiliser Record<string, number> pour supporter les types personnalisés
+    const revenueGroupTotals: Record<string, number> = {};
+
+    // Initialiser avec les types par défaut
+    revenueGroupTotals["HEBERGEMENT"] = 0;
+    revenueGroupTotals["RESTAURATION"] = 0;
 
     mandatesWithRevenue.forEach((mandate) => {
+      if (!revenueGroupTotals[mandate.group]) {
+        revenueGroupTotals[mandate.group] = 0;
+      }
       revenueGroupTotals[mandate.group] += mandate.totalRevenue;
     });
 

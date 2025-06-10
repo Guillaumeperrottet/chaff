@@ -1,4 +1,4 @@
-// src/app/api/mandats/route.ts - Version modifiée avec stats payroll
+// src/app/api/mandats/route.ts - VERSION CORRIGÉE
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
     // Base query - filtrer par organisation
     const mandates = await prisma.mandate.findMany({
       where: {
-        organizationId: userWithOrg.Organization.id, // ✨ Filtrer par organisation
+        organizationId: userWithOrg.Organization.id,
         ...(includeInactive ? {} : { active: true }),
       },
       include: {
@@ -90,16 +90,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(mandates);
     }
 
-    // ===== LOGIQUE STATS MASSE SALARIALE =====
-
+    // Logique stats masse salariale inchangée...
     const currentDate = new Date();
     const currentYear = currentDate.getFullYear();
     const currentMonth = currentDate.getMonth() + 1;
 
-    // Enrichir chaque mandat avec des stats de masse salariale
     const mandatesWithPayrollStats = await Promise.all(
       mandates.map(async (mandate) => {
-        // 1. Vérifier si il y a des données de masse salariale
         const payrollEntries = await prisma.manualPayrollEntry.findMany({
           where: { mandateId: mandate.id },
           select: {
@@ -109,13 +106,12 @@ export async function GET(request: NextRequest) {
             employeeCount: true,
           },
           orderBy: [{ year: "desc" }, { month: "desc" }],
-          take: 3, // Derniers 3 mois
+          take: 3,
         });
 
         const hasPayrollData = payrollEntries.length > 0;
         const lastPayrollEntry = payrollEntries[0] || null;
 
-        // 2. Calculer le ratio du mois courant
         let currentMonthRatio: number | null = null;
 
         if (
@@ -123,7 +119,6 @@ export async function GET(request: NextRequest) {
           lastPayrollEntry.year === currentYear &&
           lastPayrollEntry.month === currentMonth
         ) {
-          // Récupérer le CA du mois courant
           const monthStart = new Date(currentYear, currentMonth - 1, 1);
           const monthEnd = new Date(currentYear, currentMonth, 0);
 
@@ -145,17 +140,13 @@ export async function GET(request: NextRequest) {
           }
         }
 
-        // 3. Compter les employés (approximatif basé sur les données payroll)
         const employeeCount = lastPayrollEntry?.employeeCount || null;
-
-        // 4. Date de la dernière saisie masse salariale
         const lastPayrollEntryDate = lastPayrollEntry
           ? new Date(lastPayrollEntry.year, lastPayrollEntry.month - 1, 1)
           : null;
 
         return {
           ...mandate,
-          // Nouvelles propriétés pour la masse salariale
           hasPayrollData,
           lastPayrollEntry: lastPayrollEntryDate,
           currentMonthRatio,
@@ -164,20 +155,17 @@ export async function GET(request: NextRequest) {
       })
     );
 
-    // ===== CALCULER LE SUMMARY GLOBAL =====
-
+    // Calculer le summary global
     const totalMandates = mandatesWithPayrollStats.length;
     const mandatesWithData = mandatesWithPayrollStats.filter(
       (m) => m.hasPayrollData
     ).length;
 
-    // Calculer le total d'employés (approximatif)
     const totalEmployees = mandatesWithPayrollStats.reduce(
       (sum, m) => sum + (m.employeeCount || 0),
       0
     );
 
-    // Calculer les ratios pour le summary
     const validRatios = mandatesWithPayrollStats
       .map((m) => m.currentMonthRatio)
       .filter((ratio): ratio is number => ratio !== null);
@@ -188,16 +176,13 @@ export async function GET(request: NextRequest) {
           validRatios.length
         : null;
 
-    // Calcul global du ratio (tous mandats confondus)
     let globalRatio: number | null = null;
 
     if (mandatesWithData > 0) {
-      // Sommer tous les CA et toutes les masses salariales du mois courant
       const globalStats = await Promise.all(
         mandatesWithPayrollStats
           .filter((m) => m.hasPayrollData)
           .map(async (mandate) => {
-            // CA du mois courant
             const monthStart = new Date(currentYear, currentMonth - 1, 1);
             const monthEnd = new Date(currentYear, currentMonth, 0);
 
@@ -243,7 +228,6 @@ export async function GET(request: NextRequest) {
       averageRatio,
     };
 
-    // ===== RÉPONSE FINALE =====
     return NextResponse.json({
       mandates: mandatesWithPayrollStats,
       summary,
