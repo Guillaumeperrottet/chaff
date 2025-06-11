@@ -26,25 +26,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/app/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/app/components/ui/dropdown-menu";
 import { Badge } from "@/app/components/ui/badge";
 import {
   Plus,
   Search,
   Upload,
   Download,
-  MoreHorizontal,
   Users,
-  Calendar,
-  DollarSign,
   Loader2,
   Edit,
-  Trash2,
   Clock,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -145,29 +135,6 @@ export default function EmployeesPage() {
 
   const handleEdit = (employeeId: string) => {
     router.push(`/dashboard/employees/${employeeId}/edit`);
-  };
-
-  const handleDelete = async (employeeId: string, employeeName: string) => {
-    if (!confirm(`Supprimer l'employé ${employeeName} ?`)) return;
-
-    try {
-      const response = await fetch(`/api/employees/${employeeId}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Erreur lors de la suppression");
-      }
-
-      setEmployees((prev) => prev.filter((e) => e.id !== employeeId));
-      toast.success("Employé supprimé avec succès");
-    } catch (error) {
-      console.error("Erreur:", error);
-      toast.error(
-        error instanceof Error ? error.message : "Erreur lors de la suppression"
-      );
-    }
   };
 
   const handleExport = async () => {
@@ -388,11 +355,19 @@ export default function EmployeesPage() {
             </TableHeader>
             <TableBody>
               {filteredEmployees.map((employee) => (
-                <TableRow key={employee.id}>
+                <TableRow
+                  key={employee.id}
+                  className={!employee.isActive ? "opacity-60 bg-muted/30" : ""}
+                >
                   <TableCell>
                     <div>
                       <div className="font-medium">
                         {employee.firstName} {employee.lastName}
+                        {!employee.isActive && (
+                          <span className="ml-2 text-xs text-muted-foreground">
+                            (Inactif)
+                          </span>
+                        )}
                       </div>
                       {employee.email && (
                         <div className="text-sm text-muted-foreground">
@@ -432,61 +407,15 @@ export default function EmployeesPage() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={() => handleEdit(employee.id)}
-                        >
-                          <Edit className="mr-2 h-4 w-4" />
-                          Modifier
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() =>
-                            router.push("/dashboard/employees/timesheet/create")
-                          }
-                        >
-                          <Clock className="mr-2 h-4 w-4" />
-                          Saisir heures
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() =>
-                            router.push(
-                              `/dashboard/employees/${employee.id}/timesheet`
-                            )
-                          }
-                        >
-                          <Calendar className="mr-2 h-4 w-4" />
-                          Voir horaires
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() =>
-                            router.push(
-                              `/dashboard/employees/${employee.id}/payroll`
-                            )
-                          }
-                        >
-                          <DollarSign className="mr-2 h-4 w-4" />
-                          Voir paie
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-red-600"
-                          onClick={() =>
-                            handleDelete(
-                              employee.id,
-                              `${employee.firstName} ${employee.lastName}`
-                            )
-                          }
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Supprimer
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEdit(employee.id)}
+                      className="h-8 px-3"
+                    >
+                      <Edit className="mr-2 h-4 w-4" />
+                      Modifier
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
