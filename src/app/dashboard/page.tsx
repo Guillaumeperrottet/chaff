@@ -316,16 +316,23 @@ export default function DashboardPage() {
         .toLowerCase()
         .includes(searchTerm.toLowerCase());
 
-      // ✅ AMÉLIORER LE FILTRAGE PAR CATÉGORIE
-      const itemTypeLabel = getTypeLabel(item.category);
-      const matchesCategory =
-        categoryFilter === "all" ||
-        (categoryFilter === "hebergement" && itemTypeLabel === "Hébergement") ||
-        (categoryFilter === "restauration" &&
-          itemTypeLabel === "Restauration") ||
-        // ✅ Ajouter support pour les types personnalisés
-        (categoryFilter === "custom" &&
-          !["Hébergement", "Restauration"].includes(itemTypeLabel));
+      // ✅ AMÉLIORER LE FILTRAGE PAR CATÉGORIE POUR CHAQUE TYPE INDIVIDUEL
+      const matchesCategory = (() => {
+        if (categoryFilter === "all") return true;
+        if (
+          categoryFilter === "hebergement" &&
+          (item.category === "HEBERGEMENT" || item.category === "Hébergement")
+        )
+          return true;
+        if (
+          categoryFilter === "restauration" &&
+          (item.category === "RESTAURATION" || item.category === "Restauration")
+        )
+          return true;
+
+        // Pour les types personnalisés, comparer directement l'ID
+        return item.category === categoryFilter;
+      })();
 
       const matchesStatus =
         statusFilter === "all" || item.status === statusFilter;
@@ -585,7 +592,20 @@ export default function DashboardPage() {
                 <SelectItem value="all">Toutes catégories</SelectItem>
                 <SelectItem value="hebergement">Hébergement</SelectItem>
                 <SelectItem value="restauration">Restauration</SelectItem>
-                <SelectItem value="custom">Types personnalisés</SelectItem>
+                {/* ✅ AJOUTER CHAQUE TYPE PERSONNALISÉ INDIVIDUELLEMENT */}
+                {establishmentTypes
+                  .filter(
+                    (type) =>
+                      type.id !== "HEBERGEMENT" &&
+                      type.id !== "RESTAURATION" &&
+                      type.label !== "Hébergement" &&
+                      type.label !== "Restauration"
+                  )
+                  .map((type) => (
+                    <SelectItem key={type.id} value={type.id}>
+                      {type.label}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
           </div>
@@ -634,7 +654,20 @@ export default function DashboardPage() {
         <SelectItem value="all">Toutes catégories</SelectItem>
         <SelectItem value="hebergement">Hébergement</SelectItem>
         <SelectItem value="restauration">Restauration</SelectItem>
-        <SelectItem value="custom">Types personnalisés</SelectItem>
+        {/* ✅ AJOUTER CHAQUE TYPE PERSONNALISÉ INDIVIDUELLEMENT */}
+        {establishmentTypes
+          .filter(
+            (type) =>
+              type.id !== "HEBERGEMENT" &&
+              type.id !== "RESTAURATION" &&
+              type.label !== "Hébergement" &&
+              type.label !== "Restauration"
+          )
+          .map((type) => (
+            <SelectItem key={type.id} value={type.id}>
+              {type.label}
+            </SelectItem>
+          ))}
       </SelectContent>
     </Select>
   );
