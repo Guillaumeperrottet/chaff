@@ -27,16 +27,7 @@ import {
   TableRow,
 } from "@/app/components/ui/table";
 import { Badge } from "@/app/components/ui/badge";
-import {
-  Plus,
-  Search,
-  Upload,
-  Download,
-  Users,
-  Loader2,
-  Edit,
-  Clock,
-} from "lucide-react";
+import { Plus, Search, Upload, Download, Loader2, Edit } from "lucide-react";
 import { toast } from "sonner";
 import EmptyState from "@/app/components/EmptyState";
 
@@ -177,15 +168,6 @@ export default function EmployeesPage() {
     );
   }
 
-  const stats = {
-    total: employees.length,
-    active: employees.filter((e) => e.isActive).length,
-    byMandate: mandates.map((mandate) => ({
-      name: mandate.name,
-      count: employees.filter((e) => e.mandate.id === mandate.id).length,
-    })),
-  };
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -203,7 +185,9 @@ export default function EmployeesPage() {
           </Button>
           <Button
             variant="outline"
-            onClick={() => router.push("/dashboard/payroll/simple-import")}
+            onClick={() =>
+              router.push("/dashboard/payroll/import-with-validation")
+            }
           >
             <Upload className="mr-2 h-4 w-4" />
             Import Gastrotime
@@ -213,77 +197,6 @@ export default function EmployeesPage() {
             Nouvel employé
           </Button>
         </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total employés
-            </CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
-            <p className="text-xs text-muted-foreground">
-              {stats.active} actifs
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Hébergement</CardTitle>
-            <Users className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
-              {stats.byMandate
-                .filter(
-                  (m) =>
-                    mandates.find((mandate) => mandate.name === m.name)
-                      ?.group === "HEBERGEMENT"
-                )
-                .reduce((sum, m) => sum + m.count, 0)}
-            </div>
-            <p className="text-xs text-muted-foreground">employés</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Restauration</CardTitle>
-            <Users className="h-4 w-4 text-orange-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-600">
-              {stats.byMandate
-                .filter(
-                  (m) =>
-                    mandates.find((mandate) => mandate.name === m.name)
-                      ?.group === "RESTAURATION"
-                )
-                .reduce((sum, m) => sum + m.count, 0)}
-            </div>
-            <p className="text-xs text-muted-foreground">employés</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avec horaires</CardTitle>
-            <Clock className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {employees.filter((e) => e._count.timeEntries > 0).length}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              ont des données temps
-            </p>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Filters */}

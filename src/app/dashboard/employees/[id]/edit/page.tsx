@@ -6,7 +6,6 @@ import { toast } from "sonner";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/app/components/ui/card";
@@ -23,12 +22,10 @@ import {
 import { Checkbox } from "@/app/components/ui/checkbox";
 import { BackButton } from "@/app/components/ui/BackButton";
 import {
-  User,
   Save,
   X,
   Loader2,
   Building2,
-  MapPin,
   Phone,
   Mail,
   Calendar,
@@ -332,92 +329,119 @@ export default function EditEmployeePage() {
         loadingMessage="Retour aux employés..."
       />
 
-      {/* Header avec style similaire aux autres pages */}
-      <div className="border-b pb-4">
-        <h1 className="text-4xl font-bold tracking-tight text-gray-900">
-          Edit
-        </h1>
-        <h2 className="text-2xl font-medium text-gray-700 mt-2">
-          {employee.firstName} {employee.lastName}
-        </h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          ID: {employee.employeeId} • {employee.mandate.name}
-        </p>
+      {/* Header simplifié */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">
+            Modifier l&apos;employé
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            {employee.firstName} {employee.lastName} • ID: {employee.employeeId}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div
+            className={`px-3 py-1 rounded-full text-sm font-medium ${
+              employee.isActive
+                ? "bg-green-100 text-green-800"
+                : "bg-gray-100 text-gray-600"
+            }`}
+          >
+            {employee.isActive ? "Actif" : "Inactif"}
+          </div>
+        </div>
       </div>
 
-      {/* Alerte si l'employé a des données associées */}
+      {/* Alerte compacte si l'employé a des données associées */}
       {(employee._count.timeEntries > 0 || employee._count.payrollData > 0) && (
-        <Card className="border-orange-200 bg-orange-50">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 text-orange-600" />
-              <p className="text-sm text-orange-800">
+        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
+            <div className="text-sm text-orange-800">
+              <p className="font-medium">Attention</p>
+              <p>
                 Cet employé a {employee._count.timeEntries} entrée(s) de temps
-                et {employee._count.payrollData} période(s) de paie. Soyez
-                prudent lors de la modification de ses informations.
+                et {employee._count.payrollData} période(s) de paie.
               </p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* Formulaire */}
-      <div className="max-w-4xl">
+      <div className="max-w-2xl">
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Section Informations personnelles */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
+              <CardTitle className="text-lg">
                 Informations personnelles
               </CardTitle>
-              <CardDescription>
-                Modifiez les informations de base de l&apos;employé
-              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* ID Employé */}
-                <div className="space-y-2">
-                  <Label htmlFor="employeeId" className="text-base font-medium">
+              {/* ID Employé et Statut */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="md:col-span-2 space-y-2">
+                  <Label htmlFor="employeeId" className="text-sm font-medium">
                     ID Employé <span className="text-red-500">*</span>
                   </Label>
                   <div className="flex gap-2">
-                    <Input
-                      id="employeeId"
-                      type="text"
-                      value={formData.employeeId}
-                      onChange={(e) =>
-                        handleInputChange("employeeId", e.target.value)
-                      }
-                      className={`h-10 ${
-                        errors.employeeId ? "border-red-500" : ""
-                      }`}
-                      placeholder="Ex: HEB001, REST002..."
-                      disabled={isLoading}
-                    />
+                    <div className="relative flex-1">
+                      <IdCard className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="employeeId"
+                        type="text"
+                        value={formData.employeeId}
+                        onChange={(e) =>
+                          handleInputChange("employeeId", e.target.value)
+                        }
+                        className={`h-10 pl-10 ${
+                          errors.employeeId ? "border-red-500" : ""
+                        }`}
+                        placeholder="EMP-001"
+                        disabled={isLoading}
+                      />
+                    </div>
                     <Button
                       type="button"
                       variant="outline"
                       onClick={generateEmployeeId}
-                      disabled={!formData.mandateId || isLoading}
-                      className="shrink-0"
+                      disabled={isLoading || !formData.mandateId}
+                      className="h-10 px-3 text-sm"
                     >
-                      <IdCard className="h-4 w-4" />
+                      Auto
                     </Button>
                   </div>
                   {errors.employeeId && (
                     <p className="text-sm text-red-500">{errors.employeeId}</p>
                   )}
-                  <p className="text-xs text-muted-foreground">
-                    Identifiant unique (sera utilisé pour l&apos;import
-                    Gastrotime)
-                  </p>
                 </div>
 
-                {/* Prénom */}
                 <div className="space-y-2">
-                  <Label htmlFor="firstName" className="text-base font-medium">
+                  <Label className="text-sm font-medium">Statut</Label>
+                  <div className="flex items-center space-x-3 pt-2">
+                    <Checkbox
+                      id="isActive"
+                      checked={formData.isActive}
+                      onCheckedChange={(checked) =>
+                        handleInputChange("isActive", !!checked)
+                      }
+                      disabled={isLoading}
+                    />
+                    <Label
+                      htmlFor="isActive"
+                      className="text-sm cursor-pointer"
+                    >
+                      Employé actif
+                    </Label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Nom et Prénom */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName" className="text-sm font-medium">
                     Prénom <span className="text-red-500">*</span>
                   </Label>
                   <Input
@@ -438,9 +462,8 @@ export default function EditEmployeePage() {
                   )}
                 </div>
 
-                {/* Nom */}
                 <div className="space-y-2">
-                  <Label htmlFor="lastName" className="text-base font-medium">
+                  <Label htmlFor="lastName" className="text-sm font-medium">
                     Nom <span className="text-red-500">*</span>
                   </Label>
                   <Input
@@ -458,10 +481,12 @@ export default function EditEmployeePage() {
                     <p className="text-sm text-red-500">{errors.lastName}</p>
                   )}
                 </div>
+              </div>
 
-                {/* Email */}
+              {/* Email et Téléphone */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-base font-medium">
+                  <Label htmlFor="email" className="text-sm font-medium">
                     Email
                   </Label>
                   <div className="relative">
@@ -485,12 +510,8 @@ export default function EditEmployeePage() {
                   )}
                 </div>
 
-                {/* Téléphone */}
                 <div className="space-y-2">
-                  <Label
-                    htmlFor="phoneNumber"
-                    className="text-base font-medium"
-                  >
+                  <Label htmlFor="phoneNumber" className="text-sm font-medium">
                     Téléphone
                   </Label>
                   <div className="relative">
@@ -513,25 +534,25 @@ export default function EditEmployeePage() {
                     <p className="text-sm text-red-500">{errors.phoneNumber}</p>
                   )}
                 </div>
+              </div>
 
-                {/* Date d'embauche */}
-                <div className="space-y-2">
-                  <Label htmlFor="hiredAt" className="text-base font-medium">
-                    Date d&apos;embauche
-                  </Label>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="hiredAt"
-                      type="date"
-                      value={formData.hiredAt}
-                      onChange={(e) =>
-                        handleInputChange("hiredAt", e.target.value)
-                      }
-                      className="h-10 pl-10"
-                      disabled={isLoading}
-                    />
-                  </div>
+              {/* Date d'embauche */}
+              <div className="space-y-2">
+                <Label htmlFor="hiredAt" className="text-sm font-medium">
+                  Date d&apos;embauche
+                </Label>
+                <div className="relative max-w-xs">
+                  <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="hiredAt"
+                    type="date"
+                    value={formData.hiredAt}
+                    onChange={(e) =>
+                      handleInputChange("hiredAt", e.target.value)
+                    }
+                    className="h-10 pl-10"
+                    disabled={isLoading}
+                  />
                 </div>
               </div>
             </CardContent>
@@ -540,92 +561,87 @@ export default function EditEmployeePage() {
           {/* Section Emploi */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Building2 className="h-5 w-5" />
+              <CardTitle className="text-lg">
                 Informations d&apos;emploi
               </CardTitle>
-              <CardDescription>
-                Configurez l&apos;affectation et les conditions de travail
-              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Établissement */}
-                <div className="space-y-2">
-                  <Label htmlFor="mandate" className="text-base font-medium">
-                    Établissement <span className="text-red-500">*</span>
-                  </Label>
-                  <Select
-                    value={formData.mandateId}
-                    onValueChange={(value) =>
-                      handleInputChange("mandateId", value)
-                    }
-                    disabled={isLoading}
+              {/* Établissement */}
+              <div className="space-y-2">
+                <Label htmlFor="mandate" className="text-sm font-medium">
+                  Établissement <span className="text-red-500">*</span>
+                </Label>
+                <Select
+                  value={formData.mandateId}
+                  onValueChange={(value) =>
+                    handleInputChange("mandateId", value)
+                  }
+                  disabled={isLoading}
+                >
+                  <SelectTrigger
+                    className={`h-10 ${
+                      errors.mandateId ? "border-red-500" : ""
+                    }`}
                   >
-                    <SelectTrigger
-                      className={`h-10 ${
-                        errors.mandateId ? "border-red-500" : ""
-                      }`}
-                    >
-                      <SelectValue placeholder="Sélectionnez un établissement..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {/* Grouper par type */}
-                      {hebergementMandates.length > 0 && (
-                        <div className="py-1">
-                          <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">
-                            Hébergement
-                          </div>
-                          {hebergementMandates.map((mandate) => (
-                            <SelectItem key={mandate.id} value={mandate.id}>
-                              <div className="flex items-center gap-2">
-                                <Building2 className="h-4 w-4 text-blue-600" />
-                                {mandate.name}
-                              </div>
-                            </SelectItem>
-                          ))}
+                    <SelectValue placeholder="Sélectionnez un établissement..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {hebergementMandates.length > 0 && (
+                      <div className="py-1">
+                        <div className="px-2 py-1 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                          Hébergement
                         </div>
-                      )}
+                        {hebergementMandates.map((mandate) => (
+                          <SelectItem key={mandate.id} value={mandate.id}>
+                            <div className="flex items-center gap-2">
+                              <Building2 className="h-4 w-4 text-blue-600" />
+                              {mandate.name}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </div>
+                    )}
 
-                      {restaurationMandates.length > 0 && (
-                        <div className="py-1">
-                          <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">
-                            Restauration
-                          </div>
-                          {restaurationMandates.map((mandate) => (
-                            <SelectItem key={mandate.id} value={mandate.id}>
-                              <div className="flex items-center gap-2">
-                                <MapPin className="h-4 w-4 text-orange-600" />
-                                {mandate.name}
-                              </div>
-                            </SelectItem>
-                          ))}
+                    {restaurationMandates.length > 0 && (
+                      <div className="py-1">
+                        <div className="px-2 py-1 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                          Restauration
                         </div>
-                      )}
+                        {restaurationMandates.map((mandate) => (
+                          <SelectItem key={mandate.id} value={mandate.id}>
+                            <div className="flex items-center gap-2">
+                              <Building2 className="h-4 w-4 text-orange-600" />
+                              {mandate.name}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </div>
+                    )}
 
-                      {mandates.length === 0 && (
-                        <div className="text-center py-4 text-muted-foreground">
-                          Aucun établissement actif trouvé
-                        </div>
-                      )}
-                    </SelectContent>
-                  </Select>
-                  {errors.mandateId && (
-                    <p className="text-sm text-red-500">{errors.mandateId}</p>
-                  )}
-                  {selectedMandate && (
-                    <div className="text-sm text-muted-foreground">
-                      Groupe:{" "}
-                      {selectedMandate.group === "HEBERGEMENT"
-                        ? "Hébergement"
-                        : "Restauration"}
-                    </div>
-                  )}
-                </div>
+                    {mandates.length === 0 && (
+                      <div className="text-center py-4 text-muted-foreground">
+                        Aucun établissement actif trouvé
+                      </div>
+                    )}
+                  </SelectContent>
+                </Select>
+                {errors.mandateId && (
+                  <p className="text-sm text-red-500">{errors.mandateId}</p>
+                )}
+                {selectedMandate && (
+                  <p className="text-sm text-muted-foreground">
+                    Groupe:{" "}
+                    {selectedMandate.group === "HEBERGEMENT"
+                      ? "Hébergement"
+                      : "Restauration"}
+                  </p>
+                )}
+              </div>
 
-                {/* Poste */}
+              {/* Poste et Taux horaire */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="position" className="text-base font-medium">
+                  <Label htmlFor="position" className="text-sm font-medium">
                     Poste
                   </Label>
                   <Input
@@ -636,15 +652,14 @@ export default function EditEmployeePage() {
                       handleInputChange("position", e.target.value)
                     }
                     className="h-10"
-                    placeholder="Ex: Réceptionniste, Serveur, Cuisinier..."
+                    placeholder="Ex: Réceptionniste, Serveur..."
                     disabled={isLoading}
                   />
                 </div>
 
-                {/* Taux horaire */}
                 <div className="space-y-2">
-                  <Label htmlFor="hourlyRate" className="text-base font-medium">
-                    Taux horaire
+                  <Label htmlFor="hourlyRate" className="text-sm font-medium">
+                    Taux horaire (CHF/h)
                   </Label>
                   <div className="relative">
                     <DollarSign className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -657,55 +672,35 @@ export default function EditEmployeePage() {
                       onChange={(e) =>
                         handleInputChange("hourlyRate", e.target.value)
                       }
-                      className={`h-10 pl-10 pr-12 ${
+                      className={`h-10 pl-10 ${
                         errors.hourlyRate ? "border-red-500" : ""
                       }`}
                       placeholder="25.00"
                       disabled={isLoading}
                     />
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                      <span className="text-muted-foreground text-sm">
-                        CHF/h
-                      </span>
-                    </div>
                   </div>
                   {errors.hourlyRate && (
                     <p className="text-sm text-red-500">{errors.hourlyRate}</p>
                   )}
-                  <p className="text-xs text-muted-foreground">
-                    Taux horaire de base (peut être modifié ultérieurement)
-                  </p>
-                </div>
-
-                {/* Statut actif */}
-                <div className="flex items-center space-x-3">
-                  <Checkbox
-                    id="isActive"
-                    checked={formData.isActive}
-                    onCheckedChange={(checked) =>
-                      handleInputChange("isActive", !!checked)
-                    }
-                    disabled={isLoading}
-                    className="h-5 w-5"
-                  />
-                  <Label
-                    htmlFor="isActive"
-                    className="text-base font-medium cursor-pointer"
-                  >
-                    Employé actif
-                  </Label>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Boutons d'action */}
-          <div className="flex items-center space-x-4 pt-6">
+          <div className="flex items-center justify-between pt-6">
             <Button
-              type="submit"
+              type="button"
+              variant="outline"
+              onClick={() => router.push("/dashboard/employees")}
               disabled={isLoading}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-base font-medium rounded-md min-w-[140px]"
+              className="px-6"
             >
+              <X className="mr-2 h-4 w-4" />
+              Annuler
+            </Button>
+
+            <Button type="submit" disabled={isLoading} className="px-6">
               {isLoading ? (
                 <div className="flex items-center">
                   <Loader2 className="animate-spin h-4 w-4 mr-2" />
@@ -718,60 +713,9 @@ export default function EditEmployeePage() {
                 </>
               )}
             </Button>
-
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => router.push("/dashboard/employees")}
-              disabled={isLoading}
-              className="px-8 py-3 text-base"
-            >
-              <X className="mr-2 h-4 w-4" />
-              Annuler
-            </Button>
           </div>
         </form>
-
-        {/* Lien "Back to List" */}
-        <div className="mt-8 pt-6 border-t">
-          <Button
-            variant="link"
-            onClick={() => router.push("/dashboard/employees")}
-            className="text-blue-600 hover:text-blue-700 p-0 h-auto font-normal text-base"
-          >
-            Back to Employees List
-          </Button>
-        </div>
       </div>
-
-      {/* Section d'aide */}
-      <Card className="max-w-4xl bg-blue-50 border-blue-200">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base text-blue-900">
-            💡 Aide à l&apos;édition d&apos;employé
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-sm text-blue-800 space-y-2">
-            <p>
-              • <strong>ID Employé :</strong> Modifiez avec précaution car il
-              est utilisé pour les imports Gastrotime
-            </p>
-            <p>
-              • <strong>Établissement :</strong> Changer l&apos;établissement
-              peut affecter les rapports existants
-            </p>
-            <p>
-              • <strong>Statut actif :</strong> Désactiver un employé le cache
-              de la plupart des vues sans supprimer ses données
-            </p>
-            <p>
-              • <strong>Données existantes :</strong> L&apos;employé a des
-              données de temps et de paie qui seront conservées
-            </p>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
