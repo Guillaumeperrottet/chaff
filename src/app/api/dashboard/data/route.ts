@@ -29,11 +29,51 @@ export async function GET(request: NextRequest) {
     const includeInactive = searchParams.get("includeInactive") === "true";
     const days = parseInt(searchParams.get("days") || "7");
 
+    // ✅ NOUVEAU: Récupérer l'utilisateur avec son organizationId
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { organizationId: true },
+    });
+
+    if (!user?.organizationId) {
+      return NextResponse.json(
+        { error: "Organisation non trouvée" },
+        { status: 404 }
+      );
+    }
+
+    // ✅ NOUVEAU: Récupérer les types d'établissement
+    const establishmentTypes = await prisma.establishmentType.findMany({
+      where: {
+        organizationId: user.organizationId,
+        isActive: true,
+      },
+      select: {
+        id: true,
+        label: true,
+      },
+    });
+
+    // Créer un map pour les types
+    const typeMap = new Map<string, string>();
+    establishmentTypes.forEach((type) => {
+      typeMap.set(type.id, type.label);
+    });
+
     const mandates = await prisma.mandate.findMany({
-      where: includeInactive ? {} : { active: true },
+      where: {
+        organizationId: user.organizationId,
+        ...(includeInactive ? {} : { active: true }),
+      },
       include: {
         _count: {
           select: { dayValues: true },
+        },
+        establishmentType: {
+          select: {
+            id: true,
+            label: true,
+          },
         },
       },
       orderBy: [{ group: "asc" }, { name: "asc" }],
@@ -150,8 +190,16 @@ export async function GET(request: NextRequest) {
           daysSinceLastEntry,
           performance,
           values,
-          category:
-            mandate.group === "HEBERGEMENT" ? "Hébergement" : "Restauration",
+          category: (() => {
+            // ✅ NOUVEAU: Utiliser le type d'établissement si disponible
+            if (mandate.establishmentType) {
+              return mandate.establishmentType.id;
+            }
+            // Fallback vers l'ancien système group
+            if (mandate.group === "HEBERGEMENT") return "Hébergement";
+            if (mandate.group === "RESTAURATION") return "Restauration";
+            return mandate.group || "Autre";
+          })(),
           status,
           totalRevenue: mandate.totalRevenue,
         };
@@ -177,7 +225,7 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // Calculer les totaux côté serveur avec les valeurs BRUTES (avant formatage)
+    // ✅ MODIFIÉ: Calculer les totaux côté serveur avec support des nouveaux types
     const totals = {
       totalRevenue: dashboardData.reduce(
         (sum, item) => sum + item.totalRevenue,
@@ -187,17 +235,29 @@ export async function GET(request: NextRequest) {
       activeMandates: dashboardData.filter((item) => item.status === "active")
         .length,
       dailyTotals: {} as Record<string, number>,
-      subtotalsByCategory: {
-        hebergement: {} as Record<string, number>,
-        restauration: {} as Record<string, number>,
-      },
+      subtotalsByCategory: {} as Record<string, Record<string, number>>, // ✅ Structure dynamique
     };
 
-    // Calculer les totaux à partir des données brutes de la base
+    // ✅ NOUVEAU: Identifier tous les types utilisés dans les données
+    const usedCategories = new Set<string>();
+    dashboardData.forEach((item) => {
+      usedCategories.add(item.category);
+    });
+
+    // Initialiser les sous-totaux pour chaque catégorie trouvée
+    usedCategories.forEach((category) => {
+      totals.subtotalsByCategory[category] = {};
+    });
+
+    // ✅ MODIFIÉ: Calculer les totaux à partir des données brutes de la base
     dateColumns.forEach((dateKey) => {
       let dailyTotal = 0;
-      let hebergementTotal = 0;
-      let restaurationTotal = 0;
+      const categoryTotals: Record<string, number> = {};
+
+      // Initialiser les totaux pour chaque catégorie
+      usedCategories.forEach((category) => {
+        categoryTotals[category] = 0;
+      });
 
       dashboardData.forEach((item) => {
         // Reconvertir la valeur formatée en nombre
@@ -206,18 +266,17 @@ export async function GET(request: NextRequest) {
 
         if (!isNaN(numValue) && numValue > 0) {
           dailyTotal += numValue;
-
-          if (item.category === "Hébergement") {
-            hebergementTotal += numValue;
-          } else if (item.category === "Restauration") {
-            restaurationTotal += numValue;
-          }
+          categoryTotals[item.category] += numValue;
         }
       });
 
       totals.dailyTotals[dateKey] = dailyTotal;
-      totals.subtotalsByCategory.hebergement[dateKey] = hebergementTotal;
-      totals.subtotalsByCategory.restauration[dateKey] = restaurationTotal;
+
+      // Enregistrer les totaux par catégorie
+      usedCategories.forEach((category) => {
+        totals.subtotalsByCategory[category][dateKey] =
+          categoryTotals[category];
+      });
     });
 
     return NextResponse.json({

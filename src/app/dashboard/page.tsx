@@ -1,7 +1,7 @@
-// src/app/dashboard/page.tsx - Mobile-friendly SANS changer le desktop
 "use client";
 
 import { useState, useEffect } from "react";
+import * as React from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -131,10 +131,7 @@ interface DashboardResponse {
     totalMandates: number;
     activeMandates: number;
     dailyTotals: Record<string, number>;
-    subtotalsByCategory: {
-      hebergement: Record<string, number>;
-      restauration: Record<string, number>;
-    };
+    subtotalsByCategory: Record<string, Record<string, number>>; // ✅ MODIFIÉ: Structure dynamique pour tous les types
   };
   columnLabels: ColumnLabel[];
   meta: {
@@ -380,19 +377,52 @@ export default function DashboardPage() {
     return null;
   };
 
-  // Grouper les données par catégorie et calculer les totaux (inchangé)
+  // ✅ MODIFIER: Grouper les données par TOUS les types d'établissement
   const groupedData = () => {
-    if (!dashboardData) return { hebergement: [], restauration: [] };
+    if (!dashboardData) return {};
     const mergedData = getMergedData();
 
-    const hebergement = mergedData.filter(
-      (item) => item.category === "Hébergement"
+    // Grouper par type d'établissement
+    const grouped: Record<
+      string,
+      (DashboardData & { payroll?: PayrollRatioData })[]
+    > = {};
+
+    // Groupes par défaut
+    const hebergementItems = mergedData.filter(
+      (item) =>
+        item.category === "HEBERGEMENT" || item.category === "Hébergement"
     );
-    const restauration = mergedData.filter(
-      (item) => item.category === "Restauration"
+    const restaurationItems = mergedData.filter(
+      (item) =>
+        item.category === "RESTAURATION" || item.category === "Restauration"
     );
 
-    return { hebergement, restauration };
+    if (hebergementItems.length > 0) {
+      grouped["hebergement"] = hebergementItems;
+    }
+    if (restaurationItems.length > 0) {
+      grouped["restauration"] = restaurationItems;
+    }
+
+    // Grouper par types personnalisés
+    establishmentTypes.forEach((type) => {
+      if (
+        type.id !== "HEBERGEMENT" &&
+        type.id !== "RESTAURATION" &&
+        type.label !== "Hébergement" &&
+        type.label !== "Restauration"
+      ) {
+        const typeItems = mergedData.filter(
+          (item) => item.category === type.id
+        );
+        if (typeItems.length > 0) {
+          grouped[type.id] = typeItems;
+        }
+      }
+    });
+
+    return grouped;
   };
 
   // Calculer les totaux pour un groupe (inchangé)
@@ -841,10 +871,14 @@ export default function DashboardPage() {
   }
 
   const grouped = groupedData();
-  const hebergementTotals = calculateGroupTotals(grouped.hebergement);
-  const restaurationTotals = calculateGroupTotals(grouped.restauration);
   const grandTotals = calculateGrandTotal();
   const mergedData = getMergedData();
+
+  // ✅ NOUVEAU: Calculer les totaux pour chaque groupe dynamiquement
+  const groupTotals: Record<string, Record<string, number>> = {};
+  Object.keys(grouped).forEach((groupKey) => {
+    groupTotals[groupKey] = calculateGroupTotals(grouped[groupKey]);
+  });
 
   return (
     <TooltipProvider>
@@ -1175,41 +1209,53 @@ export default function DashboardPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {/* Section Hébergement */}
-                        {(categoryFilter === "all" ||
-                          categoryFilter === "hebergement") && (
-                          <>
-                            {grouped.hebergement.map((campus) => (
-                              <CampusRow key={campus.id} campus={campus} />
-                            ))}
-                            {grouped.hebergement.length > 0 && (
-                              <SubtotalRow
-                                label="Hébergement"
-                                totals={hebergementTotals}
-                                bgColor="bg-slate-50"
-                                textColor="text-slate-700"
-                                groupData={grouped.hebergement}
-                              />
-                            )}
-                          </>
-                        )}
+                        {/* ✅ NOUVEAU: Afficher tous les groupes dynamiquement */}
+                        {Object.entries(grouped).map(
+                          ([groupKey, groupData]) => {
+                            // Vérifier si ce groupe doit être affiché selon le filtre
+                            const shouldShowGroup = (() => {
+                              if (categoryFilter === "all") return true;
+                              if (
+                                categoryFilter === "hebergement" &&
+                                groupKey === "hebergement"
+                              )
+                                return true;
+                              if (
+                                categoryFilter === "restauration" &&
+                                groupKey === "restauration"
+                              )
+                                return true;
+                              return categoryFilter === groupKey;
+                            })();
 
-                        {/* Section Restauration */}
-                        {(categoryFilter === "all" ||
-                          categoryFilter === "restauration") && (
-                          <>
-                            {grouped.restauration.map((campus) => (
-                              <CampusRow key={campus.id} campus={campus} />
-                            ))}
-                            {grouped.restauration.length > 0 && (
-                              <SubtotalRow
-                                label="Restauration"
-                                totals={restaurationTotals}
-                                bgColor="bg-slate-50"
-                                textColor="text-slate-700"
-                              />
-                            )}
-                          </>
+                            if (!shouldShowGroup) return null;
+
+                            return (
+                              <React.Fragment key={groupKey}>
+                                {/* Afficher les campus du groupe */}
+                                {groupData.map((campus) => (
+                                  <CampusRow key={campus.id} campus={campus} />
+                                ))}
+
+                                {/* Afficher le sous-total du groupe */}
+                                {groupData.length > 0 && (
+                                  <SubtotalRow
+                                    label={(() => {
+                                      if (groupKey === "hebergement")
+                                        return "Hébergement";
+                                      if (groupKey === "restauration")
+                                        return "Restauration";
+                                      return getTypeLabel(groupKey);
+                                    })()}
+                                    totals={groupTotals[groupKey]}
+                                    bgColor="bg-slate-50"
+                                    textColor="text-slate-700"
+                                    groupData={groupData}
+                                  />
+                                )}
+                              </React.Fragment>
+                            );
+                          }
                         )}
                       </TableBody>
 

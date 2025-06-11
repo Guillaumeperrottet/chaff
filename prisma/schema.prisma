@@ -270,6 +270,7 @@ model Mandate {
   lastEntry   DateTime?   // Dernière saisie
   totalRevenue Float      @default(0) // Cache du total
   organizationId String   // ✨ Lien vers l'organisation propriétaire
+  establishmentTypeId String? // ✨ NOUVEAU: Lien vers le type d'établissement
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   dayValues   DayValue[]
@@ -289,6 +290,7 @@ model Mandate {
   
   // Relations
   organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  establishmentType EstablishmentType? @relation(fields: [establishmentTypeId], references: [id], onDelete: SetNull)
   
   // Relation pour l'historique des imports
   payrollImports   PayrollImportHistory[]
@@ -348,6 +350,7 @@ model EstablishmentType {
   
   // Relations
   organization   Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  mandates       Mandate[]          // ✨ NOUVEAU: Relation inverse vers les mandates
   
   // ✅ CONTRAINTE UNIQUE SUR (label, organizationId) pour éviter les doublons
   @@unique([label, organizationId])
