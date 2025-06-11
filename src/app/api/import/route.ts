@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import * as XLSX from "xlsx";
+import { canPerformAction } from "@/lib/subscription-limits";
 
 interface ExcelMandant {
   Id: string;
@@ -292,6 +293,47 @@ async function processExcelDataRobust(
       `📋 Traitement de ${mandantsData.length} mandants avec UPSERT...`
     );
 
+    // ✅ VÉRIFICATION PRÉALABLE DES LIMITES
+    // Compter combien de nouveaux mandats vont être créés
+    const existingMandates = await prisma.mandate.findMany({
+      where: {
+        organizationId: organizationId,
+        name: {
+          in: mandantsData
+            .filter((m) => m.Id && m.Nom && m.Catégorie)
+            .map((m) => m.Nom.trim()),
+        },
+      },
+      select: { name: true },
+    });
+
+    const existingNames = new Set(existingMandates.map((m) => m.name));
+    const newMandatesCount = mandantsData.filter(
+      (m) => m.Id && m.Nom && m.Catégorie && !existingNames.has(m.Nom.trim())
+    ).length;
+
+    if (newMandatesCount > 0) {
+      const limitCheck = await canPerformAction(
+        organizationId,
+        "mandates",
+        newMandatesCount
+      );
+      if (!limitCheck.allowed) {
+        return {
+          success: false,
+          message: `Import impossible: ${limitCheck.reason}. Vous essayez de créer ${newMandatesCount} nouveaux mandats, mais vous ne pouvez en créer que ${Math.max(0, (limitCheck.limit || 0) - limitCheck.current)} de plus.`,
+          stats: {
+            ...stats,
+            errors: [`Limite de mandats atteinte: ${limitCheck.reason}`],
+          },
+        };
+      }
+
+      console.log(
+        `✅ Vérification des limites OK: ${newMandatesCount} nouveaux mandats autorisés`
+      );
+    }
+
     const mandateMapping = new Map<string, string>();
 
     // 🔧 TRAITEMENT SÉQUENTIEL des mandats (pas de transaction globale)
@@ -300,6 +342,32 @@ async function processExcelDataRobust(
         if (!mandantRow.Id || !mandantRow.Nom || !mandantRow.Catégorie) {
           stats.errors.push(`Mandant invalide: ${JSON.stringify(mandantRow)}`);
           continue;
+        }
+
+        // ✅ VÉRIFIER LES LIMITES AVANT DE CRÉER UN NOUVEAU MANDAT
+        // D'abord vérifier si le mandat existe déjà
+        const existingMandate = await prisma.mandate.findUnique({
+          where: {
+            name_organizationId: {
+              name: mandantRow.Nom.trim(),
+              organizationId: organizationId,
+            },
+          },
+        });
+
+        // Si le mandat n'existe pas, vérifier les limites
+        if (!existingMandate) {
+          const limitCheck = await canPerformAction(
+            organizationId,
+            "mandates",
+            1
+          );
+          if (!limitCheck.allowed) {
+            stats.errors.push(
+              `Impossible de créer le mandat "${mandantRow.Nom}": ${limitCheck.reason}. Actuel: ${limitCheck.current}/${limitCheck.limit || "∞"}`
+            );
+            continue;
+          }
         }
 
         // ✅ Mapper la catégorie vers les types par défaut
