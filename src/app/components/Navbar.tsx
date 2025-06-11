@@ -391,6 +391,13 @@ function ChaffNavbar() {
                 <DropdownMenuSeparator />
 
                 <DropdownMenuItem
+                  onClick={() => router.push("/dashboard/mandates")}
+                >
+                  <BarChart3 className="mr-2 h-4 w-4" />
+                  <span>Entreprises</span>
+                </DropdownMenuItem>
+
+                <DropdownMenuItem
                   onClick={() => router.push("/dashboard/employees")}
                 >
                   <Users className="mr-2 h-4 w-4" />
