@@ -1,4 +1,3 @@
-// src/app/dashboard/Mandates/[id]/edit/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -23,7 +22,7 @@ import {
 } from "@/app/components/ui/select";
 import { Checkbox } from "@/app/components/ui/checkbox";
 import { BackButton } from "@/app/components/ui/BackButton";
-import { Building2, Save, X, Loader2, Trash2 } from "lucide-react";
+import { Building2, Save, X, Loader2, Trash2, MapPin } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,10 +35,21 @@ import {
   AlertDialogTrigger,
 } from "@/app/components/ui/alert-dialog";
 
+// ✅ Interface pour les types d'établissement
+interface EstablishmentType {
+  id: string;
+  label: string;
+  description: string;
+  icon: string;
+  iconColor: string;
+  bgColor: string;
+  isCustom: boolean;
+}
+
 interface Mandate {
   id: string;
   name: string;
-  group: "HEBERGEMENT" | "RESTAURATION";
+  group: string; // ✅ Maintenant accepte n'importe quel string (ID du type)
   active: boolean;
   totalRevenue: number;
   lastEntry: Date | null;
@@ -60,28 +70,68 @@ export default function EditMandatePage() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
+  // ✅ Nouveau : État pour les types d'établissement
+  const [establishmentTypes, setEstablishmentTypes] = useState<
+    EstablishmentType[]
+  >([]);
+
   // État du formulaire
   const [formData, setFormData] = useState({
     name: "",
-    group: "" as "HEBERGEMENT" | "RESTAURATION" | "",
+    group: "", // ✅ Maintenant accepte n'importe quel string
     active: true,
   });
 
   // Gestion des erreurs
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Charger les données du mandat
+  // ✅ Fonctions utilitaires pour les types
+  const fetchEstablishmentTypes = async () => {
+    try {
+      const response = await fetch("/api/establishment-types");
+      if (response.ok) {
+        const data = await response.json();
+        setEstablishmentTypes(data.types || []);
+      }
+    } catch (error) {
+      console.error("Erreur lors du chargement des types:", error);
+    }
+  };
+
+  const getTypeLabel = (groupId: string): string => {
+    if (groupId === "HEBERGEMENT") return "Hébergement";
+    if (groupId === "RESTAURATION") return "Restauration";
+
+    const customType = establishmentTypes.find((type) => type.id === groupId);
+    return customType?.label || groupId;
+  };
+
+  const getTypeIcon = (groupId: string) => {
+    if (groupId === "HEBERGEMENT")
+      return <Building2 className="mr-2 h-4 w-4" />;
+    if (groupId === "RESTAURATION") return <MapPin className="mr-2 h-4 w-4" />;
+
+    // Pour les types personnalisés, utiliser l'icône par défaut
+    return <Building2 className="mr-2 h-4 w-4" />;
+  };
+
+  // Charger les données du mandat et les types d'établissement
   useEffect(() => {
-    const loadMandate = async () => {
+    const loadData = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/mandats/${mandateId}`);
 
-        if (!response.ok) {
+        // Charger en parallèle les données du mandat et les types
+        const [mandateResponse] = await Promise.all([
+          fetch(`/api/mandats/${mandateId}`),
+          fetchEstablishmentTypes(),
+        ]);
+
+        if (!mandateResponse.ok) {
           throw new Error("Mandat non trouvé");
         }
 
-        const mandateData = await response.json();
+        const mandateData = await mandateResponse.json();
         setMandate(mandateData);
 
         // Initialiser le formulaire
@@ -102,7 +152,7 @@ export default function EditMandatePage() {
     };
 
     if (mandateId) {
-      loadMandate();
+      loadData();
     }
   }, [mandateId, router]);
 
@@ -315,18 +365,31 @@ export default function EditMandatePage() {
                       <SelectValue placeholder="Sélectionnez un groupe..." />
                     </SelectTrigger>
                     <SelectContent>
+                      {/* Types par défaut */}
                       <SelectItem value="HEBERGEMENT">
-                        <div className="flex items-center">
-                          <Building2 className="mr-2 h-4 w-4" />
-                          Hébergement
-                        </div>
+                        {getTypeIcon("HEBERGEMENT")}
+                        Hébergement
                       </SelectItem>
                       <SelectItem value="RESTAURATION">
-                        <div className="flex items-center">
-                          <Building2 className="mr-2 h-4 w-4" />
-                          Restauration
-                        </div>
+                        {getTypeIcon("RESTAURATION")}
+                        Restauration
                       </SelectItem>
+
+                      {/* Types personnalisés */}
+                      {establishmentTypes
+                        .filter(
+                          (type) =>
+                            type.id !== "HEBERGEMENT" &&
+                            type.id !== "RESTAURATION" &&
+                            type.label !== "Hébergement" &&
+                            type.label !== "Restauration"
+                        )
+                        .map((type) => (
+                          <SelectItem key={type.id} value={type.id}>
+                            {getTypeIcon(type.id)}
+                            {type.label}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                   {errors.group && (
@@ -449,6 +512,16 @@ export default function EditMandatePage() {
               <CardTitle className="text-base">Statistiques</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div>
+                <div className="text-sm text-muted-foreground">
+                  Type d&apos;établissement
+                </div>
+                <div className="text-sm font-medium flex items-center">
+                  {getTypeIcon(mandate.group)}
+                  {getTypeLabel(mandate.group)}
+                </div>
+              </div>
+
               <div>
                 <div className="text-sm text-muted-foreground">
                   Revenue total

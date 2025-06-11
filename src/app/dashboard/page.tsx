@@ -45,7 +45,6 @@ import {
   Search,
   Eye,
   Edit,
-  Trash2,
   Loader2,
   Calculator,
   BarChart3,
@@ -795,11 +794,6 @@ export default function DashboardPage() {
             >
               <Users className="mr-2 h-4 w-4" />
               Voir employés
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-red-600">
-              <Trash2 className="mr-2 h-4 w-4" />
-              Supprimer
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
