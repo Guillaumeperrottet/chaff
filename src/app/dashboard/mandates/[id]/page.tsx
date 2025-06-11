@@ -27,16 +27,7 @@ import {
 } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
 import { BackButton } from "@/app/components/ui/BackButton";
-import {
-  CalendarIcon,
-  Download,
-  Loader2,
-  TrendingUp,
-  TrendingDown,
-  Calculator,
-  DollarSign,
-  BarChart3,
-} from "lucide-react";
+import { Download, Loader2, TrendingUp, TrendingDown } from "lucide-react";
 import { toast } from "sonner";
 
 // Types pour les données CA améliorées
@@ -338,489 +329,403 @@ export default function MandateCAPage() {
   const { rows, totals, payrollTotals, ratios } = tableData();
 
   return (
-    <div className="space-y-6">
-      {/* Navigation */}
-      <BackButton href="/dashboard/mandates" label="Retour aux mandats" />
+    <div className="flex gap-6">
+      {/* Contenu principal */}
+      <div className="flex-1 space-y-6">
+        {/* Navigation */}
+        <BackButton href="/dashboard/mandates" label="Retour aux mandats" />
 
-      <div className="border-b pb-4">
-        <nav className="flex items-center space-x-4 text-sm text-blue-600 mb-4">
-          <Link href="/dashboard" className="hover:underline">
-            Campus
-          </Link>
-          <span className="text-gray-400">|</span>
-          <Link href="/dashboard" className="hover:underline">
-            Tableau de bord
-          </Link>
-          <span className="text-gray-400">|</span>
-          <Link href="/dashboard/mandates" className="hover:underline">
-            Mandants
-          </Link>
-        </nav>
+        {/* Header simplifié */}
+        <div className="border-b pb-4">
+          <nav className="flex items-center space-x-4 text-sm text-blue-600 mb-4">
+            <Link href="/dashboard" className="hover:underline">
+              Campus
+            </Link>
+            <span className="text-gray-400">|</span>
+            <Link href="/dashboard/mandates" className="hover:underline">
+              Mandants
+            </Link>
+          </nav>
 
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">
-            {caData.mandate.name}
-          </h1>
-          <Badge
-            variant={
-              caData.mandate.group === "HEBERGEMENT" ? "default" : "secondary"
-            }
-          >
-            {caData.mandate.group === "HEBERGEMENT"
-              ? "Hébergement"
-              : "Restauration"}
-          </Badge>
-        </div>
-      </div>
-
-      {/* Indicateurs de performance */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">CA Total</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatCurrency(caData.summary.grandTotal)}
-            </div>
-            {caData.summary.yearOverYearGrowth.revenue !== null && (
-              <div className="flex items-center text-xs">
-                {getGrowthIcon(caData.summary.yearOverYearGrowth.revenue)}
-                <span className="ml-1">
-                  {formatPercentage(caData.summary.yearOverYearGrowth.revenue)}{" "}
-                  vs {parseInt(selectedYear) - 1}
-                </span>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Masse Salariale
-            </CardTitle>
-            <Calculator className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatCurrency(caData.summary.totalPayrollCost)}
-            </div>
-            {caData.summary.yearOverYearGrowth.payroll !== null && (
-              <div className="flex items-center text-xs">
-                {getGrowthIcon(caData.summary.yearOverYearGrowth.payroll)}
-                <span className="ml-1">
-                  {formatPercentage(caData.summary.yearOverYearGrowth.payroll)}{" "}
-                  vs {parseInt(selectedYear) - 1}
-                </span>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ratio Global</CardTitle>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {caData.summary.globalPayrollRatio
-                ? formatPercentage(caData.summary.globalPayrollRatio, false)
-                : "-"}
-            </div>
-            <p className="text-xs text-muted-foreground">Masse sal. / CA</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Meilleur Mois</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatCurrency(caData.summary.bestPeriod.totalValue)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {caData.summary.bestPeriod.label}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filtres */}
-      <div className="flex items-center space-x-4">
-        <div className="flex items-center space-x-2">
-          <CalendarIcon className="h-4 w-4 text-gray-500" />
-          <Select value={selectedYear} onValueChange={setSelectedYear}>
-            <SelectTrigger className="w-24">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {[2022, 2023, 2024, 2025].map((year) => (
-                <SelectItem key={year} value={year.toString()}>
-                  {year}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <Select value={startMonth} onValueChange={setStartMonth}>
-          <SelectTrigger className="w-32">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {Array.from({ length: 12 }, (_, i) => {
-              const month = i + 1;
-              return (
-                <SelectItem key={month} value={month.toString()}>
-                  {new Date(0, i).toLocaleDateString("fr-CH", {
-                    month: "long",
-                  })}
-                </SelectItem>
-              );
-            })}
-          </SelectContent>
-        </Select>
-
-        <Select value={period} onValueChange={setPeriod}>
-          <SelectTrigger className="w-32">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="6months">6 mois</SelectItem>
-            <SelectItem value="12months">12 mois</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <Button onClick={handleExport} variant="outline" size="sm">
-          <Download className="mr-2 h-4 w-4" />
-          Exporter
-        </Button>
-      </div>
-
-      {/* Table des données avec comparaison année courante vs précédente */}
-      <div className="overflow-x-auto border rounded-lg">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="sticky left-0 bg-white border-r min-w-[80px]">
-                Jour
-              </TableHead>
-              {caData.periods.map((period, index) => (
-                <TableHead
-                  key={index}
-                  className="text-center min-w-[200px] border-r"
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                {caData.mandate.name}
+              </h1>
+              <div className="flex items-center gap-2 mt-1">
+                <Badge
+                  variant={
+                    caData.mandate.group === "HEBERGEMENT"
+                      ? "default"
+                      : "secondary"
+                  }
+                  className="text-xs"
                 >
-                  <div className="space-y-1">
-                    <div className="font-medium">{period.label}</div>
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>{period.year}</span>
-                      <span>{period.year - 1}</span>
-                    </div>
-                  </div>
-                </TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.map((row) => (
-              <TableRow key={row.day}>
-                <TableCell className="sticky left-0 bg-white border-r font-medium">
-                  {row.day.toString().padStart(2, "0")}
-                </TableCell>
-                {caData.periods.map((_, index) => (
-                  <TableCell key={index} className="text-center border-r p-2">
-                    <div className="flex justify-between items-center space-x-2">
-                      {/* Année courante */}
-                      <div className="flex-1 text-left">
-                        {row.values[`period_${index}`]?.current > 0
-                          ? formatCurrency(
-                              row.values[`period_${index}`].current
-                            )
-                          : "-"}
-                      </div>
-                      {/* Année précédente */}
-                      <div className="flex-1 text-right text-muted-foreground">
-                        {row.values[`period_${index}`]?.previous > 0
-                          ? formatCurrency(
-                              row.values[`period_${index}`].previous
-                            )
-                          : "-"}
-                      </div>
-                    </div>
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))}
+                  {caData.mandate.group === "HEBERGEMENT"
+                    ? "Hébergement"
+                    : "Restauration"}
+                </Badge>
+                <span className="text-sm text-muted-foreground">
+                  {caData.summary.totalPeriods} mois •{" "}
+                  {formatCurrency(caData.summary.grandTotal)}
+                </span>
+              </div>
+            </div>
 
-            {/* Ligne des totaux CA */}
-            <TableRow className="bg-blue-50 font-medium">
-              <TableCell className="sticky left-0 bg-blue-50 border-r">
-                Total CA
-              </TableCell>
-              {caData.periods.map((_, index) => (
-                <TableCell key={index} className="text-center border-r p-2">
-                  <div className="flex justify-between items-center space-x-2">
-                    <div className="flex-1 text-left font-bold text-blue-700">
-                      {formatCurrency(
-                        (
-                          totals as Record<
-                            string,
-                            { current: number; previous: number }
-                          >
-                        )[`period_${index}`]?.current || 0
-                      )}
-                    </div>
-                    <div className="flex-1 text-right text-blue-600">
-                      {formatCurrency(
-                        (
-                          totals as Record<
-                            string,
-                            { current: number; previous: number }
-                          >
-                        )[`period_${index}`]?.previous || 0
-                      )}
-                    </div>
-                  </div>
-                </TableCell>
-              ))}
-            </TableRow>
+            {/* Filtres compacts */}
+            <div className="flex items-center space-x-2">
+              <Select value={selectedYear} onValueChange={setSelectedYear}>
+                <SelectTrigger className="w-20">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[2022, 2023, 2024, 2025].map((year) => (
+                    <SelectItem key={year} value={year.toString()}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-            {/* Ligne masse salariale */}
-            <TableRow className="bg-green-50 font-medium">
-              <TableCell className="sticky left-0 bg-green-50 border-r">
-                Masse Sal.
-              </TableCell>
-              {caData.periods.map((period, index) => (
-                <TableCell key={index} className="text-center border-r p-2">
-                  <div className="flex justify-between items-center space-x-2">
-                    <div className="flex-1 text-left">
-                      {period.payrollData ? (
-                        <div className="space-y-1">
-                          <div className="font-bold text-green-700">
-                            {formatCurrency(period.payrollData.totalCost)}
-                          </div>
-                          {period.payrollData.employeeCount && (
-                            <div className="text-xs text-green-600">
-                              {period.payrollData.employeeCount} emp.
-                            </div>
-                          )}
+              <Select value={startMonth} onValueChange={setStartMonth}>
+                <SelectTrigger className="w-24">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 12 }, (_, i) => {
+                    const month = i + 1;
+                    return (
+                      <SelectItem key={month} value={month.toString()}>
+                        {new Date(0, i).toLocaleDateString("fr-CH", {
+                          month: "short",
+                        })}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+
+              <Select value={period} onValueChange={setPeriod}>
+                <SelectTrigger className="w-20">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="6months">6M</SelectItem>
+                  <SelectItem value="12months">12M</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Button onClick={handleExport} variant="outline" size="sm">
+                <Download className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Table des données - Design condensé et responsive */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">
+              Données mensuelles {selectedYear}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-b">
+                    <TableHead className="sticky left-0 bg-white border-r w-16 text-xs font-medium">
+                      Jour
+                    </TableHead>
+                    {caData.periods.map((period, index) => (
+                      <TableHead
+                        key={index}
+                        className="text-center w-20 px-1 border-r"
+                      >
+                        <div className="text-xs font-medium">
+                          {period.label.split(" ")[0]}
                         </div>
-                      ) : (
-                        "-"
-                      )}
-                    </div>
-                    <div className="flex-1 text-right text-green-600">
-                      {(
-                        payrollTotals as Record<
-                          string,
-                          { current: number; previous: number }
+                        <div className="text-xs text-muted-foreground">
+                          {period.year}
+                        </div>
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="text-xs">
+                  {rows.slice(0, 31).map((row) => (
+                    <TableRow key={row.day} className="border-b">
+                      <TableCell className="sticky left-0 bg-white border-r font-medium text-center p-1">
+                        {row.day.toString().padStart(2, "0")}
+                      </TableCell>
+                      {caData.periods.map((_, index) => (
+                        <TableCell
+                          key={index}
+                          className="text-center border-r p-1"
                         >
-                      )[`period_${index}`]?.previous > 0
-                        ? formatCurrency(
-                            (
+                          <div className="space-y-1">
+                            {/* Année courante */}
+                            <div className="font-medium text-slate-900">
+                              {row.values[`period_${index}`]?.current > 0
+                                ? (
+                                    row.values[`period_${index}`].current / 1000
+                                  ).toFixed(0) + "k"
+                                : "-"}
+                            </div>
+                            {/* Année précédente - plus discret */}
+                            <div className="text-muted-foreground text-xs">
+                              {row.values[`period_${index}`]?.previous > 0
+                                ? (
+                                    row.values[`period_${index}`].previous /
+                                    1000
+                                  ).toFixed(0) + "k"
+                                : "-"}
+                            </div>
+                          </div>
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+
+                  {/* Ligne des totaux - plus compacte */}
+                  <TableRow className="bg-blue-50 font-medium border-b-2">
+                    <TableCell className="sticky left-0 bg-blue-50 border-r text-center p-1">
+                      <div className="text-xs font-bold text-blue-700">
+                        Total
+                      </div>
+                    </TableCell>
+                    {caData.periods.map((_, index) => (
+                      <TableCell
+                        key={index}
+                        className="text-center border-r p-1"
+                      >
+                        <div className="space-y-1">
+                          <div className="font-bold text-blue-700 text-xs">
+                            {(
+                              (
+                                totals as Record<
+                                  string,
+                                  { current: number; previous: number }
+                                >
+                              )[`period_${index}`]?.current / 1000
+                            ).toFixed(0)}
+                            k
+                          </div>
+                          <div className="text-blue-600 text-xs">
+                            {(
+                              (
+                                totals as Record<
+                                  string,
+                                  { current: number; previous: number }
+                                >
+                              )[`period_${index}`]?.previous / 1000
+                            ).toFixed(0)}
+                            k
+                          </div>
+                        </div>
+                      </TableCell>
+                    ))}
+                  </TableRow>
+
+                  {/* Ligne masse salariale - compacte */}
+                  <TableRow className="bg-green-50 font-medium">
+                    <TableCell className="sticky left-0 bg-green-50 border-r text-center p-1">
+                      <div className="text-xs font-bold text-green-700">MS</div>
+                    </TableCell>
+                    {caData.periods.map((period, index) => (
+                      <TableCell
+                        key={index}
+                        className="text-center border-r p-1"
+                      >
+                        <div className="space-y-1">
+                          <div className="font-bold text-green-700 text-xs">
+                            {period.payrollData
+                              ? (period.payrollData.totalCost / 1000).toFixed(
+                                  0
+                                ) + "k"
+                              : "-"}
+                          </div>
+                          <div className="text-green-600 text-xs">
+                            {(
                               payrollTotals as Record<
                                 string,
                                 { current: number; previous: number }
                               >
-                            )[`period_${index}`].previous
-                          )
-                        : "-"}
-                    </div>
-                  </div>
-                </TableCell>
-              ))}
-            </TableRow>
-
-            {/* Ligne ratio */}
-            <TableRow className="bg-yellow-50 font-medium">
-              <TableCell className="sticky left-0 bg-yellow-50 border-r">
-                Ratio %
-              </TableCell>
-              {caData.periods.map((period, index) => (
-                <TableCell key={index} className="text-center border-r p-2">
-                  <div className="flex justify-between items-center space-x-2">
-                    <div className="flex-1 text-left">
-                      {period.payrollToRevenueRatio ? (
-                        <span
-                          className={`font-medium ${
-                            period.payrollToRevenueRatio < 30
-                              ? "text-green-700"
-                              : period.payrollToRevenueRatio < 50
-                                ? "text-yellow-700"
-                                : "text-red-700"
-                          }`}
-                        >
-                          {formatPercentage(
-                            period.payrollToRevenueRatio,
-                            false
-                          )}
-                        </span>
-                      ) : (
-                        "-"
-                      )}
-                    </div>
-                    <div className="flex-1 text-right">
-                      {((
-                        ratios as Record<
-                          string,
-                          { current: number; previous: number }
-                        >
-                      )[`period_${index}`]?.previous || 0) > 0 ? (
-                        <span
-                          className={`${
-                            ((
-                              ratios as Record<
-                                string,
-                                { current: number; previous: number }
-                              >
-                            )[`period_${index}`]?.previous || 0) < 30
-                              ? "text-green-600"
-                              : ((
-                                    ratios as Record<
+                            )[`period_${index}`]?.previous > 0
+                              ? (
+                                  (
+                                    payrollTotals as Record<
                                       string,
                                       { current: number; previous: number }
                                     >
-                                  )[`period_${index}`]?.previous || 0) < 50
-                                ? "text-yellow-600"
-                                : "text-red-600"
-                          }`}
-                        >
-                          {formatPercentage(
-                            (
+                                  )[`period_${index}`].previous / 1000
+                                ).toFixed(0) + "k"
+                              : "-"}
+                          </div>
+                        </div>
+                      </TableCell>
+                    ))}
+                  </TableRow>
+
+                  {/* Ligne ratio - très compacte */}
+                  <TableRow className="bg-yellow-50">
+                    <TableCell className="sticky left-0 bg-yellow-50 border-r text-center p-1">
+                      <div className="text-xs font-bold text-yellow-700">%</div>
+                    </TableCell>
+                    {caData.periods.map((period, index) => (
+                      <TableCell
+                        key={index}
+                        className="text-center border-r p-1"
+                      >
+                        <div className="space-y-1">
+                          <div
+                            className={`font-bold text-xs ${
+                              period.payrollToRevenueRatio
+                                ? period.payrollToRevenueRatio < 30
+                                  ? "text-green-700"
+                                  : period.payrollToRevenueRatio < 50
+                                    ? "text-yellow-700"
+                                    : "text-red-700"
+                                : ""
+                            }`}
+                          >
+                            {period.payrollToRevenueRatio
+                              ? period.payrollToRevenueRatio.toFixed(0) + "%"
+                              : "-"}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {(
                               ratios as Record<
                                 string,
                                 { current: number; previous: number }
                               >
-                            )[`period_${index}`]?.previous || 0,
-                            false
-                          )}
-                        </span>
-                      ) : (
-                        "-"
-                      )}
-                    </div>
-                  </div>
-                </TableCell>
-              ))}
-            </TableRow>
-
-            {/* Ligne évolution */}
-            <TableRow className="bg-purple-50 font-medium">
-              <TableCell className="sticky left-0 bg-purple-50 border-r">
-                Évolution
-              </TableCell>
-              {caData.periods.map((period, index) => (
-                <TableCell key={index} className="text-center border-r p-2">
-                  <div className="space-y-1">
-                    {/* Évolution CA */}
-                    <div className="flex items-center justify-center gap-1">
-                      {getGrowthIcon(period.yearOverYear.revenueGrowth)}
-                      <span className="text-xs font-medium">
-                        CA:{" "}
-                        {formatPercentage(period.yearOverYear.revenueGrowth)}
-                      </span>
-                    </div>
-                    {/* Évolution masse salariale */}
-                    {period.yearOverYear.payrollGrowth !== null && (
-                      <div className="flex items-center justify-center gap-1">
-                        {getGrowthIcon(period.yearOverYear.payrollGrowth)}
-                        <span className="text-xs font-medium">
-                          MS:{" "}
-                          {formatPercentage(period.yearOverYear.payrollGrowth)}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </TableCell>
-              ))}
-            </TableRow>
-
-            {/* Ligne cumul */}
-            <TableRow className="bg-gray-100 font-bold">
-              <TableCell className="sticky left-0 bg-gray-100 border-r">
-                Cumul
-              </TableCell>
-              {caData.periods.map((period, index) => (
-                <TableCell key={index} className="text-center border-r p-2">
-                  <div className="flex justify-between items-center space-x-2">
-                    <div className="flex-1 text-left">
-                      <div className="text-blue-700 font-bold">
-                        {formatCurrency(period.cumulativeTotal || 0)}
-                      </div>
-                      {period.cumulativePayroll && (
-                        <div className="text-green-700 text-xs">
-                          MS: {formatCurrency(period.cumulativePayroll)}
+                            )[`period_${index}`]?.previous > 0
+                              ? (
+                                  ratios as Record<
+                                    string,
+                                    { current: number; previous: number }
+                                  >
+                                )[`period_${index}`].previous.toFixed(0) + "%"
+                              : "-"}
+                          </div>
                         </div>
-                      )}
-                    </div>
-                    <div className="flex-1 text-right text-muted-foreground">
-                      <div className="text-blue-600">
-                        {/* Cumul année précédente calculé */}
-                        {caData.periods
-                          .slice(0, index + 1)
-                          .reduce(
-                            (sum, p) =>
-                              sum + p.yearOverYear.previousYearRevenue,
-                            0
-                          ) > 0 &&
-                          formatCurrency(
-                            caData.periods
-                              .slice(0, index + 1)
-                              .reduce(
-                                (sum, p) =>
-                                  sum + p.yearOverYear.previousYearRevenue,
-                                0
-                              )
-                          )}
-                      </div>
-                    </div>
-                  </div>
-                </TableCell>
-              ))}
-            </TableRow>
-          </TableBody>
-        </Table>
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Informations supplémentaires - plus discrètes */}
+        <div className="text-xs text-muted-foreground text-center border-t pt-4">
+          Données générées le{" "}
+          {new Date(caData.meta.generatedAt).toLocaleString("fr-CH")} |
+          Comparaisons avec {parseInt(selectedYear) - 1} | Montants en milliers
+          (k)
+        </div>
       </div>
 
-      {/* Résumé enrichi */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Période analysée</CardTitle>
+      {/* Sidebar avec statistiques discrètes */}
+      <div className="w-80 space-y-4">
+        {/* Indicateurs principaux - compacts */}
+        <Card className="shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm">Résumé {selectedYear}</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div className="text-2xl font-bold">
-                {caData.summary.totalPeriods} mois
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <div className="text-xs text-muted-foreground">CA Total</div>
+                <div className="font-semibold">
+                  {formatCurrency(caData.summary.grandTotal)}
+                </div>
               </div>
-              <div className="text-sm text-muted-foreground">
-                Moyenne mensuelle:{" "}
-                {formatCurrency(caData.summary.averagePerPeriod)}
+              <div>
+                <div className="text-xs text-muted-foreground">MS Total</div>
+                <div className="font-semibold">
+                  {formatCurrency(caData.summary.totalPayrollCost)}
+                </div>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground">
+                  Ratio Global
+                </div>
+                <div className="font-semibold">
+                  {caData.summary.globalPayrollRatio
+                    ? formatPercentage(caData.summary.globalPayrollRatio, false)
+                    : "-"}
+                </div>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground">
+                  Moyenne/Mois
+                </div>
+                <div className="font-semibold">
+                  {formatCurrency(caData.summary.averagePerPeriod)}
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Performance CA</CardTitle>
+        {/* Évolutions */}
+        <Card className="shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm">Évolutions annuelles</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div className="text-sm text-green-600">
-                Meilleur: {formatCurrency(caData.summary.bestPeriod.totalValue)}
+          <CardContent className="space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">
+                Chiffre d&apos;affaires
+              </span>
+              <div className="flex items-center gap-1">
+                {getGrowthIcon(caData.summary.yearOverYearGrowth.revenue)}
+                {formatPercentage(caData.summary.yearOverYearGrowth.revenue)}
               </div>
-              <div className="text-sm text-red-600">
-                Plus faible:{" "}
+            </div>
+            {caData.summary.yearOverYearGrowth.payroll !== null && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Masse salariale</span>
+                <div className="flex items-center gap-1">
+                  {getGrowthIcon(caData.summary.yearOverYearGrowth.payroll)}
+                  {formatPercentage(caData.summary.yearOverYearGrowth.payroll)}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Performance */}
+        <Card className="shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm">Performance</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div className="space-y-1">
+              <div className="text-xs text-muted-foreground">Meilleur mois</div>
+              <div className="text-sm font-medium text-green-600">
+                {caData.summary.bestPeriod.label}
+              </div>
+              <div className="text-sm">
+                {formatCurrency(caData.summary.bestPeriod.totalValue)}
+              </div>
+            </div>
+            <div className="space-y-1">
+              <div className="text-xs text-muted-foreground">
+                Plus faible mois
+              </div>
+              <div className="text-sm font-medium text-red-600">
+                {caData.summary.worstPeriod.label}
+              </div>
+              <div className="text-sm">
                 {formatCurrency(caData.summary.worstPeriod.totalValue)}
               </div>
-              <div className="text-xs text-muted-foreground">
-                Écart:{" "}
+            </div>
+            <div className="pt-2 border-t">
+              <div className="text-xs text-muted-foreground">Écart</div>
+              <div className="text-sm font-medium">
                 {formatCurrency(
                   caData.summary.bestPeriod.totalValue -
                     caData.summary.worstPeriod.totalValue
@@ -829,63 +734,6 @@ export default function MandateCAPage() {
             </div>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Masse Salariale</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div className="text-2xl font-bold">
-                {formatCurrency(caData.summary.totalPayrollCost)}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                Ratio global:{" "}
-                {caData.summary.globalPayrollRatio
-                  ? formatPercentage(caData.summary.globalPayrollRatio, false)
-                  : "-"}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Évolution annuelle</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                {getGrowthIcon(caData.summary.yearOverYearGrowth.revenue)}
-                <span className="text-sm">
-                  CA:{" "}
-                  {formatPercentage(caData.summary.yearOverYearGrowth.revenue)}
-                </span>
-              </div>
-              {caData.summary.yearOverYearGrowth.payroll !== null && (
-                <div className="flex items-center gap-2">
-                  {getGrowthIcon(caData.summary.yearOverYearGrowth.payroll)}
-                  <span className="text-sm">
-                    MS:{" "}
-                    {formatPercentage(
-                      caData.summary.yearOverYearGrowth.payroll
-                    )}
-                  </span>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Informations supplémentaires */}
-      <div className="text-sm text-gray-600">
-        <p>
-          Données générées le{" "}
-          {new Date(caData.meta.generatedAt).toLocaleString("fr-CH")} |
-          Comparaisons avec {parseInt(selectedYear) - 1} | Ratios masse
-          salariale inclus
-        </p>
       </div>
     </div>
   );
