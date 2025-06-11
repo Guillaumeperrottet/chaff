@@ -206,16 +206,59 @@ export default function PrintableCAReport({
   const { rows, totals, payrollTotals, ratios } = tableData();
 
   return (
-    <>
+    <div className="print-only-content">
       {/* Styles spécifiques pour l'impression */}
       <style jsx global>{`
         @media print {
-          /* Cacher la navbar et autres éléments non nécessaires */
+          /* Cacher TOUS les éléments non nécessaires pour l'impression */
           nav,
           header,
           .navbar,
-          .print-hidden {
+          .print-hidden,
+          .sidebar,
+          .footer,
+          .breadcrumb,
+          .navigation,
+          .menu,
+          .toolbar,
+          button:not(.print-keep),
+          .action-buttons,
+          .header-actions,
+          .page-header,
+          .search-bar,
+          .filters,
+          .modal,
+          .tooltip,
+          .dropdown,
+          .user-menu,
+          .notifications,
+          .layout-wrapper,
+          .main-content:not(.print-only-content),
+          .dashboard-wrapper {
             display: none !important;
+          }
+
+          /* S'assurer que notre contenu d'impression est le seul visible */
+          .print-only-content {
+            display: block !important;
+            visibility: visible !important;
+            position: relative !important;
+            z-index: 99999 !important;
+          }
+
+          /* Cacher tout contenu qui n'est pas dans les pages d'impression */
+          body > *:not(.print-only-content) {
+            display: none !important;
+          }
+
+          /* Alternative : utiliser visibility au lieu de display */
+          body * {
+            visibility: hidden;
+          }
+
+          .print-only-content,
+          .print-only-content * {
+            visibility: visible !important;
           }
 
           /* Forcer le body à occuper toute la page */
@@ -224,15 +267,42 @@ export default function PrintableCAReport({
             padding: 0 !important;
             -webkit-print-color-adjust: exact;
             color-adjust: exact;
+            background: white !important;
           }
 
-          /* Page 1: Tableau uniquement */
+          /* S'assurer que seules nos pages d'impression sont visibles */
+          .print-table-page,
+          .print-stats-page {
+            display: block !important;
+            visibility: visible !important;
+          }
+
+          /* Page 1: Tableau uniquement - Isolation complète */
           .print-table-page {
             page-break-after: always;
             height: 100vh;
             width: 100%;
             margin: 0;
             padding: 0.5cm;
+            position: relative;
+            z-index: 9999;
+            background: white !important;
+            isolation: isolate;
+          }
+
+          /* Page 2: Statistiques uniquement - Isolation complète */
+          .print-stats-page {
+            page-break-before: always;
+            height: 100vh;
+            width: 100%;
+            margin: 0;
+            padding: 0.3cm;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            z-index: 9999;
+            background: white !important;
+            isolation: isolate;
           }
 
           /* Optimiser le tableau pour l'impression */
@@ -278,6 +348,10 @@ export default function PrintableCAReport({
             padding: 0.3cm;
             display: flex;
             flex-direction: column;
+            position: relative;
+            z-index: 9999;
+            background: white !important;
+            isolation: isolate;
           }
 
           .print-stats {
@@ -286,6 +360,8 @@ export default function PrintableCAReport({
             flex: 1;
             font-size: 5px !important;
             line-height: 1 !important;
+            position: relative;
+            z-index: 10000;
           }
 
           .print-stats .grid {
@@ -451,10 +527,22 @@ export default function PrintableCAReport({
             size: A4 landscape;
           }
 
+          /* Assurer que seules nos pages sont visibles */
+          @media print {
+            html,
+            body {
+              overflow: hidden !important;
+              margin: 0 !important;
+              padding: 0 !important;
+            }
+          }
+
           .print-table-page {
             height: auto !important;
             min-height: 100vh;
             overflow: hidden;
+            position: relative;
+            z-index: 10000;
           }
 
           .print-table * {
@@ -1052,6 +1140,6 @@ export default function PrintableCAReport({
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }
