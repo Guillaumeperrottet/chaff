@@ -52,7 +52,7 @@ import {
   AlertDialogTrigger,
 } from "@/app/components/ui/alert-dialog";
 
-// ✅ Interface pour les types d'établissement
+// Interface pour les types d'établissement
 interface EstablishmentType {
   id: string;
   label: string;
@@ -66,7 +66,7 @@ interface EstablishmentType {
 interface Mandate {
   id: string;
   name: string;
-  group: string; // ✅ Maintenant accepte n'importe quel string (ID du type)
+  group: string;
   active: boolean;
   totalRevenue: number;
   lastEntry: Date | null;
@@ -87,7 +87,7 @@ export default function EditMandatePage() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  // ✅ Nouveau : État pour les types d'établissement
+  // État pour les types d'établissement
   const [establishmentTypes, setEstablishmentTypes] = useState<
     EstablishmentType[]
   >([]);
@@ -95,14 +95,19 @@ export default function EditMandatePage() {
   // État du formulaire
   const [formData, setFormData] = useState({
     name: "",
-    group: "", // ✅ Maintenant accepte n'importe quel string
+    group: "",
     active: true,
   });
 
   // Gestion des erreurs
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // ✅ Fonctions utilitaires pour les types
+  // État pour les onglets
+  const [activeTab, setActiveTab] = useState<
+    "general" | "analytics" | "team" | "actions"
+  >("general");
+
+  // Fonctions utilitaires pour les types
   const fetchEstablishmentTypes = async () => {
     try {
       const response = await fetch("/api/establishment-types");
@@ -128,7 +133,6 @@ export default function EditMandatePage() {
       return <Building2 className="mr-2 h-4 w-4" />;
     if (groupId === "RESTAURATION") return <MapPin className="mr-2 h-4 w-4" />;
 
-    // Pour les types personnalisés, utiliser l'icône par défaut
     return <Building2 className="mr-2 h-4 w-4" />;
   };
 
@@ -138,7 +142,6 @@ export default function EditMandatePage() {
       try {
         setLoading(true);
 
-        // Charger en parallèle les données du mandat et les types
         const [mandateResponse] = await Promise.all([
           fetch(`/api/mandats/${mandateId}`),
           fetchEstablishmentTypes(),
@@ -151,7 +154,6 @@ export default function EditMandatePage() {
         const mandateData = await mandateResponse.json();
         setMandate(mandateData);
 
-        // Initialiser le formulaire
         setFormData({
           name: mandateData.name,
           group: mandateData.group,
@@ -273,7 +275,6 @@ export default function EditMandatePage() {
       [field]: value,
     }));
 
-    // Effacer l'erreur du champ modifié
     if (errors[field]) {
       setErrors((prev) => ({
         ...prev,
@@ -298,7 +299,7 @@ export default function EditMandatePage() {
     });
   };
 
-  if (loading) {
+  if (loading || !mandate) {
     return (
       <div className="space-y-6">
         <BackButton href="/dashboard/mandates" />
@@ -309,459 +310,729 @@ export default function EditMandatePage() {
     );
   }
 
-  if (!mandate) {
-    return (
-      <div className="space-y-6">
-        <BackButton href="/dashboard/mandates" />
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">Mandat non trouvé</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
-      {/* Navigation */}
-      <BackButton
-        href="/dashboard/mandates"
-        label="Retour aux établissements"
-      />
-
-      {/* Header moderne avec gradient */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl shadow-sm">
-        <div className="flex items-center justify-between p-6">
+    <div className="space-y-4">
+      {/* Header compact avec navigation intégrée */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="flex items-center justify-between px-6 py-4">
           <div className="flex items-center space-x-4">
-            {/* Avatar avec gradient */}
+            {/* Avatar compact */}
             <div className="relative">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg">
+              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white font-semibold text-sm shadow-sm">
                 {mandate.name.charAt(0).toUpperCase()}
               </div>
               <div
-                className={`absolute -bottom-1 -right-1 w-4 h-4 ${mandate.active ? "bg-green-500" : "bg-gray-400"} rounded-full border-2 border-white`}
+                className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 ${mandate.active ? "bg-green-500" : "bg-gray-400"} rounded-full border-2 border-white`}
               ></div>
             </div>
 
-            {/* Infos du mandat */}
+            {/* Titre et type */}
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-xl font-semibold text-gray-900">
                 {mandate.name}
               </h1>
-              <div className="flex items-center space-x-2 text-sm text-gray-600">
-                <span>Édition des informations</span>
-                <span className="text-blue-600">•</span>
+              <div className="flex items-center space-x-2 text-sm text-gray-500">
                 <span className="flex items-center gap-1">
                   {getTypeIcon(mandate.group)}
                   {getTypeLabel(mandate.group)}
                 </span>
+                <span>•</span>
+                <span
+                  className={`px-2 py-0.5 rounded text-xs font-medium ${
+                    mandate.active
+                      ? "bg-green-100 text-green-700"
+                      : "bg-gray-100 text-gray-700"
+                  }`}
+                >
+                  {mandate.active ? "Actif" : "Inactif"}
+                </span>
+                <span>•</span>
+                <span>{mandate._count?.dayValues || 0} saisies CA</span>
               </div>
             </div>
           </div>
 
-          {/* Statut */}
-          <div className="text-right">
-            <div
-              className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                mandate.active
-                  ? "bg-green-100 text-green-800"
-                  : "bg-gray-100 text-gray-800"
+          {/* Navigation discrète */}
+          <BackButton
+            href="/dashboard/mandates"
+            className="text-gray-400 hover:text-gray-600"
+          />
+        </div>
+
+        {/* Onglets horizontaux */}
+        <div className="border-b border-gray-200">
+          <nav className="flex space-x-8 px-6">
+            <button
+              onClick={() => setActiveTab("general")}
+              className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === "general"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700"
               }`}
             >
-              {mandate.active ? "Actif" : "Inactif"}
-            </div>
-            <div className="text-xs text-gray-500 mt-1">
-              {mandate._count?.dayValues || 0} saisie(s) CA
-            </div>
-          </div>
+              <Building2 className="mr-2 h-4 w-4 inline" />
+              Général
+            </button>
+            <button
+              onClick={() => setActiveTab("analytics")}
+              className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === "analytics"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              <BarChart3 className="mr-2 h-4 w-4 inline" />
+              Analytics
+            </button>
+            <button
+              onClick={() => setActiveTab("team")}
+              className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === "team"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              <Users className="mr-2 h-4 w-4 inline" />
+              Équipe
+            </button>
+            <button
+              onClick={() => setActiveTab("actions")}
+              className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === "actions"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              <TrendingUp className="mr-2 h-4 w-4 inline" />
+              Actions
+            </button>
+          </nav>
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Formulaire principal */}
-        <div className="lg:col-span-2">
-          <Card className="shadow-lg border-slate-200">
-            <CardHeader className="bg-white border-b border-slate-200">
-              <CardTitle className="text-xl font-semibold text-slate-900">
-                Informations de l&apos;établissement
-              </CardTitle>
-              <CardDescription className="text-slate-600">
-                Modifiez les paramètres de votre établissement
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-6">
-              <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Champ Name */}
-                <div className="space-y-3">
-                  <Label
-                    htmlFor="name"
-                    className="text-base font-medium text-slate-900"
-                  >
-                    Nom de l&apos;établissement
-                  </Label>
-                  <Input
-                    id="name"
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => handleInputChange("name", e.target.value)}
-                    className={`h-12 text-base transition-all duration-200 ${
-                      errors.name
-                        ? "border-red-300 focus:border-red-500 focus:ring-red-500/20"
-                        : "border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
-                    }`}
-                    placeholder="Nom de l'établissement..."
-                    disabled={saving}
-                  />
-                  {errors.name && (
-                    <p className="text-sm text-red-500 flex items-center gap-1">
-                      <X className="h-4 w-4" />
-                      {errors.name}
-                    </p>
-                  )}
-                </div>
+      <div className="px-6 py-4">
+        {/* Contenu conditionnel basé sur l'onglet actif */}
 
-                {/* Champ Group */}
-                <div className="space-y-3">
-                  <Label
-                    htmlFor="group"
-                    className="text-base font-medium text-slate-900"
-                  >
-                    Type d&apos;établissement
-                  </Label>
-                  <Select
-                    value={formData.group}
-                    onValueChange={(value) => handleInputChange("group", value)}
-                    disabled={saving}
-                  >
-                    <SelectTrigger
-                      className={`h-12 text-base transition-all duration-200 ${
-                        errors.group
-                          ? "border-red-300 focus:border-red-500 focus:ring-red-500/20"
-                          : "border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
-                      }`}
-                    >
-                      <SelectValue placeholder="Sélectionnez un type..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {/* Types par défaut */}
-                      <SelectItem value="HEBERGEMENT">
-                        <div className="flex items-center gap-2">
-                          {getTypeIcon("HEBERGEMENT")}
-                          <span>Hébergement</span>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="RESTAURATION">
-                        <div className="flex items-center gap-2">
-                          {getTypeIcon("RESTAURATION")}
-                          <span>Restauration</span>
-                        </div>
-                      </SelectItem>
+        {/* Onglet Général */}
+        {activeTab === "general" && (
+          <div className="grid lg:grid-cols-3 gap-4">
+            {/* Formulaire principal */}
+            <div className="lg:col-span-2">
+              <Card className="shadow-sm border-slate-200">
+                <CardHeader className="bg-white border-b border-slate-200 py-4">
+                  <CardTitle className="text-lg font-semibold text-slate-900">
+                    Informations de l&apos;établissement
+                  </CardTitle>
+                  <CardDescription className="text-slate-600 text-sm">
+                    Modifiez les paramètres de votre établissement
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-4">
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    {/* Champ Name */}
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="name"
+                        className="text-sm font-medium text-slate-900"
+                      >
+                        Nom de l&apos;établissement
+                      </Label>
+                      <Input
+                        id="name"
+                        type="text"
+                        value={formData.name}
+                        onChange={(e) =>
+                          handleInputChange("name", e.target.value)
+                        }
+                        className={`h-10 text-sm transition-all duration-200 ${
+                          errors.name
+                            ? "border-red-300 focus:border-red-500 focus:ring-red-500/20"
+                            : "border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                        }`}
+                        placeholder="Nom de l'établissement..."
+                        disabled={saving}
+                      />
+                      {errors.name && (
+                        <p className="text-xs text-red-500 flex items-center gap-1">
+                          <X className="h-3 w-3" />
+                          {errors.name}
+                        </p>
+                      )}
+                    </div>
 
-                      {/* Types personnalisés */}
-                      {establishmentTypes
-                        .filter(
-                          (type) =>
-                            type.id !== "HEBERGEMENT" &&
-                            type.id !== "RESTAURATION" &&
-                            type.label !== "Hébergement" &&
-                            type.label !== "Restauration"
-                        )
-                        .map((type) => (
-                          <SelectItem key={type.id} value={type.id}>
+                    {/* Champ Group */}
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="group"
+                        className="text-sm font-medium text-slate-900"
+                      >
+                        Type d&apos;établissement
+                      </Label>
+                      <Select
+                        value={formData.group}
+                        onValueChange={(value) =>
+                          handleInputChange("group", value)
+                        }
+                        disabled={saving}
+                      >
+                        <SelectTrigger
+                          className={`h-10 text-sm transition-all duration-200 ${
+                            errors.group
+                              ? "border-red-300 focus:border-red-500 focus:ring-red-500/20"
+                              : "border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                          }`}
+                        >
+                          <SelectValue placeholder="Sélectionnez un type..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="HEBERGEMENT">
                             <div className="flex items-center gap-2">
-                              {getTypeIcon(type.id)}
-                              <span>{type.label}</span>
+                              {getTypeIcon("HEBERGEMENT")}
+                              <span>Hébergement</span>
                             </div>
                           </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                  {errors.group && (
-                    <p className="text-sm text-red-500 flex items-center gap-1">
-                      <X className="h-4 w-4" />
-                      {errors.group}
-                    </p>
-                  )}
-                </div>
-
-                {/* Checkbox Actif */}
-                <div className="flex items-center space-x-3 p-4 bg-slate-50 rounded-lg border">
-                  <Checkbox
-                    id="active"
-                    checked={formData.active}
-                    onCheckedChange={(checked) =>
-                      handleInputChange("active", !!checked)
-                    }
-                    disabled={saving}
-                    className="h-5 w-5"
-                  />
-                  <div className="flex-1">
-                    <Label
-                      htmlFor="active"
-                      className="text-base font-medium cursor-pointer text-slate-900"
-                    >
-                      Établissement actif
-                    </Label>
-                    <p className="text-sm text-slate-600">
-                      Un établissement inactif ne sera pas visible dans les
-                      rapports
-                    </p>
-                  </div>
-                </div>
-
-                {/* Boutons d'action */}
-                <div className="flex items-center justify-between pt-6 border-t">
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        disabled={saving || deleting}
-                        className="hover:bg-red-700"
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Supprimer l&apos;établissement
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>
-                          Confirmer la suppression
-                        </AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Êtes-vous sûr de vouloir supprimer
-                          l&apos;établissement &quot;{mandate.name}&quot; ?
-                          {mandate._count && mandate._count.dayValues > 0 && (
-                            <span className="text-red-600 font-medium">
-                              <br />
-                              ⚠️ Cet établissement contient{" "}
-                              {mandate._count.dayValues} valeur(s) de chiffre
-                              d&apos;affaires qui seront également supprimées.
-                            </span>
-                          )}
-                          <br />
-                          Cette action est irréversible.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Annuler</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={handleDelete}
-                          className="bg-red-600 hover:bg-red-700"
-                        >
-                          {deleting ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Suppression...
-                            </>
-                          ) : (
-                            "Supprimer définitivement"
-                          )}
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-
-                  <div className="flex items-center space-x-3">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => router.push("/dashboard/mandates")}
-                      disabled={saving}
-                      className="px-6"
-                    >
-                      <X className="mr-2 h-4 w-4" />
-                      Annuler
-                    </Button>
-
-                    <Button
-                      type="submit"
-                      disabled={saving}
-                      className="min-w-[140px] bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl transition-all duration-200"
-                    >
-                      {saving ? (
-                        <div className="flex items-center">
-                          <Loader2 className="animate-spin h-4 w-4 mr-2" />
-                          Enregistrement...
-                        </div>
-                      ) : (
-                        <>
-                          <Save className="mr-2 h-4 w-4" />
-                          Enregistrer les modifications
-                        </>
+                          <SelectItem value="RESTAURATION">
+                            <div className="flex items-center gap-2">
+                              {getTypeIcon("RESTAURATION")}
+                              <span>Restauration</span>
+                            </div>
+                          </SelectItem>
+                          {establishmentTypes
+                            .filter(
+                              (type) =>
+                                type.id !== "HEBERGEMENT" &&
+                                type.id !== "RESTAURATION" &&
+                                type.label !== "Hébergement" &&
+                                type.label !== "Restauration"
+                            )
+                            .map((type) => (
+                              <SelectItem key={type.id} value={type.id}>
+                                <div className="flex items-center gap-2">
+                                  {getTypeIcon(type.id)}
+                                  <span>{type.label}</span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.group && (
+                        <p className="text-xs text-red-500 flex items-center gap-1">
+                          <X className="h-3 w-3" />
+                          {errors.group}
+                        </p>
                       )}
-                    </Button>
-                  </div>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Sidebar avec statistiques et actions */}
-        <div className="space-y-6">
-          {/* Statistiques */}
-          <Card className="shadow-lg border-slate-200">
-            <CardHeader className="bg-white border-b border-slate-200">
-              <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-blue-600" />
-                Statistiques
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 space-y-4">
-              <div className="grid grid-cols-1 gap-4">
-                <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm text-blue-600 font-medium">
-                      Revenue Total
                     </div>
-                    <DollarSign className="h-4 w-4 text-blue-600" />
-                  </div>
-                  <div className="text-xl font-bold text-blue-900 mt-1">
-                    {formatCurrency(mandate.totalRevenue)}
-                  </div>
-                </div>
 
-                <div className="bg-green-50 p-4 rounded-lg border border-green-100">
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm text-green-600 font-medium">
-                      Saisies CA
+                    {/* Checkbox Actif */}
+                    <div className="flex items-center space-x-3 p-3 bg-slate-50 rounded-lg border">
+                      <Checkbox
+                        id="active"
+                        checked={formData.active}
+                        onCheckedChange={(checked) =>
+                          handleInputChange("active", !!checked)
+                        }
+                        disabled={saving}
+                        className="h-4 w-4"
+                      />
+                      <div className="flex-1">
+                        <Label
+                          htmlFor="active"
+                          className="text-sm font-medium cursor-pointer text-slate-900"
+                        >
+                          Établissement actif
+                        </Label>
+                        <p className="text-xs text-slate-600">
+                          Un établissement inactif ne sera pas visible dans les
+                          rapports
+                        </p>
+                      </div>
                     </div>
-                    <Calendar className="h-4 w-4 text-green-600" />
+
+                    {/* Boutons d'action */}
+                    <div className="flex items-center justify-between pt-4 border-t">
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            disabled={saving || deleting}
+                            className="hover:bg-red-700"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Supprimer
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>
+                              Confirmer la suppression
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Êtes-vous sûr de vouloir supprimer
+                              l&apos;établissement &quot;{mandate.name}&quot; ?
+                              {mandate._count &&
+                                mandate._count.dayValues > 0 && (
+                                  <span className="text-red-600 font-medium">
+                                    <br />
+                                    ⚠️ Cet établissement contient{" "}
+                                    {mandate._count.dayValues} valeur(s) de
+                                    chiffre d&apos;affaires qui seront également
+                                    supprimées.
+                                  </span>
+                                )}
+                              <br />
+                              Cette action est irréversible.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Annuler</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={handleDelete}
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              {deleting ? (
+                                <>
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  Suppression...
+                                </>
+                              ) : (
+                                "Supprimer définitivement"
+                              )}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+
+                      <div className="flex items-center space-x-3">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => router.push("/dashboard/mandates")}
+                          disabled={saving}
+                          className="px-4"
+                        >
+                          <X className="mr-2 h-4 w-4" />
+                          Annuler
+                        </Button>
+
+                        <Button
+                          type="submit"
+                          disabled={saving}
+                          className="min-w-[120px] bg-blue-600 hover:bg-blue-700 shadow-sm hover:shadow-md transition-all duration-200"
+                        >
+                          {saving ? (
+                            <div className="flex items-center">
+                              <Loader2 className="animate-spin h-4 w-4 mr-2" />
+                              Enregistrement...
+                            </div>
+                          ) : (
+                            <>
+                              <Save className="mr-2 h-4 w-4" />
+                              Enregistrer
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </form>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Informations rapides */}
+            <div className="space-y-4">
+              <Card className="shadow-sm border-slate-200">
+                <CardHeader className="bg-white border-b border-slate-200 py-3">
+                  <CardTitle className="text-base font-semibold text-slate-900 flex items-center gap-2">
+                    <Building2 className="h-4 w-4 text-blue-600" />
+                    Informations
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-3 space-y-3">
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-xs text-slate-600">Type</span>
+                      <div className="flex items-center text-xs font-medium text-slate-900">
+                        {getTypeIcon(mandate.group)}
+                        {getTypeLabel(mandate.group)}
+                      </div>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-xs text-slate-600">Statut</span>
+                      <span
+                        className={`text-xs font-medium ${mandate.active ? "text-green-700" : "text-gray-700"}`}
+                      >
+                        {mandate.active ? "Actif" : "Inactif"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-xs text-slate-600">Créé le</span>
+                      <span className="text-xs text-slate-900">
+                        {formatDate(mandate.createdAt)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-xs text-slate-600">Modifié le</span>
+                      <span className="text-xs text-slate-900">
+                        {formatDate(mandate.updatedAt)}
+                      </span>
+                    </div>
                   </div>
-                  <div className="text-xl font-bold text-green-900 mt-1">
-                    {mandate._count?.dayValues || 0}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        )}
+
+        {/* Onglet Analytics */}
+        {activeTab === "analytics" && (
+          <div className="grid lg:grid-cols-3 gap-4">
+            <div className="lg:col-span-2 space-y-4">
+              <Card className="shadow-sm border-slate-200">
+                <CardHeader className="bg-white border-b border-slate-200 py-4">
+                  <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5 text-blue-600" />
+                    Statistiques détaillées
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm text-blue-600 font-medium">
+                          Revenue Total
+                        </div>
+                        <DollarSign className="h-4 w-4 text-blue-600" />
+                      </div>
+                      <div className="text-2xl font-bold text-blue-900 mt-2">
+                        {formatCurrency(mandate.totalRevenue)}
+                      </div>
+                      <div className="text-xs text-blue-600 mt-1">
+                        Depuis la création
+                      </div>
+                    </div>
+
+                    <div className="bg-green-50 p-4 rounded-lg border border-green-100">
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm text-green-600 font-medium">
+                          Saisies CA
+                        </div>
+                        <Calendar className="h-4 w-4 text-green-600" />
+                      </div>
+                      <div className="text-2xl font-bold text-green-900 mt-2">
+                        {mandate._count?.dayValues || 0}
+                      </div>
+                      <div className="text-xs text-green-600 mt-1">
+                        Dernière: {formatDate(mandate.lastEntry)}
+                      </div>
+                    </div>
+
+                    <div className="bg-purple-50 p-4 rounded-lg border border-purple-100">
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm text-purple-600 font-medium">
+                          CA Moyen
+                        </div>
+                        <TrendingUp className="h-4 w-4 text-purple-600" />
+                      </div>
+                      <div className="text-2xl font-bold text-purple-900 mt-2">
+                        {formatCurrency(
+                          mandate._count?.dayValues
+                            ? mandate.totalRevenue / mandate._count.dayValues
+                            : 0
+                        )}
+                      </div>
+                      <div className="text-xs text-purple-600 mt-1">
+                        Par saisie
+                      </div>
+                    </div>
+
+                    <div className="bg-orange-50 p-4 rounded-lg border border-orange-100">
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm text-orange-600 font-medium">
+                          Période active
+                        </div>
+                        <Calendar className="h-4 w-4 text-orange-600" />
+                      </div>
+                      <div className="text-2xl font-bold text-orange-900 mt-2">
+                        {Math.floor(
+                          (new Date().getTime() -
+                            new Date(mandate.createdAt).getTime()) /
+                            (1000 * 60 * 60 * 24)
+                        )}
+                      </div>
+                      <div className="text-xs text-orange-600 mt-1">jours</div>
+                    </div>
                   </div>
-                  <div className="text-xs text-green-600 mt-1">
-                    Dernière: {formatDate(mandate.lastEntry)}
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="space-y-4">
+              <Card className="shadow-sm border-slate-200">
+                <CardHeader className="bg-white border-b border-slate-200 py-3">
+                  <CardTitle className="text-base font-semibold text-slate-900 flex items-center gap-2">
+                    <Eye className="h-4 w-4 text-purple-600" />
+                    Actions Analytics
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-3 space-y-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-start text-blue-600 border-blue-200 hover:bg-blue-50"
+                    onClick={() =>
+                      router.push(`/dashboard/mandates/${mandate.id}`)
+                    }
+                  >
+                    <BarChart3 className="mr-2 h-4 w-4" />
+                    Voir analyse complète
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-start text-green-600 border-green-200 hover:bg-green-50"
+                    onClick={() =>
+                      router.push(`/dashboard/mandates/${mandate.id}/payroll`)
+                    }
+                  >
+                    <Calculator className="mr-2 h-4 w-4" />
+                    Analyse masse salariale
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-start text-purple-600 border-purple-200 hover:bg-purple-50"
+                    onClick={() => router.push("/dashboard/analytics")}
+                  >
+                    <TrendingUp className="mr-2 h-4 w-4" />
+                    Dashboard global
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-start text-orange-600 border-orange-200 hover:bg-orange-50"
+                    onClick={() =>
+                      window.open(
+                        `/api/export/ca/${mandate.id}?year=${new Date().getFullYear()}`,
+                        "_blank"
+                      )
+                    }
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    Exporter données
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        )}
+
+        {/* Onglet Équipe */}
+        {activeTab === "team" && (
+          <div className="grid lg:grid-cols-2 gap-4">
+            <Card className="shadow-sm border-slate-200">
+              <CardHeader className="bg-white border-b border-slate-200 py-4">
+                <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                  <Users className="h-5 w-5 text-blue-600" />
+                  Gestion de l&apos;équipe
+                </CardTitle>
+                <CardDescription className="text-slate-600 text-sm">
+                  Gérer les employés de cet établissement
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-4 space-y-4">
+                <div className="text-center py-8 text-gray-500">
+                  <Users className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                  <p className="text-sm">
+                    Fonctionnalité de gestion d&apos;équipe
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    À venir prochainement
+                  </p>
+                </div>
+                <div className="flex space-x-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 text-blue-600 border-blue-200 hover:bg-blue-50"
+                    onClick={() => router.push("/dashboard/employees")}
+                  >
+                    <Users className="mr-2 h-4 w-4" />
+                    Voir tous les employés
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 text-green-600 border-green-200 hover:bg-green-50"
+                    onClick={() => router.push("/dashboard/employees/create")}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Ajouter un employé
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-sm border-slate-200">
+              <CardHeader className="bg-white border-b border-slate-200 py-4">
+                <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-green-600" />
+                  Informations équipe
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4">
+                <div className="space-y-4">
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <div className="text-sm text-gray-600 mb-2">
+                      Employés actifs
+                    </div>
+                    <div className="text-2xl font-bold text-gray-900">0</div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      Dans cet établissement
+                    </div>
+                  </div>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <div className="text-sm text-gray-600 mb-2">
+                      Coût salarial mensuel
+                    </div>
+                    <div className="text-2xl font-bold text-gray-900">
+                      CHF 0
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">Estimation</div>
                   </div>
                 </div>
-              </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
-              <div className="space-y-3 pt-4 border-t border-slate-200">
-                <div className="flex justify-between">
-                  <span className="text-sm text-slate-600">Type</span>
-                  <div className="flex items-center text-sm font-medium text-slate-900">
-                    {getTypeIcon(mandate.group)}
-                    {getTypeLabel(mandate.group)}
-                  </div>
-                </div>
+        {/* Onglet Actions */}
+        {activeTab === "actions" && (
+          <div className="grid lg:grid-cols-3 gap-4">
+            <Card className="shadow-sm border-slate-200">
+              <CardHeader className="bg-white border-b border-slate-200 py-3">
+                <CardTitle className="text-base font-semibold text-slate-900 flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-blue-600" />
+                  Actions principales
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-3 space-y-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start text-blue-600 border-blue-200 hover:bg-blue-50"
+                  onClick={() =>
+                    router.push(`/dashboard/mandates/${mandate.id}`)
+                  }
+                >
+                  <Eye className="mr-2 h-4 w-4" />
+                  Analyse du CA
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start text-green-600 border-green-200 hover:bg-green-50"
+                  onClick={() =>
+                    router.push(`/dashboard/mandates/${mandate.id}/payroll`)
+                  }
+                >
+                  <Calculator className="mr-2 h-4 w-4" />
+                  Masse salariale
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start text-purple-600 border-purple-200 hover:bg-purple-50"
+                  onClick={() => router.push("/dashboard/dayvalues/create")}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Ajouter un CA
+                </Button>
+              </CardContent>
+            </Card>
 
-                <div className="flex justify-between">
-                  <span className="text-sm text-slate-600">Créé le</span>
-                  <span className="text-sm text-slate-900">
-                    {formatDate(mandate.createdAt)}
-                  </span>
-                </div>
+            <Card className="shadow-sm border-slate-200">
+              <CardHeader className="bg-white border-b border-slate-200 py-3">
+                <CardTitle className="text-base font-semibold text-slate-900 flex items-center gap-2">
+                  <Upload className="h-4 w-4 text-orange-600" />
+                  Gestion des données
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-3 space-y-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start text-orange-600 border-orange-200 hover:bg-orange-50"
+                  onClick={() => router.push("/dashboard/import")}
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  Importer données
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start text-green-600 border-green-200 hover:bg-green-50"
+                  onClick={() =>
+                    window.open(
+                      `/api/export/ca/${mandate.id}?year=${new Date().getFullYear()}`,
+                      "_blank"
+                    )
+                  }
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Exporter CA
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start text-gray-600 border-gray-200 hover:bg-gray-50"
+                  onClick={() => router.push("/dashboard/analytics")}
+                >
+                  <BarChart3 className="mr-2 h-4 w-4" />
+                  Analytics globales
+                </Button>
+              </CardContent>
+            </Card>
 
-                <div className="flex justify-between">
-                  <span className="text-sm text-slate-600">Modifié le</span>
-                  <span className="text-sm text-slate-900">
-                    {formatDate(mandate.updatedAt)}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Actions rapides */}
-          <Card className="shadow-lg border-slate-200">
-            <CardHeader className="bg-white border-b border-slate-200">
-              <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-purple-600" />
-                Actions rapides
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 space-y-3">
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full justify-start text-blue-600 border-blue-200 hover:bg-blue-50 hover:border-blue-300"
-                onClick={() => router.push(`/dashboard/mandates/${mandate.id}`)}
-              >
-                <Eye className="mr-2 h-4 w-4" />
-                Analyse du CA
-              </Button>
-
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full justify-start text-green-600 border-green-200 hover:bg-green-50 hover:border-green-300"
-                onClick={() =>
-                  router.push(`/dashboard/mandates/${mandate.id}/payroll`)
-                }
-              >
-                <Calculator className="mr-2 h-4 w-4" />
-                Masse salariale
-              </Button>
-
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full justify-start text-purple-600 border-purple-200 hover:bg-purple-50 hover:border-purple-300"
-                onClick={() => router.push("/dashboard/dayvalues/create")}
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Ajouter un CA
-              </Button>
-
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full justify-start text-orange-600 border-orange-200 hover:bg-orange-50 hover:border-orange-300"
-                onClick={() => router.push("/dashboard/analytics")}
-              >
-                <BarChart3 className="mr-2 h-4 w-4" />
-                Analytics
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Actions de gestion */}
-          <Card className="shadow-lg border-slate-200">
-            <CardHeader className="bg-white border-b border-slate-200">
-              <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                <Users className="h-5 w-5 text-gray-600" />
-                Gestion
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 space-y-3">
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full justify-start text-gray-600 border-gray-200 hover:bg-gray-50 hover:border-gray-300"
-                onClick={() => router.push("/dashboard/employees")}
-              >
-                <Users className="mr-2 h-4 w-4" />
-                Employés
-              </Button>
-
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full justify-start text-gray-600 border-gray-200 hover:bg-gray-50 hover:border-gray-300"
-                onClick={() => router.push("/dashboard/import")}
-              >
-                <Upload className="mr-2 h-4 w-4" />
-                Import données
-              </Button>
-
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full justify-start text-gray-600 border-gray-200 hover:bg-gray-50 hover:border-gray-300"
-                onClick={() =>
-                  window.open(
-                    `/api/export/ca/${mandate.id}?year=${new Date().getFullYear()}`,
-                    "_blank"
-                  )
-                }
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Exporter CA
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+            <Card className="shadow-sm border-slate-200">
+              <CardHeader className="bg-white border-b border-slate-200 py-3">
+                <CardTitle className="text-base font-semibold text-slate-900 flex items-center gap-2">
+                  <Users className="h-4 w-4 text-gray-600" />
+                  Actions avancées
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-3 space-y-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start text-gray-600 border-gray-200 hover:bg-gray-50"
+                  onClick={() => router.push("/dashboard/employees")}
+                >
+                  <Users className="mr-2 h-4 w-4" />
+                  Gérer employés
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start text-blue-600 border-blue-200 hover:bg-blue-50"
+                  onClick={() => router.push("/dashboard/settings")}
+                >
+                  <Building2 className="mr-2 h-4 w-4" />
+                  Paramètres
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start text-purple-600 border-purple-200 hover:bg-purple-50"
+                  onClick={() => router.push("/dashboard")}
+                >
+                  <TrendingUp className="mr-2 h-4 w-4" />
+                  Dashboard
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </div>
   );
