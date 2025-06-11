@@ -6,9 +6,9 @@ const prisma = new PrismaClient();
 async function seedPlans() {
   console.log("🌱 Début du seeding des plans...");
 
-  // Supprimer les plans existants (optionnel, pour éviter les doublons)
-  await prisma.plan.deleteMany();
-  console.log("🗑️ Plans existants supprimés");
+  // Ne pas supprimer les plans existants à cause des contraintes de clés étrangères
+  // await prisma.plan.deleteMany();
+  console.log("📋 Création/mise à jour des plans...");
 
   // Plans de base avec toutes les propriétés requises
   const plans = [
@@ -20,18 +20,7 @@ async function seedPlans() {
       monthlyPrice: 0,
       yearlyPrice: 0,
       maxUsers: 1,
-      hasCustomPricing: false,
-      trialDays: 0,
-      features: [
-        "1 utilisateur maximum",
-        "1 mandat maximum",
-        "100MB de stockage",
-        "Dashboard de base uniquement",
-        "Support communauté",
-        "❌ Pas d'accès masse salariale",
-      ],
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      maxMandates: 1, // ✨ Limite de 1 mandat
       maxStorage: 100, // 100MB
       description: "Plan gratuit avec fonctionnalités limitées",
       hasAdvancedReports: false,
@@ -50,18 +39,7 @@ async function seedPlans() {
       monthlyPrice: 29,
       yearlyPrice: 290, // 10 mois payés
       maxUsers: 5,
-      hasCustomPricing: false,
-      trialDays: 14,
-      features: [
-        "5 utilisateurs",
-        "Objets illimités",
-        "10GB de stockage",
-        "Support prioritaire",
-        "Gestion d'équipe",
-        "Rapports avancés",
-      ],
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      maxMandates: null, // ✨ Illimité pour Premium
       maxStorage: 10240, // 10GB
       description: "Pour une utilisation professionnelle",
       hasAdvancedReports: true,
@@ -80,11 +58,7 @@ async function seedPlans() {
       monthlyPrice: 0,
       yearlyPrice: 0,
       maxUsers: null,
-      hasCustomPricing: false,
-      trialDays: 0,
-      features: ["Accès administrateur complet"],
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      maxMandates: null,
       maxStorage: null, // Illimité
       description: "Accès complet au système",
       hasAdvancedReports: true,
@@ -95,14 +69,54 @@ async function seedPlans() {
       sortOrder: 0,
       supportLevel: "admin",
     },
+    {
+      name: PlanType.ILLIMITE,
+      stripeProductId: null,
+      stripePriceId: null,
+      price: 0,
+      monthlyPrice: 0,
+      yearlyPrice: 0,
+      maxUsers: null,
+      maxMandates: null,
+      maxStorage: null, // Illimité
+      description: "Plan illimité réservé aux utilisateurs spéciaux",
+      hasAdvancedReports: true,
+      hasApiAccess: true,
+      hasCustomBranding: true,
+      isActive: true,
+      maxApiCalls: null,
+      sortOrder: 999,
+      supportLevel: "premium",
+    },
+    {
+      name: PlanType.CUSTOM,
+      stripeProductId: null,
+      stripePriceId: null,
+      price: 0,
+      monthlyPrice: 0,
+      yearlyPrice: 0,
+      maxUsers: null,
+      maxMandates: null,
+      maxStorage: null,
+      description: "Plan avec limites personnalisées",
+      hasAdvancedReports: true,
+      hasApiAccess: true,
+      hasCustomBranding: true,
+      isActive: true,
+      maxApiCalls: null,
+      sortOrder: 998,
+      supportLevel: "custom",
+    },
   ];
 
-  // Créer chaque plan
+  // Créer chaque plan avec upsert pour éviter les doublons
   for (const planData of plans) {
-    const plan = await prisma.plan.create({
-      data: planData,
+    const plan = await prisma.plan.upsert({
+      where: { name: planData.name },
+      update: planData,
+      create: planData,
     });
-    console.log(`✅ Plan créé: ${plan.name} (ID: ${plan.id})`);
+    console.log(`✅ Plan créé/mis à jour: ${plan.name} (ID: ${plan.id})`);
   }
 
   console.log("🎉 Seeding des plans terminé avec succès!");

@@ -81,7 +81,7 @@ function SignUpFormWithParams() {
     setError(null);
 
     try {
-      console.log("📤 Inscription Chaff.ch:", { email, name });
+      // console.log("📤 Inscription Chaff.ch:", { email, name });
 
       const signupData = {
         email,
