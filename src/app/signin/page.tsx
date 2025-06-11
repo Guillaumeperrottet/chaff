@@ -1,4 +1,3 @@
-// src/app/signin/page.tsx - Version unifiée
 "use client";
 
 import { useState, Suspense } from "react";
@@ -18,7 +17,6 @@ import {
   TrendingUp,
   DollarSign,
   PieChart,
-  Sparkles,
 } from "lucide-react";
 
 // Skeleton de chargement
@@ -81,12 +79,12 @@ function SignInFormWithParams() {
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800">
         {/* Motifs géométriques en arrière-plan */}
         <div className="absolute inset-0">
-          <div className="absolute top-20 left-20 w-32 h-32 bg-white/10 rounded-full blur-xl animate-pulse"></div>
+          <div className="absolute top-16 left-16 w-40 h-40 bg-white/10 rounded-full blur-xl animate-pulse"></div>
           <div
-            className="absolute bottom-32 right-16 w-48 h-48 bg-blue-400/20 rounded-3xl rotate-45 animate-bounce"
-            style={{ animationDuration: "3s" }}
+            className="absolute bottom-24 right-12 w-56 h-56 bg-blue-400/20 rounded-3xl rotate-45 animate-bounce"
+            style={{ animationDuration: "4s" }}
           ></div>
-          <div className="absolute top-1/2 left-1/4 w-24 h-24 bg-indigo-300/20 rounded-2xl rotate-12"></div>
+          <div className="absolute top-1/3 left-1/3 w-28 h-28 bg-indigo-300/20 rounded-2xl rotate-12"></div>
         </div>
 
         <div className="relative z-10 flex flex-col justify-center px-12 py-16 text-white">
@@ -103,47 +101,29 @@ function SignInFormWithParams() {
             </div>
             <div className="space-y-2">
               <h2 className="text-4xl font-bold leading-tight">
-                Transformez vos
-                <span className="block text-blue-200">données en insights</span>
+                Démarrez votre
+                <span className="block text-blue-200">
+                  transformation digitale
+                </span>
               </h2>
               <p className="text-blue-100 text-lg">
-                La plateforme d&apos;analytics business qui révolutionne votre
-                approche des données financières
+                Rejoignez les entreprises qui optimisent déjà leur performance
+                avec nos analytics
               </p>
             </div>
           </div>
 
-          {/* Features modernes */}
+          {/* Avantages de l'inscription */}
           <div className="space-y-6">
             <div className="group hover:bg-white/10 p-4 rounded-xl transition-all duration-300 cursor-pointer backdrop-blur-sm">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
                   <TrendingUp className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-lg">
-                    Analytics en temps réel
-                  </h3>
+                  <h3 className="font-semibold text-lg">Démarrage gratuit</h3>
                   <p className="text-blue-200 text-sm">
-                    Visualisez vos KPIs instantanément avec des tableaux de bord
-                    dynamiques
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="group hover:bg-white/10 p-4 rounded-xl transition-all duration-300 cursor-pointer backdrop-blur-sm">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-indigo-400 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                  <DollarSign className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg">
-                    Optimisation financière
-                  </h3>
-                  <p className="text-blue-200 text-sm">
-                    Calculez vos ratios masse salariale/CA pour maximiser la
-                    rentabilité
+                    Commencez immédiatement sans frais avec notre plan gratuit
                   </p>
                 </div>
               </div>
@@ -156,23 +136,28 @@ function SignInFormWithParams() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg">
-                    Rapports intelligents
+                    Visualisation intuitive
                   </h3>
                   <p className="text-blue-200 text-sm">
-                    Générez des insights actionnables grâce à l&apos;IA
+                    Tableaux de bord clairs et graphiques interactifs pour
+                    comprendre vos données en un coup d&apos;œil
                   </p>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Social proof */}
-          <div className="mt-12 pt-8 border-t border-white/20">
-            <div className="flex items-center gap-2 text-blue-200">
-              <Sparkles className="w-4 h-4" />
-              <span className="text-sm">
-                Rejoignez plus de 1,000+ entreprises qui utilisent Chaff.ch
-              </span>
+            <div className="group hover:bg-white/10 p-4 rounded-xl transition-all duration-300 cursor-pointer backdrop-blur-sm">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-amber-400 to-amber-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                  <DollarSign className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg">Résultats immédiats</h3>
+                  <p className="text-blue-200 text-sm">
+                    Visualisez vos KPIs dès la première connexion
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>

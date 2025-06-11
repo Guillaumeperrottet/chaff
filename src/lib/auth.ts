@@ -32,7 +32,7 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true,
-    autoSignIn: false, // 🔧 Pas de connexion automatique avant vérification
+    autoSignIn: false,
   },
 
   emailVerification: {
@@ -60,7 +60,7 @@ export const auth = betterAuth({
         <body>
           <div class="container">
             <div class="header">
-              <h1>🏠 Chaff.ch</h1>
+              <h1>📊 Chaff.ch</h1>
               <h2>Finaliser votre inscription</h2>
             </div>
             <div class="content">
@@ -85,7 +85,7 @@ export const auth = betterAuth({
     },
   },
 
-  // 🔥 HOOKS CORRIGÉS
+  // 🔥 HOOKS
   hooks: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     after: async (inputContext: any) => {

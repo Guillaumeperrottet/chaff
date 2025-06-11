@@ -64,11 +64,21 @@ import {
 } from "lucide-react";
 import EmptyState from "@/app/components/EmptyState";
 
-// Types basés sur le schema Prisma
+// ✅ INTERFACES MISES À JOUR
+interface EstablishmentType {
+  id: string;
+  label: string;
+  description: string;
+  icon: string;
+  iconColor: string;
+  bgColor: string;
+  isCustom: boolean;
+}
+
 interface Mandate {
   id: string;
   name: string;
-  group: "HEBERGEMENT" | "RESTAURATION";
+  group: string; // ✅ Maintenant c'est un string (peut être "HEBERGEMENT", "RESTAURATION", ou un ID)
   active: boolean;
   totalRevenue: number;
   lastEntry: Date | null;
@@ -83,6 +93,12 @@ export default function MandatesIndexPage() {
   const router = useRouter();
   const [mandates, setMandates] = useState<Mandate[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // ✅ NOUVEAU: État pour stocker les types d'établissement
+  const [establishmentTypes, setEstablishmentTypes] = useState<
+    EstablishmentType[]
+  >([]);
+
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // États pour mobile
@@ -99,6 +115,51 @@ export default function MandatesIndexPage() {
     new Map()
   );
 
+  // ✅ FONCTION POUR RÉCUPÉRER LES TYPES D'ÉTABLISSEMENT
+  const fetchEstablishmentTypes = async () => {
+    try {
+      const response = await fetch("/api/establishment-types");
+      if (response.ok) {
+        const data = await response.json();
+        setEstablishmentTypes(data.types || []);
+      }
+    } catch (error) {
+      console.error("Erreur lors du chargement des types:", error);
+    }
+  };
+
+  // ✅ FONCTION POUR OBTENIR LE LABEL D'UN TYPE
+  const getTypeLabel = (groupId: string): string => {
+    // Types par défaut
+    if (groupId === "HEBERGEMENT") return "Hébergement";
+    if (groupId === "RESTAURATION") return "Restauration";
+
+    // Types personnalisés
+    const customType = establishmentTypes.find((type) => type.id === groupId);
+    return customType?.label || groupId; // Fallback vers l'ID si pas trouvé
+  };
+
+  // ✅ FONCTION POUR OBTENIR L'ICÔNE D'UN TYPE
+  const getTypeIcon = (groupId: string) => {
+    if (groupId === "HEBERGEMENT")
+      return <Building2 className="mr-1 h-3 w-3" />;
+    if (groupId === "RESTAURATION") return <MapPin className="mr-1 h-3 w-3" />;
+
+    // Pour les types personnalisés, vous pouvez ajouter la logique d'icône ici
+    return <Building2 className="mr-1 h-3 w-3" />; // Icône par défaut
+  };
+
+  // ✅ FONCTION POUR OBTENIR LA COULEUR D'UN TYPE
+  const getTypeVariant = (
+    groupId: string
+  ): "default" | "secondary" | "outline" => {
+    if (groupId === "HEBERGEMENT") return "default";
+    if (groupId === "RESTAURATION") return "secondary";
+
+    // Types personnalisés
+    return "outline"; // ou une autre variante pour les types personnalisés
+  };
+
   // Détecter mobile
   useEffect(() => {
     const checkMobile = () => {
@@ -110,9 +171,13 @@ export default function MandatesIndexPage() {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  // Charger les mandats
+  // ✅ MODIFIER LE useEffect POUR CHARGER AUSSI LES TYPES
   useEffect(() => {
-    fetchMandates();
+    const loadData = async () => {
+      await Promise.all([fetchMandates(), fetchEstablishmentTypes()]);
+    };
+
+    loadData();
   }, []);
 
   const fetchMandates = async () => {
@@ -134,15 +199,28 @@ export default function MandatesIndexPage() {
     }
   };
 
-  // Filtrer les mandats
+  // ✅ LOGIQUE DE FILTRAGE MISE À JOUR POUR LES TYPES PERSONNALISÉS
   const filteredMandates = mandates.filter((mandate) => {
     const matchesSearch = mandate.name
       .toLowerCase()
       .includes(searchTerm.toLowerCase());
-    const matchesGroup =
-      groupFilter === "all" ||
-      (groupFilter === "hebergement" && mandate.group === "HEBERGEMENT") ||
-      (groupFilter === "restauration" && mandate.group === "RESTAURATION");
+
+    // ✅ Nouvelle logique pour les groupes (types par défaut + types personnalisés)
+    const matchesGroup = (() => {
+      if (groupFilter === "all") return true;
+      if (groupFilter === "hebergement" && mandate.group === "HEBERGEMENT")
+        return true;
+      if (groupFilter === "restauration" && mandate.group === "RESTAURATION")
+        return true;
+
+      // Pour les types personnalisés, on compare directement l'ID
+      if (groupFilter !== "hebergement" && groupFilter !== "restauration") {
+        return mandate.group === groupFilter;
+      }
+
+      return false;
+    })();
+
     const matchesStatus =
       statusFilter === "all" ||
       (statusFilter === "active" && mandate.active) ||
@@ -150,6 +228,14 @@ export default function MandatesIndexPage() {
 
     return matchesSearch && matchesGroup && matchesStatus;
   });
+
+  // ✅ NOUVEAU COMPOSANT POUR LES BADGES DE TYPE
+  const TypeBadge = ({ mandate }: { mandate: Mandate }) => (
+    <Badge variant={getTypeVariant(mandate.group)} className="font-medium">
+      {getTypeIcon(mandate.group)}
+      {getTypeLabel(mandate.group)}
+    </Badge>
+  );
 
   // Fonction pour supprimer un mandat
   const handleDelete = async (mandateId: string) => {
@@ -316,23 +402,13 @@ export default function MandatesIndexPage() {
               {mandate.name}
             </h3>
             <div className="flex items-center gap-2 mt-1">
+              {/* ✅ UTILISER LA NOUVELLE FONCTION */}
               <Badge
-                variant={
-                  mandate.group === "HEBERGEMENT" ? "default" : "secondary"
-                }
+                variant={getTypeVariant(mandate.group)}
                 className="text-xs"
               >
-                {mandate.group === "HEBERGEMENT" ? (
-                  <>
-                    <Building2 className="mr-1 h-3 w-3" />
-                    Hébergement
-                  </>
-                ) : (
-                  <>
-                    <MapPin className="mr-1 h-3 w-3" />
-                    Restauration
-                  </>
-                )}
+                {getTypeIcon(mandate.group)}
+                {getTypeLabel(mandate.group)}
               </Badge>
 
               <Badge
@@ -470,6 +546,20 @@ export default function MandatesIndexPage() {
                 <SelectItem value="all">Tous les types</SelectItem>
                 <SelectItem value="hebergement">Hébergement</SelectItem>
                 <SelectItem value="restauration">Restauration</SelectItem>
+                {/* ✅ AJOUT DES TYPES PERSONNALISÉS (en excluant les types par défaut) */}
+                {establishmentTypes
+                  .filter(
+                    (type) =>
+                      type.id !== "HEBERGEMENT" &&
+                      type.id !== "RESTAURATION" &&
+                      type.label !== "Hébergement" &&
+                      type.label !== "Restauration"
+                  )
+                  .map((type) => (
+                    <SelectItem key={type.id} value={type.id}>
+                      {type.label}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
           </div>
@@ -690,6 +780,20 @@ export default function MandatesIndexPage() {
                       <SelectItem value="all">Tous</SelectItem>
                       <SelectItem value="hebergement">Hébergement</SelectItem>
                       <SelectItem value="restauration">Restauration</SelectItem>
+                      {/* ✅ AJOUT DES TYPES PERSONNALISÉS (en excluant les types par défaut) */}
+                      {establishmentTypes
+                        .filter(
+                          (type) =>
+                            type.id !== "HEBERGEMENT" &&
+                            type.id !== "RESTAURATION" &&
+                            type.label !== "Hébergement" &&
+                            type.label !== "Restauration"
+                        )
+                        .map((type) => (
+                          <SelectItem key={type.id} value={type.id}>
+                            {type.label}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
 
@@ -784,26 +888,7 @@ export default function MandatesIndexPage() {
                         {mandate.name}
                       </TableCell>
                       <TableCell>
-                        <Badge
-                          variant={
-                            mandate.group === "HEBERGEMENT"
-                              ? "default"
-                              : "secondary"
-                          }
-                          className="font-medium"
-                        >
-                          {mandate.group === "HEBERGEMENT" ? (
-                            <>
-                              <Building2 className="mr-1 h-3 w-3" />
-                              Hébergement
-                            </>
-                          ) : (
-                            <>
-                              <MapPin className="mr-1 h-3 w-3" />
-                              Restauration
-                            </>
-                          )}
-                        </Badge>
+                        <TypeBadge mandate={mandate} />
                       </TableCell>
                       <TableCell className="text-right font-medium text-slate-900">
                         {formatCurrency(mandate.totalRevenue)}

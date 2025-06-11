@@ -250,11 +250,11 @@ function SignUpFormWithParams() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg">
-                    Configuration instantanée
+                    Visualisation intuitive
                   </h3>
                   <p className="text-blue-200 text-sm">
-                    Votre espace de travail prêt rapidement grâce a notre
-                    fonctionnalité d&apos;import
+                    Tableaux de bord clairs et graphiques interactifs pour
+                    comprendre vos données en un coup d&apos;œil
                   </p>
                 </div>
               </div>

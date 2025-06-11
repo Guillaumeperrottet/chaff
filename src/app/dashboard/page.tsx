@@ -56,6 +56,8 @@ import {
   Filter,
   Menu,
   ChevronRight,
+  Building2,
+  MapPin,
 } from "lucide-react";
 import EmptyState from "@/app/components/EmptyState";
 import { Input } from "@/app/components/ui/input";
@@ -74,6 +76,17 @@ import {
 } from "@/app/components/ui/tooltip";
 import { toast } from "sonner";
 
+// ✅ INTERFACES MISES À JOUR
+interface EstablishmentType {
+  id: string;
+  label: string;
+  description: string;
+  icon: string;
+  iconColor: string;
+  bgColor: string;
+  isCustom: boolean;
+}
+
 // Types inchangés (copier depuis votre code original)
 interface DashboardData {
   id: string;
@@ -82,7 +95,7 @@ interface DashboardData {
   daysSinceLastEntry: number | null;
   performance: string;
   values: Record<string, string>;
-  category: string;
+  category: string; // ✅ Maintenant c'est l'ID du type (ex: "cmbrjy31r0001sbeubwotxmhw")
   status: string;
   totalRevenue: number;
 }
@@ -164,6 +177,12 @@ export default function DashboardPage() {
   );
   const [payrollRatios, setPayrollRatios] =
     useState<PayrollRatiosResponse | null>(null);
+
+  // ✅ NOUVEAU: État pour stocker les types d'établissement
+  const [establishmentTypes, setEstablishmentTypes] = useState<
+    EstablishmentType[]
+  >([]);
+
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -172,6 +191,65 @@ export default function DashboardPage() {
   // NOUVEAUX états pour mobile seulement
   const [isMobile, setIsMobile] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+
+  // ✅ FONCTION POUR RÉCUPÉRER LES TYPES D'ÉTABLISSEMENT
+  const fetchEstablishmentTypes = async () => {
+    try {
+      const response = await fetch("/api/establishment-types");
+      if (response.ok) {
+        const data = await response.json();
+        setEstablishmentTypes(data.types || []);
+      }
+    } catch (error) {
+      console.error("Erreur lors du chargement des types:", error);
+    }
+  };
+
+  // ✅ FONCTION POUR OBTENIR LE LABEL D'UN TYPE
+  const getTypeLabel = (groupId: string): string => {
+    // Types par défaut
+    if (groupId === "HEBERGEMENT" || groupId === "Hébergement")
+      return "Hébergement";
+    if (groupId === "RESTAURATION" || groupId === "Restauration")
+      return "Restauration";
+
+    // Types personnalisés
+    const customType = establishmentTypes.find((type) => type.id === groupId);
+    return customType?.label || groupId; // Fallback vers l'ID si pas trouvé
+  };
+
+  // ✅ FONCTION POUR OBTENIR L'ICÔNE D'UN TYPE
+  const getTypeIcon = (groupId: string) => {
+    if (groupId === "HEBERGEMENT" || groupId === "Hébergement") {
+      return <Building2 className="mr-1 h-3 w-3" />;
+    }
+    if (groupId === "RESTAURATION" || groupId === "Restauration") {
+      return <MapPin className="mr-1 h-3 w-3" />;
+    }
+
+    // Pour les types personnalisés, essayer de récupérer l'icône
+    const customType = establishmentTypes.find((type) => type.id === groupId);
+    if (customType) {
+      // Vous pouvez implémenter une logique pour mapper les icônes ici
+      // Pour l'instant, on utilise l'icône par défaut
+      return <Building2 className="mr-1 h-3 w-3" />;
+    }
+
+    return <Building2 className="mr-1 h-3 w-3" />; // Icône par défaut
+  };
+
+  // ✅ FONCTION POUR OBTENIR LA COULEUR D'UN TYPE
+  const getTypeVariant = (
+    groupId: string
+  ): "default" | "secondary" | "outline" => {
+    if (groupId === "HEBERGEMENT" || groupId === "Hébergement")
+      return "default";
+    if (groupId === "RESTAURATION" || groupId === "Restauration")
+      return "secondary";
+
+    // Types personnalisés
+    return "outline";
+  };
 
   // Détecter mobile sans affecter desktop
   useEffect(() => {
@@ -184,11 +262,18 @@ export default function DashboardPage() {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  // Fonctions fetch inchangées (copier depuis votre code)
+  // ✅ MODIFIER LE useEffect POUR CHARGER AUSSI LES TYPES
   useEffect(() => {
-    Promise.all([fetchDashboardData(), fetchPayrollRatios()]).finally(() => {
+    const loadAllData = async () => {
+      await Promise.all([
+        fetchDashboardData(),
+        fetchPayrollRatios(),
+        fetchEstablishmentTypes(), // ✅ Ajouter ici
+      ]);
       setLoading(false);
-    });
+    };
+
+    loadAllData();
   }, []);
 
   const fetchDashboardData = async () => {
@@ -224,16 +309,24 @@ export default function DashboardPage() {
     }
   };
 
-  // Filtrer les données (inchangé)
+  // ✅ FONCTION POUR FILTRER AVEC LES NOUVEAUX TYPES
   const filteredData =
     dashboardData?.data.filter((item) => {
       const matchesSearch = item.name
         .toLowerCase()
         .includes(searchTerm.toLowerCase());
+
+      // ✅ AMÉLIORER LE FILTRAGE PAR CATÉGORIE
+      const itemTypeLabel = getTypeLabel(item.category);
       const matchesCategory =
         categoryFilter === "all" ||
-        (categoryFilter === "hebergement" && item.category === "Hébergement") ||
-        (categoryFilter === "restauration" && item.category === "Restauration");
+        (categoryFilter === "hebergement" && itemTypeLabel === "Hébergement") ||
+        (categoryFilter === "restauration" &&
+          itemTypeLabel === "Restauration") ||
+        // ✅ Ajouter support pour les types personnalisés
+        (categoryFilter === "custom" &&
+          !["Hébergement", "Restauration"].includes(itemTypeLabel));
+
       const matchesStatus =
         statusFilter === "all" || item.status === statusFilter;
 
@@ -331,7 +424,19 @@ export default function DashboardPage() {
     return totals;
   };
 
-  // NOUVEAU : Composant Card pour MOBILE SEULEMENT
+  // ✅ COMPOSANT Badge pour MOBILE
+  const TypeBadge = ({
+    campus,
+  }: {
+    campus: DashboardData & { payroll?: PayrollRatioData };
+  }) => (
+    <Badge variant={getTypeVariant(campus.category)} className="text-xs mt-1">
+      {getTypeIcon(campus.category)}
+      {getTypeLabel(campus.category)}
+    </Badge>
+  );
+
+  // ✅ MODIFIER LE COMPOSANT MobileCampusCard
   const MobileCampusCard = ({
     campus,
   }: {
@@ -343,14 +448,8 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between mb-3">
           <div className="flex-1">
             <h3 className="font-semibold text-lg">{campus.name}</h3>
-            <Badge
-              variant={
-                campus.category === "Hébergement" ? "default" : "secondary"
-              }
-              className="text-xs mt-1"
-            >
-              {campus.category}
-            </Badge>
+            {/* ✅ UTILISER LE NOUVEAU COMPOSANT */}
+            <TypeBadge campus={campus} />
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -475,7 +574,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Catégorie */}
+          {/* ✅ CATÉGORIE MODIFIÉE */}
           <div className="space-y-2">
             <label className="text-sm font-medium">Catégorie</label>
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
@@ -486,6 +585,7 @@ export default function DashboardPage() {
                 <SelectItem value="all">Toutes catégories</SelectItem>
                 <SelectItem value="hebergement">Hébergement</SelectItem>
                 <SelectItem value="restauration">Restauration</SelectItem>
+                <SelectItem value="custom">Types personnalisés</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -524,7 +624,22 @@ export default function DashboardPage() {
     </Sheet>
   );
 
-  // Composant pour rendre une ligne de campus (DESKTOP INCHANGÉ)
+  // ✅ COMPOSANT POUR LES FILTRES DE CATÉGORIE
+  const CategoryFilter = () => (
+    <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+      <SelectTrigger className="w-36 h-8 text-xs border-slate-200 focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 bg-white/80">
+        <SelectValue placeholder="Catégorie" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="all">Toutes catégories</SelectItem>
+        <SelectItem value="hebergement">Hébergement</SelectItem>
+        <SelectItem value="restauration">Restauration</SelectItem>
+        <SelectItem value="custom">Types personnalisés</SelectItem>
+      </SelectContent>
+    </Select>
+  );
+
+  // ✅ MODIFIER LE COMPOSANT CampusRow (VERSION DESKTOP)
   const CampusRow = ({
     campus,
   }: {
@@ -536,13 +651,13 @@ export default function DashboardPage() {
           <div>
             <div className="font-medium">{campus.name}</div>
             <div className="text-sm text-muted-foreground">
+              {/* ✅ UTILISER LA NOUVELLE LOGIQUE */}
               <Badge
-                variant={
-                  campus.category === "Hébergement" ? "default" : "secondary"
-                }
+                variant={getTypeVariant(campus.category)}
                 className="text-xs"
               >
-                {campus.category}
+                {getTypeIcon(campus.category)}
+                {getTypeLabel(campus.category)}
               </Badge>
             </div>
           </div>
@@ -866,21 +981,8 @@ export default function DashboardPage() {
                       />
                     </div>
 
-                    <Select
-                      value={categoryFilter}
-                      onValueChange={setCategoryFilter}
-                    >
-                      <SelectTrigger className="w-36 h-8 text-xs border-slate-200 focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 bg-white/80">
-                        <SelectValue placeholder="Catégorie" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Toutes catégories</SelectItem>
-                        <SelectItem value="hebergement">Hébergement</SelectItem>
-                        <SelectItem value="restauration">
-                          Restauration
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
+                    {/* ✅ UTILISER LE NOUVEAU COMPOSANT CategoryFilter */}
+                    <CategoryFilter />
 
                     <Select
                       value={statusFilter}

@@ -10,7 +10,6 @@ import {
   BarChart3,
   Lightbulb,
   BookOpen,
-  PlayCircle,
 } from "lucide-react";
 
 interface EmptyStateProps {
@@ -36,7 +35,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
           title: "Créez votre premier établissement",
           subtitle: "Commencez votre suivi financier",
           description:
-            "Un établissement vous permet de suivre le chiffre d'affaires et la masse salariale d'un point de vente, hôtel, ou restaurant.",
+            "Un établissement vous permet de suivre le chiffre d'affaires et la masse salariale d'un point de vente, hôtel, restaurant ou autre activité.",
           primaryButton: {
             text: "Créer un établissement",
             icon: <Plus className="mr-2 h-5 w-5" />,
@@ -249,7 +248,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
             )}
           </div>
 
-          {/* Lien d'aide supplémentaire */}
+          {/* Lien d'aide supplémentaire
           <div className="pt-4 border-t border-gray-200">
             <p className="text-sm text-gray-500 mb-3">
               Besoin d&apos;aide pour commencer ?
@@ -272,7 +271,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
                 Guide d&apos;utilisation
               </Button>
             </div>
-          </div>
+          </div> */}
         </CardContent>
       </Card>
     </div>

@@ -39,7 +39,7 @@ const PLANS = [
       "Support prioritaire",
     ],
     icon: Star,
-    popular: true,
+    popular: false,
   },
 ];
 
@@ -171,7 +171,7 @@ export default function PricingPage() {
                         "Gratuit"
                       ) : (
                         <>
-                          {displayPrice}€
+                          {displayPrice}CHF
                           <span className="text-lg font-normal text-muted-foreground">
                             /mois
                           </span>
@@ -180,7 +180,7 @@ export default function PricingPage() {
                     </div>
                     {plan.price > 0 && billingCycle === "yearly" && (
                       <p className="text-sm text-muted-foreground mt-1">
-                        Facturé {displayPrice * 12}€ annuellement
+                        Facturé {displayPrice * 12}CHF annuellement
                       </p>
                     )}
                   </div>
@@ -202,7 +202,7 @@ export default function PricingPage() {
                     onClick={() => handleSelectPlan(plan.id)}
                     disabled={isLoading}
                     className={`w-full ${
-                      plan.popular
+                      plan.id === "PREMIUM"
                         ? "bg-primary text-primary-foreground hover:bg-primary/90"
                         : "bg-muted text-foreground hover:bg-muted/80"
                     }`}

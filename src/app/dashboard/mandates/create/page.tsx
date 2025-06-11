@@ -507,7 +507,7 @@ export default function CreateMandatePage() {
                   disabled={isLoading}
                 >
                   <SelectTrigger
-                    className={`h-16 text-base transition-all duration-200 px-4 py-3 ${
+                    className={`h-16 text-base transition-all duration-200 px-4 py-6 ${
                       errors.group
                         ? "border-red-300 focus:border-red-500 focus:ring-red-500/20"
                         : "border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"

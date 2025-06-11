@@ -330,8 +330,8 @@ export default function CreateDayValuePage() {
                               Aucun établissement actif
                             </p>
                             <p className="text-sm text-slate-500">
-                              Contactez votre administrateur pour activer des
-                              établissements
+                              Veuillez créer un établissement avant
+                              d&apos;ajouter une valeur journalière.
                             </p>
                           </div>
                         )}

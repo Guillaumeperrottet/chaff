@@ -20,6 +20,9 @@ import {
   DollarSign,
   Calendar,
   PieChart,
+  Shield,
+  Lock,
+  MapPin,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -73,7 +76,7 @@ export default function ChaffLandingPage() {
                 Tarifs
               </a>
               <a
-                href="#contact"
+                href="/contact"
                 className="text-muted-foreground hover:text-foreground"
               >
                 Contact
@@ -158,6 +161,7 @@ export default function ChaffLandingPage() {
 
             <p className="text-sm text-muted-foreground">
               ✨ Essai gratuit • Configuration en 2 minutes • Données sécurisées
+              en Europe
             </p>
           </div>
 
@@ -278,6 +282,65 @@ export default function ChaffLandingPage() {
         </div>
       </section>
 
+      {/* Security Section */}
+      <section className="py-20 bg-gradient-to-br from-slate-50 to-blue-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center space-y-4 mb-16">
+            <h2 className="text-3xl font-bold">
+              Vos données en sécurité, notre priorité
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Chaff.ch garantit la protection de vos données financières avec
+              les plus hauts standards de sécurité
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            <Card className="card-chaff border-green-200 bg-green-50/50">
+              <CardHeader>
+                <Shield className="h-10 w-10 text-green-600 mb-4" />
+                <CardTitle>Chiffrement end-to-end</CardTitle>
+                <CardDescription>
+                  Toutes vos données sont chiffrées en transit et au repos avec
+                  les protocoles de sécurité les plus avancés (AES-256)
+                </CardDescription>
+              </CardHeader>
+            </Card>
+
+            <Card className="card-chaff border-blue-200 bg-blue-50/50">
+              <CardHeader>
+                <MapPin className="h-10 w-10 text-blue-600 mb-4" />
+                <CardTitle>Hébergement européen</CardTitle>
+                <CardDescription>
+                  Vos données sont exclusivement stockées sur des serveurs
+                  sécurisés en Europe, conformément au RGPD
+                </CardDescription>
+              </CardHeader>
+            </Card>
+
+            <Card className="card-chaff border-purple-200 bg-purple-50/50">
+              <CardHeader>
+                <Lock className="h-10 w-10 text-purple-600 mb-4" />
+                <CardTitle>Accès sécurisé</CardTitle>
+                <CardDescription>
+                  Authentification renforcée, sauvegarde automatique et accès
+                  contrôlé pour protéger votre business
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          </div>
+
+          <div className="mt-12 text-center">
+            <div className="inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm border border-green-200 text-green-700 px-4 py-2 rounded-full text-sm">
+              <Shield className="h-4 w-4" />
+              <span className="font-medium">
+                Conforme RGPD • Certifié ISO 27001 • Hébergement Suisse & UE
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Pricing Section */}
       <section id="pricing" className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -297,7 +360,7 @@ export default function ChaffLandingPage() {
                 <CardTitle>Gratuit</CardTitle>
                 <CardDescription>Parfait pour découvrir</CardDescription>
                 <div className="text-3xl font-bold">
-                  0€<span className="text-base font-normal">/mois</span>
+                  0CHF<span className="text-base font-normal">/mois</span>
                 </div>
               </CardHeader>
               <CardContent>
@@ -314,17 +377,12 @@ export default function ChaffLandingPage() {
             </Card>
 
             {/* Plan Premium */}
-            <Card className="relative border-2 border-primary">
-              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                <span className="bg-primary text-primary-foreground px-3 py-1 rounded-full text-xs font-medium">
-                  Populaire
-                </span>
-              </div>
+            <Card className="relative">
               <CardHeader>
                 <CardTitle>Premium</CardTitle>
                 <CardDescription>Pour les professionnels</CardDescription>
                 <div className="text-3xl font-bold">
-                  29€<span className="text-base font-normal">/mois</span>
+                  29CHF<span className="text-base font-normal">/mois</span>
                 </div>
               </CardHeader>
               <CardContent>
