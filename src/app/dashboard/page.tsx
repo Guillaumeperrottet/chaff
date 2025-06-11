@@ -494,6 +494,44 @@ export default function DashboardPage() {
     return totals;
   };
 
+  // ✅ NOUVEAU: Calculer le Top pour un groupe (meilleur jour du sous-total groupe)
+  const calculateGroupTop = (
+    groupData: (DashboardData & { payroll?: PayrollRatioData })[]
+  ): string => {
+    if (groupData.length === 0 || !dashboardData) return "Aucune donnée";
+
+    // Calculer le sous-total du groupe pour chaque jour
+    const dailyGroupTotals: Record<string, number> = {};
+
+    dashboardData.columnLabels.forEach((col) => {
+      const dailyTotal = groupData.reduce((sum, campus) => {
+        const valueStr = campus.values[col.key] || "0,00";
+        const value = parseFloat(valueStr.replace(",", "."));
+        return sum + (isNaN(value) ? 0 : value);
+      }, 0);
+      dailyGroupTotals[col.key] = dailyTotal;
+    });
+
+    // Trouver le jour avec le sous-total le plus élevé
+    let maxValue = 0;
+    let bestDate = "";
+
+    Object.entries(dailyGroupTotals).forEach(([dateKey, total]) => {
+      if (total > maxValue) {
+        maxValue = total;
+        // Trouver le label correspondant à cette clé
+        const dateLabel =
+          dashboardData.columnLabels.find((col) => col.key === dateKey)
+            ?.label || dateKey;
+        bestDate = dateLabel;
+      }
+    });
+
+    return maxValue > 0
+      ? `${formatCurrency(maxValue)} / ${bestDate}`
+      : "Aucune donnée";
+  };
+
   // Calculer le total général (inchangé)
   const calculateGrandTotal = () => {
     if (!dashboardData) return {};
@@ -509,6 +547,37 @@ export default function DashboardPage() {
     });
 
     return totals;
+  };
+
+  // ✅ NOUVEAU: Calculer le Top général
+  const calculateGrandTop = (): string => {
+    const mergedData = getMergedData();
+    if (mergedData.length === 0) return "Aucune donnée";
+
+    let maxValue = 0;
+    let bestCampus = "";
+    let bestDate = "";
+
+    mergedData.forEach((campus) => {
+      const performanceMatch = campus.performance.match(/^(.+?)\s+\/\s+(.+)$/);
+      if (performanceMatch) {
+        const valueStr = performanceMatch[1]
+          .replace(/[^\d,.-]/g, "")
+          .replace(",", ".");
+        const value = parseFloat(valueStr);
+        const date = performanceMatch[2];
+
+        if (!isNaN(value) && value > maxValue) {
+          maxValue = value;
+          bestCampus = campus.name;
+          bestDate = date;
+        }
+      }
+    });
+
+    return maxValue > 0
+      ? `${formatCurrency(maxValue)} / ${bestDate} (${bestCampus})`
+      : "Aucune donnée";
   };
 
   // ✅ COMPOSANT Badge pour MOBILE
@@ -853,6 +922,7 @@ export default function DashboardPage() {
     totals,
     bgColor,
     textColor,
+    groupData,
   }: {
     label: string;
     totals: Record<string, number>;
@@ -860,11 +930,19 @@ export default function DashboardPage() {
     textColor: string;
     groupData?: Array<DashboardData & { payroll?: PayrollRatioData }>;
   }) => {
+    const topPerformance = groupData
+      ? calculateGroupTop(groupData)
+      : "Aucune donnée";
+
     return (
       <TableRow className={`${bgColor} hover:${bgColor} border-t-2 h-10`}>
-        <TableCell colSpan={4} className={`font-semibold ${textColor} py-2`}>
+        <TableCell colSpan={2} className={`font-semibold ${textColor} py-2`}>
           <span className="text-sm">{label}</span>
         </TableCell>
+        <TableCell className={`font-semibold ${textColor} py-2`}>
+          <div className="text-xs">{topPerformance}</div>
+        </TableCell>
+        <TableCell></TableCell>
         {dashboardData?.columnLabels.map((col) => (
           <TableCell
             key={col.key}
@@ -916,8 +994,10 @@ export default function DashboardPage() {
 
   // ✅ NOUVEAU: Calculer les totaux pour chaque groupe dynamiquement
   const groupTotals: Record<string, Record<string, number>> = {};
+  const groupTops: Record<string, string> = {};
   Object.keys(grouped).forEach((groupKey) => {
     groupTotals[groupKey] = calculateGroupTotals(grouped[groupKey]);
+    groupTops[groupKey] = calculateGroupTop(grouped[groupKey]);
   });
 
   return (
@@ -1308,11 +1388,17 @@ export default function DashboardPage() {
                         <TableFooter>
                           <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-150 border-t-4 border-gray-300 h-12">
                             <TableCell
-                              colSpan={4}
+                              colSpan={2}
                               className="font-bold text-gray-900 py-2"
                             >
                               <span className="text-sm">Total général</span>
                             </TableCell>
+                            <TableCell className="font-bold text-gray-900 py-2">
+                              <div className="text-xs">
+                                {calculateGrandTop()}
+                              </div>
+                            </TableCell>
+                            <TableCell></TableCell>
                             {dashboardData.columnLabels.map((col) => (
                               <TableCell
                                 key={col.key}
