@@ -85,7 +85,7 @@ export const auth = betterAuth({
     },
   },
 
-  // 🔥 HOOKS
+  // 🔥 HOOKS CORRIGÉS
   hooks: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     after: async (inputContext: any) => {
@@ -124,23 +124,49 @@ export const auth = betterAuth({
       }
 
       // ✅ VÉRIFICATION EMAIL - Créer l'organisation ICI
-      // 🔧 CORRECTION: Le path correct pour la vérification email
-      else if (path.includes("/verify-email") || path === "/verify-email") {
+      // 🔧 CORRECTION MAJEURE: Déclencher sur verify-email ET auto sign-in
+      else if (
+        path.includes("verify-email") ||
+        path === "/verify-email" ||
+        (path.includes("sign-in") && returned?.user?.emailVerified)
+      ) {
         try {
           if (returned?.user) {
             const user = returned.user;
-            console.log("📧 Email vérifié pour:", user.email);
+            console.log("📧 Traitement post-vérification pour:", user.email);
 
-            // Vérifier si c'est une invitation (auquel cas ne rien faire)
-            const dbUser = await prisma.user.findUnique({
+            // 🔧 VÉRIFICATION AMÉLIORÉE: Vérifier si l'utilisateur a déjà une organisation
+            const existingUser = await prisma.user.findUnique({
               where: { id: user.id },
-              select: { metadata: true, organizationId: true },
+              include: {
+                Organization: true,
+                OrganizationUser: true,
+              },
             });
 
-            const metadata = dbUser?.metadata as Record<string, unknown> | null;
+            if (!existingUser) {
+              console.log("❌ Utilisateur non trouvé en base:", user.id);
+              return {};
+            }
 
-            // Si c'est une invitation, ne pas créer d'organisation
-            if (metadata && typeof metadata["inviteCode"] === "string") {
+            // Si l'utilisateur a déjà une organisation, ne rien faire
+            if (existingUser.organizationId && existingUser.Organization) {
+              console.log(
+                "ℹ️ Utilisateur a déjà une organisation:",
+                existingUser.Organization.name
+              );
+              return {};
+            }
+
+            // Vérifier si c'est une invitation via metadata
+            const metadata = existingUser.metadata as Record<
+              string,
+              unknown
+            > | null;
+            const isInvitation =
+              metadata && typeof metadata["inviteCode"] === "string";
+
+            if (isInvitation) {
               console.log(
                 "ℹ️ Invitation détectée, pas de création d'organisation"
               );
@@ -148,14 +174,8 @@ export const auth = betterAuth({
             }
 
             // ✅ CRÉER L'ORGANISATION POUR LES INSCRIPTIONS NORMALES
-            if (!dbUser?.organizationId) {
-              console.log(
-                "🏢 Création d'organisation pour inscription normale"
-              );
-              await createDefaultOrganizationForUser(user);
-            } else {
-              console.log("ℹ️ Organisation déjà existante");
-            }
+            console.log("🏢 Création d'organisation pour inscription normale");
+            await createDefaultOrganizationForUser(user);
           }
         } catch (error) {
           console.error("❌ Erreur dans hook vérification email:", error);
@@ -179,7 +199,7 @@ export const auth = betterAuth({
 });
 
 // ============================================================================
-// FONCTION POUR CRÉER L'ORGANISATION AVEC PLAN FREE
+// FONCTION POUR CRÉER L'ORGANISATION AVEC PLAN FREE - VERSION AMÉLIORÉE
 // ============================================================================
 
 async function createDefaultOrganizationForUser(user: {
@@ -191,7 +211,38 @@ async function createDefaultOrganizationForUser(user: {
 
   try {
     await prisma.$transaction(async (tx) => {
-      // 1. Créer l'organisation
+      // 1. 🔧 CRÉER OU RÉCUPÉRER LE PLAN FREE D'ABORD
+      let freePlan = await tx.plan.findFirst({
+        where: { name: "FREE" },
+      });
+
+      if (!freePlan) {
+        console.log("🔧 Plan FREE inexistant, création...");
+        freePlan = await tx.plan.create({
+          data: {
+            name: "FREE",
+            price: 0,
+            monthlyPrice: 0,
+            yearlyPrice: 0,
+            maxUsers: 1,
+            maxMandates: 1,
+            maxStorage: 100,
+            description: "Plan gratuit pour découvrir l'application",
+            isActive: true,
+            hasAdvancedReports: false,
+            hasApiAccess: false,
+            hasCustomBranding: false,
+            maxApiCalls: 100,
+            sortOrder: 1,
+            supportLevel: "community",
+          },
+        });
+        console.log("✅ Plan FREE créé:", freePlan.id);
+      } else {
+        console.log("✅ Plan FREE trouvé:", freePlan.id);
+      }
+
+      // 2. Créer l'organisation
       const organization = await tx.organization.create({
         data: {
           name: `${user.name || user.email.split("@")[0]}'s Organization`,
@@ -199,7 +250,7 @@ async function createDefaultOrganizationForUser(user: {
       });
       console.log("✅ Organisation créée:", organization.id);
 
-      // 2. Lier l'utilisateur à l'organisation
+      // 3. Lier l'utilisateur à l'organisation
       await tx.user.update({
         where: { id: user.id },
         data: {
@@ -209,7 +260,7 @@ async function createDefaultOrganizationForUser(user: {
       });
       console.log("✅ Utilisateur lié à l'organisation");
 
-      // 3. Créer l'association OrganizationUser
+      // 4. Créer l'association OrganizationUser
       await tx.organizationUser.create({
         data: {
           userId: user.id,
@@ -218,19 +269,6 @@ async function createDefaultOrganizationForUser(user: {
         },
       });
       console.log("✅ Association OrganizationUser créée (admin)");
-
-      // 4. 🔧 RÉCUPÉRER LE PLAN FREE (au lieu de le créer)
-      const freePlan = await tx.plan.findFirst({
-        where: { name: "FREE" },
-      });
-
-      if (!freePlan) {
-        throw new Error(
-          "❌ Plan FREE non trouvé ! Exécutez d'abord le seeding des plans."
-        );
-      }
-
-      console.log("✅ Plan FREE trouvé:", freePlan.id);
 
       // 5. Créer l'abonnement FREE
       await tx.subscription.create({
@@ -258,17 +296,14 @@ async function createDefaultOrganizationForUser(user: {
         const fullUser = await tx.user.findUnique({
           where: { id: user.id },
         });
-        console.log(
-          "🔍 Utilisateur trouvé pour email bienvenue:",
-          fullUser?.email
-        );
+
         if (fullUser) {
           console.log("🚀 Tentative d'envoi email de bienvenue...");
           const emailResult = await EmailService.sendWelcomeEmail(
             fullUser,
             organization.name
           );
-          console.log("📧 Résultat email bienvenue:", emailResult);
+
           if (emailResult.success) {
             console.log("✅ Email de bienvenue envoyé avec succès");
           } else {
@@ -281,8 +316,6 @@ async function createDefaultOrganizationForUser(user: {
               console.log("❌ Échec envoi email bienvenue:", emailResult.error);
             }
           }
-        } else {
-          console.log("❌ Utilisateur non trouvé pour email bienvenue");
         }
       } catch (emailError) {
         console.error("❌ Exception lors envoi email bienvenue:", emailError);

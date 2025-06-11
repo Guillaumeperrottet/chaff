@@ -8,7 +8,11 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
-    "prisma:seed": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed.ts"
+    "prisma:seed": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed.ts",
+    "create-unlimited-plan": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/create-unlimited-plan.ts",
+    "assign-unlimited-plan": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/assign-unlimited-plan.ts",
+    "list-users": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/list-users.ts",
+    "change-user-plan": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/change-user-plan.ts"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.2",

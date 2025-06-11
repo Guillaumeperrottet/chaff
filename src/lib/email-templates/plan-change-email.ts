@@ -21,6 +21,15 @@ function getPlanFeatures(planName: string): string[] {
         "Accès API",
         "Support prioritaire",
       ];
+    case "ILLIMITE":
+      return [
+        "Utilisateurs illimités",
+        "Mandats/entreprises illimités",
+        "Stockage illimité",
+        "Toutes les fonctionnalités",
+        "Accès API illimité",
+        "Support premium",
+      ];
     case "SUPER_ADMIN":
       return [
         "Utilisateurs illimités",

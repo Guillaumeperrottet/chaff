@@ -377,7 +377,7 @@ export default function CreateMandatePage() {
             Nouvel établissement
           </h1>
           <p className="text-slate-600">
-            Créez un nouveau mandat pour suivre son activité
+            Créez un nouveau mandant pour suivre son activité
           </p>
 
           {/* Indicateur de limites */}

@@ -37,6 +37,26 @@ export const PLAN_DETAILS = {
     ],
     popular: true,
   },
+  ILLIMITE: {
+    id: "ILLIMITE",
+    name: "Illimité",
+    description: "Plan sans limites pour utilisateurs spéciaux",
+    price: 0,
+    monthlyPrice: 0,
+    yearlyPrice: 0,
+    maxUsers: null, // Illimité
+    maxMandates: null, // Illimité
+    maxStorage: null, // Illimité
+    features: [
+      "Utilisateurs illimités",
+      "Mandats/entreprises illimités",
+      "Stockage illimité",
+      "Toutes les fonctionnalités",
+      "Accès API illimité",
+      "Support premium",
+    ],
+    popular: false,
+  },
   SUPER_ADMIN: {
     id: "SUPER_ADMIN",
     name: "Super Administrateur",

@@ -89,6 +89,8 @@ export default function UsageLimits() {
         return "Gratuit";
       case "PREMIUM":
         return "Premium";
+      case "ILLIMITE":
+        return "Illimité";
       case "SUPER_ADMIN":
         return "Super Admin";
       default:
@@ -153,12 +155,16 @@ export default function UsageLimits() {
             className={`ml-2 ${
               planName === "PREMIUM"
                 ? "bg-blue-100 text-blue-700"
-                : planName === "SUPER_ADMIN"
-                  ? "bg-purple-100 text-purple-700"
-                  : ""
+                : planName === "ILLIMITE"
+                  ? "bg-yellow-100 text-yellow-800 border-yellow-300"
+                  : planName === "SUPER_ADMIN"
+                    ? "bg-purple-100 text-purple-700"
+                    : ""
             }`}
           >
-            {planName === "SUPER_ADMIN" && <Crown className="h-3 w-3 mr-1" />}
+            {(planName === "SUPER_ADMIN" || planName === "ILLIMITE") && (
+              <Crown className="h-3 w-3 mr-1" />
+            )}
             {getPlanDisplayName(planName)}
           </Badge>
         </CardTitle>
