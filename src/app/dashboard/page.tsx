@@ -752,47 +752,42 @@ export default function DashboardPage() {
     </Select>
   );
 
-  // ✅ MODIFIER LE COMPOSANT CampusRow (VERSION DESKTOP)
+  // ✅ MODIFIER LE COMPOSANT CampusRow (VERSION DESKTOP COMPACTE)
   const CampusRow = ({
     campus,
   }: {
     campus: DashboardData & { payroll?: PayrollRatioData };
   }) => (
-    <TableRow key={campus.id} className="hover:bg-muted/50">
-      <TableCell>
-        <div className="flex items-center space-x-2">
+    <TableRow key={campus.id} className="hover:bg-muted/50 h-12">
+      <TableCell className="py-2">
+        <div className="flex items-center space-x-1">
           <div>
-            <div className="font-medium">{campus.name}</div>
-            <div className="text-sm text-muted-foreground">
-              {/* ✅ UTILISER LA NOUVELLE LOGIQUE */}
-              <Badge
-                variant={getTypeVariant(campus.category)}
-                className="text-xs"
-              >
-                {getTypeIcon(campus.category)}
-                {getTypeLabel(campus.category)}
-              </Badge>
-            </div>
+            <div className="font-medium text-sm">{campus.name}</div>
+            <Badge
+              variant={getTypeVariant(campus.category)}
+              className="text-xs h-4 px-1"
+            >
+              {getTypeIcon(campus.category)}
+              <span className="text-xs">{getTypeLabel(campus.category)}</span>
+            </Badge>
           </div>
         </div>
       </TableCell>
-      <TableCell>
-        <div className="text-sm font-medium">
-          {campus.lastEntry || "Jamais"}
-        </div>
+      <TableCell className="py-2">
+        <div className="text-xs">{campus.lastEntry || "Jamais"}</div>
       </TableCell>
-      <TableCell>
-        <div className="text-sm font-medium text-blue-600">
+      <TableCell className="py-2">
+        <div className="text-xs font-medium text-blue-600">
           {campus.performance}
         </div>
       </TableCell>
-      <TableCell className="text-center">
+      <TableCell className="text-center py-2">
         {campus.payroll ? (
           <div
             className={`flex items-center justify-center gap-1 ${getRatioColor(campus.payroll.payrollToRevenueRatio)}`}
           >
             {getRatioIcon(campus.payroll.ratioTrend)}
-            <span className="font-medium text-sm">
+            <span className="font-medium text-xs">
               {formatPercentage(campus.payroll.payrollToRevenueRatio)}
             </span>
           </div>
@@ -801,17 +796,17 @@ export default function DashboardPage() {
         )}
       </TableCell>
       {dashboardData?.columnLabels.map((col) => (
-        <TableCell key={col.key} className="text-center">
-          <div className="text-sm font-medium">
+        <TableCell key={col.key} className="text-center py-2">
+          <div className="text-xs font-medium">
             {campus.values[col.key] || "0.00"}
           </div>
         </TableCell>
       ))}
-      <TableCell>
+      <TableCell className="py-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <MoreHorizontal className="h-4 w-4" />
+            <Button variant="ghost" className="h-6 w-6 p-0">
+              <MoreHorizontal className="h-3 w-3" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -852,7 +847,7 @@ export default function DashboardPage() {
     </TableRow>
   );
 
-  // Composant pour rendre une ligne de sous-total (DESKTOP INCHANGÉ)
+  // Composant pour rendre une ligne de sous-total (VERSION COMPACTE)
   const SubtotalRow = ({
     label,
     totals,
@@ -866,16 +861,16 @@ export default function DashboardPage() {
     groupData?: Array<DashboardData & { payroll?: PayrollRatioData }>;
   }) => {
     return (
-      <TableRow className={`${bgColor} hover:${bgColor} border-t-2`}>
-        <TableCell colSpan={4} className={`font-semibold ${textColor} py-3`}>
-          <span>{label}</span>
+      <TableRow className={`${bgColor} hover:${bgColor} border-t-2 h-10`}>
+        <TableCell colSpan={4} className={`font-semibold ${textColor} py-2`}>
+          <span className="text-sm">{label}</span>
         </TableCell>
         {dashboardData?.columnLabels.map((col) => (
           <TableCell
             key={col.key}
-            className={`text-center font-semibold ${textColor} py-3`}
+            className={`text-center font-semibold ${textColor} py-2`}
           >
-            <div className="text-lg">
+            <div className="text-sm">
               {formatCurrency(totals[col.key] || 0)}
             </div>
           </TableCell>
@@ -1173,15 +1168,17 @@ export default function DashboardPage() {
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
-                        <TableRow>
-                          <TableHead className="min-w-[150px]">
+                        <TableRow className="h-10">
+                          <TableHead className="min-w-[140px] py-2 text-xs">
                             Campus
                           </TableHead>
-                          <TableHead className="min-w-[120px]">
+                          <TableHead className="min-w-[100px] py-2 text-xs">
                             Dernière saisie
                           </TableHead>
-                          <TableHead className="min-w-[150px]">Top</TableHead>
-                          <TableHead className="text-center min-w-[120px]">
+                          <TableHead className="min-w-[80px] py-2 text-xs">
+                            Top
+                          </TableHead>
+                          <TableHead className="text-center min-w-[80px] py-2 text-xs">
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
@@ -1247,12 +1244,12 @@ export default function DashboardPage() {
                           {dashboardData.columnLabels.map((col) => (
                             <TableHead
                               key={col.key}
-                              className="text-center min-w-[100px]"
+                              className="text-center min-w-[80px] py-2 text-xs"
                             >
                               <div className="font-medium">{col.label}</div>
                             </TableHead>
                           ))}
-                          <TableHead className="w-[50px]"></TableHead>
+                          <TableHead className="w-[40px] py-2"></TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1309,19 +1306,19 @@ export default function DashboardPage() {
                       {/* Total général EXACTEMENT comme votre code original */}
                       {categoryFilter === "all" && (
                         <TableFooter>
-                          <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-150 border-t-4 border-gray-300">
+                          <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-150 border-t-4 border-gray-300 h-12">
                             <TableCell
                               colSpan={4}
-                              className="font-bold text-gray-900 py-4"
+                              className="font-bold text-gray-900 py-2"
                             >
-                              <span className="text-lg">Total général</span>
+                              <span className="text-sm">Total général</span>
                             </TableCell>
                             {dashboardData.columnLabels.map((col) => (
                               <TableCell
                                 key={col.key}
-                                className="text-center font-bold text-gray-900 py-4"
+                                className="text-center font-bold text-gray-900 py-2"
                               >
-                                <div className="text-xl">
+                                <div className="text-sm">
                                   {formatCurrency(grandTotals[col.key] || 0)}
                                 </div>
                               </TableCell>
