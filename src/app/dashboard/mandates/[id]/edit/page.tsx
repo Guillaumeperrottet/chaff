@@ -22,7 +22,24 @@ import {
 } from "@/app/components/ui/select";
 import { Checkbox } from "@/app/components/ui/checkbox";
 import { BackButton } from "@/app/components/ui/BackButton";
-import { Building2, Save, X, Loader2, Trash2, MapPin } from "lucide-react";
+import {
+  Building2,
+  Save,
+  X,
+  Loader2,
+  Trash2,
+  MapPin,
+  Eye,
+  Calculator,
+  BarChart3,
+  Plus,
+  Calendar,
+  DollarSign,
+  TrendingUp,
+  Users,
+  Download,
+  Upload,
+} from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -306,53 +323,109 @@ export default function EditMandatePage() {
   return (
     <div className="space-y-6">
       {/* Navigation */}
-      <BackButton href="/dashboard/mandates" label="Retour aux mandats" />
+      <BackButton
+        href="/dashboard/mandates"
+        label="Retour aux établissements"
+      />
 
-      {/* Header */}
-      <div className="border-b pb-4">
-        <h1 className="text-4xl font-bold tracking-tight text-gray-900">
-          Edit
-        </h1>
-        <h2 className="text-2xl font-medium text-gray-700 mt-2">
-          {mandate.name}
-        </h2>
+      {/* Header moderne avec gradient */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl shadow-sm">
+        <div className="flex items-center justify-between p-6">
+          <div className="flex items-center space-x-4">
+            {/* Avatar avec gradient */}
+            <div className="relative">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                {mandate.name.charAt(0).toUpperCase()}
+              </div>
+              <div
+                className={`absolute -bottom-1 -right-1 w-4 h-4 ${mandate.active ? "bg-green-500" : "bg-gray-400"} rounded-full border-2 border-white`}
+              ></div>
+            </div>
+
+            {/* Infos du mandat */}
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                {mandate.name}
+              </h1>
+              <div className="flex items-center space-x-2 text-sm text-gray-600">
+                <span>Édition des informations</span>
+                <span className="text-blue-600">•</span>
+                <span className="flex items-center gap-1">
+                  {getTypeIcon(mandate.group)}
+                  {getTypeLabel(mandate.group)}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Statut */}
+          <div className="text-right">
+            <div
+              className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                mandate.active
+                  ? "bg-green-100 text-green-800"
+                  : "bg-gray-100 text-gray-800"
+              }`}
+            >
+              {mandate.active ? "Actif" : "Inactif"}
+            </div>
+            <div className="text-xs text-gray-500 mt-1">
+              {mandate._count?.dayValues || 0} saisie(s) CA
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* Formulaire */}
+        {/* Formulaire principal */}
         <div className="lg:col-span-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Informations du mandat</CardTitle>
-              <CardDescription>
-                Modifiez les informations de ce mandat
+          <Card className="shadow-lg border-slate-200">
+            <CardHeader className="bg-white border-b border-slate-200">
+              <CardTitle className="text-xl font-semibold text-slate-900">
+                Informations de l&apos;établissement
+              </CardTitle>
+              <CardDescription className="text-slate-600">
+                Modifiez les paramètres de votre établissement
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-6">
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Champ Name */}
-                <div className="space-y-2">
-                  <Label htmlFor="name" className="text-base font-medium">
-                    Nom
+                <div className="space-y-3">
+                  <Label
+                    htmlFor="name"
+                    className="text-base font-medium text-slate-900"
+                  >
+                    Nom de l&apos;établissement
                   </Label>
                   <Input
                     id="name"
                     type="text"
                     value={formData.name}
                     onChange={(e) => handleInputChange("name", e.target.value)}
-                    className={`h-10 ${errors.name ? "border-red-500" : ""}`}
-                    placeholder="Nom du mandat..."
+                    className={`h-12 text-base transition-all duration-200 ${
+                      errors.name
+                        ? "border-red-300 focus:border-red-500 focus:ring-red-500/20"
+                        : "border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                    }`}
+                    placeholder="Nom de l'établissement..."
                     disabled={saving}
                   />
                   {errors.name && (
-                    <p className="text-sm text-red-500">{errors.name}</p>
+                    <p className="text-sm text-red-500 flex items-center gap-1">
+                      <X className="h-4 w-4" />
+                      {errors.name}
+                    </p>
                   )}
                 </div>
 
                 {/* Champ Group */}
-                <div className="space-y-2">
-                  <Label htmlFor="group" className="text-base font-medium">
-                    Groupe
+                <div className="space-y-3">
+                  <Label
+                    htmlFor="group"
+                    className="text-base font-medium text-slate-900"
+                  >
+                    Type d&apos;établissement
                   </Label>
                   <Select
                     value={formData.group}
@@ -360,19 +433,27 @@ export default function EditMandatePage() {
                     disabled={saving}
                   >
                     <SelectTrigger
-                      className={`h-10 ${errors.group ? "border-red-500" : ""}`}
+                      className={`h-12 text-base transition-all duration-200 ${
+                        errors.group
+                          ? "border-red-300 focus:border-red-500 focus:ring-red-500/20"
+                          : "border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                      }`}
                     >
-                      <SelectValue placeholder="Sélectionnez un groupe..." />
+                      <SelectValue placeholder="Sélectionnez un type..." />
                     </SelectTrigger>
                     <SelectContent>
                       {/* Types par défaut */}
                       <SelectItem value="HEBERGEMENT">
-                        {getTypeIcon("HEBERGEMENT")}
-                        Hébergement
+                        <div className="flex items-center gap-2">
+                          {getTypeIcon("HEBERGEMENT")}
+                          <span>Hébergement</span>
+                        </div>
                       </SelectItem>
                       <SelectItem value="RESTAURATION">
-                        {getTypeIcon("RESTAURATION")}
-                        Restauration
+                        <div className="flex items-center gap-2">
+                          {getTypeIcon("RESTAURATION")}
+                          <span>Restauration</span>
+                        </div>
                       </SelectItem>
 
                       {/* Types personnalisés */}
@@ -386,19 +467,24 @@ export default function EditMandatePage() {
                         )
                         .map((type) => (
                           <SelectItem key={type.id} value={type.id}>
-                            {getTypeIcon(type.id)}
-                            {type.label}
+                            <div className="flex items-center gap-2">
+                              {getTypeIcon(type.id)}
+                              <span>{type.label}</span>
+                            </div>
                           </SelectItem>
                         ))}
                     </SelectContent>
                   </Select>
                   {errors.group && (
-                    <p className="text-sm text-red-500">{errors.group}</p>
+                    <p className="text-sm text-red-500 flex items-center gap-1">
+                      <X className="h-4 w-4" />
+                      {errors.group}
+                    </p>
                   )}
                 </div>
 
-                {/* Checkbox Activ */}
-                <div className="flex items-center space-x-2">
+                {/* Checkbox Actif */}
+                <div className="flex items-center space-x-3 p-4 bg-slate-50 rounded-lg border">
                   <Checkbox
                     id="active"
                     checked={formData.active}
@@ -406,27 +492,34 @@ export default function EditMandatePage() {
                       handleInputChange("active", !!checked)
                     }
                     disabled={saving}
-                    className="h-4 w-4"
+                    className="h-5 w-5"
                   />
-                  <Label
-                    htmlFor="active"
-                    className="text-base font-medium cursor-pointer"
-                  >
-                    Actif
-                  </Label>
+                  <div className="flex-1">
+                    <Label
+                      htmlFor="active"
+                      className="text-base font-medium cursor-pointer text-slate-900"
+                    >
+                      Établissement actif
+                    </Label>
+                    <p className="text-sm text-slate-600">
+                      Un établissement inactif ne sera pas visible dans les
+                      rapports
+                    </p>
+                  </div>
                 </div>
 
                 {/* Boutons d'action */}
-                <div className="flex items-center justify-between pt-4">
+                <div className="flex items-center justify-between pt-6 border-t">
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button
                         type="button"
                         variant="destructive"
                         disabled={saving || deleting}
+                        className="hover:bg-red-700"
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
-                        Supprimer
+                        Supprimer l&apos;établissement
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
@@ -435,16 +528,14 @@ export default function EditMandatePage() {
                           Confirmer la suppression
                         </AlertDialogTitle>
                         <AlertDialogDescription>
-                          Êtes-vous sûr de vouloir supprimer le mandat
-                          {mandate.name} ?
+                          Êtes-vous sûr de vouloir supprimer
+                          l&apos;établissement &quot;{mandate.name}&quot; ?
                           {mandate._count && mandate._count.dayValues > 0 && (
                             <span className="text-red-600 font-medium">
                               <br />
-                              ⚠️ Ce mandat contient {
-                                mandate._count.dayValues
-                              }{" "}
-                              valeur(s) journalière(s) qui seront également
-                              supprimées.
+                              ⚠️ Cet établissement contient{" "}
+                              {mandate._count.dayValues} valeur(s) de chiffre
+                              d&apos;affaires qui seront également supprimées.
                             </span>
                           )}
                           <br />
@@ -463,7 +554,7 @@ export default function EditMandatePage() {
                               Suppression...
                             </>
                           ) : (
-                            "Supprimer"
+                            "Supprimer définitivement"
                           )}
                         </AlertDialogAction>
                       </AlertDialogFooter>
@@ -476,6 +567,7 @@ export default function EditMandatePage() {
                       variant="outline"
                       onClick={() => router.push("/dashboard/mandates")}
                       disabled={saving}
+                      className="px-6"
                     >
                       <X className="mr-2 h-4 w-4" />
                       Annuler
@@ -484,7 +576,7 @@ export default function EditMandatePage() {
                     <Button
                       type="submit"
                       disabled={saving}
-                      className="min-w-[120px]"
+                      className="min-w-[140px] bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl transition-all duration-200"
                     >
                       {saving ? (
                         <div className="flex items-center">
@@ -494,7 +586,7 @@ export default function EditMandatePage() {
                       ) : (
                         <>
                           <Save className="mr-2 h-4 w-4" />
-                          Enregistrer
+                          Enregistrer les modifications
                         </>
                       )}
                     </Button>
@@ -505,80 +597,167 @@ export default function EditMandatePage() {
           </Card>
         </div>
 
-        {/* Statistiques */}
-        <div className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Statistiques</CardTitle>
+        {/* Sidebar avec statistiques et actions */}
+        <div className="space-y-6">
+          {/* Statistiques */}
+          <Card className="shadow-lg border-slate-200">
+            <CardHeader className="bg-white border-b border-slate-200">
+              <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-blue-600" />
+                Statistiques
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <div className="text-sm text-muted-foreground">
-                  Type d&apos;établissement
+            <CardContent className="p-4 space-y-4">
+              <div className="grid grid-cols-1 gap-4">
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-blue-600 font-medium">
+                      Revenue Total
+                    </div>
+                    <DollarSign className="h-4 w-4 text-blue-600" />
+                  </div>
+                  <div className="text-xl font-bold text-blue-900 mt-1">
+                    {formatCurrency(mandate.totalRevenue)}
+                  </div>
                 </div>
-                <div className="text-sm font-medium flex items-center">
-                  {getTypeIcon(mandate.group)}
-                  {getTypeLabel(mandate.group)}
+
+                <div className="bg-green-50 p-4 rounded-lg border border-green-100">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-green-600 font-medium">
+                      Saisies CA
+                    </div>
+                    <Calendar className="h-4 w-4 text-green-600" />
+                  </div>
+                  <div className="text-xl font-bold text-green-900 mt-1">
+                    {mandate._count?.dayValues || 0}
+                  </div>
+                  <div className="text-xs text-green-600 mt-1">
+                    Dernière: {formatDate(mandate.lastEntry)}
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <div className="text-sm text-muted-foreground">
-                  Revenue total
+              <div className="space-y-3 pt-4 border-t border-slate-200">
+                <div className="flex justify-between">
+                  <span className="text-sm text-slate-600">Type</span>
+                  <div className="flex items-center text-sm font-medium text-slate-900">
+                    {getTypeIcon(mandate.group)}
+                    {getTypeLabel(mandate.group)}
+                  </div>
                 </div>
-                <div className="text-lg font-bold">
-                  {formatCurrency(mandate.totalRevenue)}
-                </div>
-              </div>
 
-              <div>
-                <div className="text-sm text-muted-foreground">
-                  Dernière saisie
+                <div className="flex justify-between">
+                  <span className="text-sm text-slate-600">Créé le</span>
+                  <span className="text-sm text-slate-900">
+                    {formatDate(mandate.createdAt)}
+                  </span>
                 </div>
-                <div className="text-sm">{formatDate(mandate.lastEntry)}</div>
-              </div>
 
-              <div>
-                <div className="text-sm text-muted-foreground">
-                  Nombre de valeurs
+                <div className="flex justify-between">
+                  <span className="text-sm text-slate-600">Modifié le</span>
+                  <span className="text-sm text-slate-900">
+                    {formatDate(mandate.updatedAt)}
+                  </span>
                 </div>
-                <div className="text-sm">
-                  {mandate._count?.dayValues || 0} saisie(s)
-                </div>
-              </div>
-
-              <div>
-                <div className="text-sm text-muted-foreground">Créé le</div>
-                <div className="text-sm">{formatDate(mandate.createdAt)}</div>
-              </div>
-
-              <div>
-                <div className="text-sm text-muted-foreground">Modifié le</div>
-                <div className="text-sm">{formatDate(mandate.updatedAt)}</div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Actions rapides</CardTitle>
+          {/* Actions rapides */}
+          <Card className="shadow-lg border-slate-200">
+            <CardHeader className="bg-white border-b border-slate-200">
+              <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-purple-600" />
+                Actions rapides
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
+            <CardContent className="p-4 space-y-3">
               <Button
                 variant="outline"
                 size="sm"
-                className="w-full justify-start"
+                className="w-full justify-start text-blue-600 border-blue-200 hover:bg-blue-50 hover:border-blue-300"
                 onClick={() => router.push(`/dashboard/mandates/${mandate.id}`)}
               >
-                Voir les données CA
+                <Eye className="mr-2 h-4 w-4" />
+                Analyse du CA
               </Button>
+
               <Button
                 variant="outline"
                 size="sm"
-                className="w-full justify-start"
+                className="w-full justify-start text-green-600 border-green-200 hover:bg-green-50 hover:border-green-300"
+                onClick={() =>
+                  router.push(`/dashboard/mandates/${mandate.id}/payroll`)
+                }
+              >
+                <Calculator className="mr-2 h-4 w-4" />
+                Masse salariale
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full justify-start text-purple-600 border-purple-200 hover:bg-purple-50 hover:border-purple-300"
                 onClick={() => router.push("/dashboard/dayvalues/create")}
               >
-                Ajouter une valeur
+                <Plus className="mr-2 h-4 w-4" />
+                Ajouter un CA
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full justify-start text-orange-600 border-orange-200 hover:bg-orange-50 hover:border-orange-300"
+                onClick={() => router.push("/dashboard/analytics")}
+              >
+                <BarChart3 className="mr-2 h-4 w-4" />
+                Analytics
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Actions de gestion */}
+          <Card className="shadow-lg border-slate-200">
+            <CardHeader className="bg-white border-b border-slate-200">
+              <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                <Users className="h-5 w-5 text-gray-600" />
+                Gestion
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 space-y-3">
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full justify-start text-gray-600 border-gray-200 hover:bg-gray-50 hover:border-gray-300"
+                onClick={() => router.push("/dashboard/employees")}
+              >
+                <Users className="mr-2 h-4 w-4" />
+                Employés
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full justify-start text-gray-600 border-gray-200 hover:bg-gray-50 hover:border-gray-300"
+                onClick={() => router.push("/dashboard/import")}
+              >
+                <Upload className="mr-2 h-4 w-4" />
+                Import données
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full justify-start text-gray-600 border-gray-200 hover:bg-gray-50 hover:border-gray-300"
+                onClick={() =>
+                  window.open(
+                    `/api/export/ca/${mandate.id}?year=${new Date().getFullYear()}`,
+                    "_blank"
+                  )
+                }
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Exporter CA
               </Button>
             </CardContent>
           </Card>

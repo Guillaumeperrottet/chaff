@@ -769,7 +769,7 @@ export default function DashboardPage() {
               onClick={() => router.push(`/dashboard/mandates/${campus.id}`)}
             >
               <Eye className="mr-2 h-4 w-4" />
-              Voir les détails CA
+              Chiffre d&apos;affaires
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() =>
@@ -781,19 +781,19 @@ export default function DashboardPage() {
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() =>
+                router.push(`/dashboard/employees?mandateId=${campus.id}`)
+              }
+            >
+              <Users className="mr-2 h-4 w-4" />
+              Employés
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() =>
                 router.push(`/dashboard/mandates/${campus.id}/edit`)
               }
             >
               <Edit className="mr-2 h-4 w-4" />
               Modifier
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() =>
-                router.push(`/dashboard/employees?mandateId=${campus.id}`)
-              }
-            >
-              <Users className="mr-2 h-4 w-4" />
-              Voir employés
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
