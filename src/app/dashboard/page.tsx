@@ -549,34 +549,41 @@ export default function DashboardPage() {
     return totals;
   };
 
-  // ✅ NOUVEAU: Calculer le Top général
+  // ✅ NOUVEAU: Calculer le Top général (meilleur jour du total général)
   const calculateGrandTop = (): string => {
+    if (!dashboardData) return "Aucune donnée";
     const mergedData = getMergedData();
     if (mergedData.length === 0) return "Aucune donnée";
 
+    // Calculer le total général pour chaque jour
+    const dailyGrandTotals: Record<string, number> = {};
+
+    dashboardData.columnLabels.forEach((col) => {
+      const dailyTotal = mergedData.reduce((sum, campus) => {
+        const valueStr = campus.values[col.key] || "0,00";
+        const value = parseFloat(valueStr.replace(",", "."));
+        return sum + (isNaN(value) ? 0 : value);
+      }, 0);
+      dailyGrandTotals[col.key] = dailyTotal;
+    });
+
+    // Trouver le jour avec le total général le plus élevé
     let maxValue = 0;
-    let bestCampus = "";
     let bestDate = "";
 
-    mergedData.forEach((campus) => {
-      const performanceMatch = campus.performance.match(/^(.+?)\s+\/\s+(.+)$/);
-      if (performanceMatch) {
-        const valueStr = performanceMatch[1]
-          .replace(/[^\d,.-]/g, "")
-          .replace(",", ".");
-        const value = parseFloat(valueStr);
-        const date = performanceMatch[2];
-
-        if (!isNaN(value) && value > maxValue) {
-          maxValue = value;
-          bestCampus = campus.name;
-          bestDate = date;
-        }
+    Object.entries(dailyGrandTotals).forEach(([dateKey, total]) => {
+      if (total > maxValue) {
+        maxValue = total;
+        // Trouver le label correspondant à cette clé
+        const dateLabel =
+          dashboardData.columnLabels.find((col) => col.key === dateKey)
+            ?.label || dateKey;
+        bestDate = dateLabel;
       }
     });
 
     return maxValue > 0
-      ? `${formatCurrency(maxValue)} / ${bestDate} (${bestCampus})`
+      ? `${formatCurrency(maxValue)} / ${bestDate}`
       : "Aucune donnée";
   };
 
