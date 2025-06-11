@@ -1,8 +1,6 @@
-// src/app/components/Navbar.tsx - Version Chaff.ch avec design bleu
-
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LogOut,
@@ -11,7 +9,6 @@ import {
   Home,
   ChevronRight,
   // Bell,
-  Search,
   Users,
   DollarSign,
   BarChart3,
@@ -19,9 +16,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { motion } from "framer-motion";
 import { Button } from "@/app/components/ui/button";
-import { Input } from "@/app/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -161,9 +156,6 @@ function ChaffNavbar() {
   const pathname = usePathname();
   const router = useRouter();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const [showSearch, setShowSearch] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // État pour les breadcrumbs
   const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbItem[]>([]);
@@ -218,24 +210,6 @@ function ChaffNavbar() {
       router.push("/");
     } catch {
       toast.error("Erreur lors de la déconnexion");
-    }
-  };
-
-  // Focus automatique sur la recherche
-  useEffect(() => {
-    if (showSearch && searchInputRef.current) {
-      searchInputRef.current.focus();
-    }
-  }, [showSearch]);
-
-  // Gestion de la recherche
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      // Logique de recherche ici
-      console.log("Recherche:", searchQuery);
-      setShowSearch(false);
-      setSearchQuery("");
     }
   };
 
@@ -306,40 +280,6 @@ function ChaffNavbar() {
 
           {/* Actions à droite */}
           <div className="flex items-center space-x-3">
-            {/* Recherche */}
-            <div className="relative">
-              {showSearch ? (
-                <motion.form
-                  initial={{ width: 0, opacity: 0 }}
-                  animate={{ width: "200px", opacity: 1 }}
-                  exit={{ width: 0, opacity: 0 }}
-                  onSubmit={handleSearch}
-                  className="flex items-center"
-                >
-                  <Input
-                    ref={searchInputRef}
-                    type="text"
-                    placeholder="Rechercher..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onBlur={() => {
-                      if (!searchQuery) setShowSearch(false);
-                    }}
-                    className="h-8 text-sm border-primary/30 focus:border-primary"
-                  />
-                </motion.form>
-              ) : (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowSearch(true)}
-                  className="h-8 w-8 p-0 hover:bg-primary/10"
-                >
-                  <Search className="h-4 w-4 text-primary" />
-                </Button>
-              )}
-            </div>
-
             {/* Toggle thème */}
             <ThemeToggle />
 
