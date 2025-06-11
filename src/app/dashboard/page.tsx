@@ -376,6 +376,57 @@ export default function DashboardPage() {
     return null;
   };
 
+  // ✅ NOUVELLE FONCTION D'EXPORT
+  const handleExport = async () => {
+    try {
+      toast.loading("Génération de l'export...", { id: "export-loading" });
+
+      // Construire les paramètres de filtrage
+      const queryParams = new URLSearchParams();
+
+      // Si un filtre de catégorie est appliqué, l'ajouter aux paramètres
+      if (categoryFilter !== "all") {
+        // Pour les types par défaut
+        if (categoryFilter === "hebergement") {
+          queryParams.set("group", "HEBERGEMENT");
+        } else if (categoryFilter === "restauration") {
+          queryParams.set("group", "RESTAURATION");
+        } else {
+          // Pour les types personnalisés, utiliser l'ID du type
+          queryParams.set("establishmentTypeId", categoryFilter);
+        }
+      }
+
+      // Exporter les valeurs journalières avec les filtres appliqués
+      const response = await fetch(`/api/export/valeurs?${queryParams}`);
+
+      if (!response.ok) {
+        throw new Error("Erreur lors de l'export");
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.style.display = "none";
+      a.href = url;
+
+      // Nom de fichier dynamique selon le filtre
+      const filterSuffix =
+        categoryFilter !== "all" ? `_${getTypeLabel(categoryFilter)}` : "";
+      a.download = `dashboard_ca${filterSuffix}_${new Date().toISOString().split("T")[0]}.csv`;
+
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast.success("Export téléchargé avec succès", { id: "export-loading" });
+    } catch (error) {
+      console.error("Erreur lors de l'export:", error);
+      toast.error("Erreur lors de l'export", { id: "export-loading" });
+    }
+  };
+
   // ✅ MODIFIER: Grouper les données par TOUS les types d'établissement
   const groupedData = () => {
     if (!dashboardData) return {};
@@ -973,6 +1024,7 @@ export default function DashboardPage() {
                 </Button>
 
                 <Button
+                  onClick={handleExport}
                   variant="outline"
                   size="sm"
                   className="border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-colors"

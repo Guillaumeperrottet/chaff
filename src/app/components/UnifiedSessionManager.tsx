@@ -58,7 +58,7 @@ export function UnifiedSessionManager() {
 
       const checkPromise = (async () => {
         try {
-          console.log("🔍 Vérification de l'organisation pour:", userId);
+          // console.log("🔍 Vérification de l'organisation pour:", userId);
 
           const response = await fetch("/api/users/organization-check");
           if (!response.ok) {
@@ -66,7 +66,7 @@ export function UnifiedSessionManager() {
           }
 
           const data = await response.json();
-          console.log("📊 Résultat vérification organisation:", data);
+          // console.log("📊 Résultat vérification organisation:", data);
 
           // ✅ TOUJOURS marquer comme vérifié, même si tout va bien
           checkedUserIds.current.add(userId);
@@ -91,7 +91,7 @@ export function UnifiedSessionManager() {
               console.error("❌ Échec de la récupération d'organisation");
             }
           } else {
-            console.log("✅ Utilisateur a déjà une organisation valide");
+            // console.log("✅ Utilisateur a déjà une organisation valide");
           }
         } catch (error) {
           console.error(
@@ -193,10 +193,10 @@ export function UnifiedSessionManager() {
       !checkedUserIds.current.has(session.user.id) &&
       !organizationCheckRef.current
     ) {
-      console.log(
-        "🏢 Lancement vérification organisation pour:",
-        session.user.id
-      );
+      // console.log(
+      //   "🏢 Lancement vérification organisation pour:",
+      //   session.user.id
+      // );
       ensureUserHasOrganization(session.user.id);
     }
   }, [

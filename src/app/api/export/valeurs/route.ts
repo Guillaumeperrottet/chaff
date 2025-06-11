@@ -19,6 +19,8 @@ export async function GET(request: NextRequest) {
     const mandateId = searchParams.get("mandateId");
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
+    const group = searchParams.get("group"); // ✅ NOUVEAU: Filtre par groupe (HEBERGEMENT/RESTAURATION)
+    const establishmentTypeId = searchParams.get("establishmentTypeId"); // ✅ NOUVEAU: Filtre par type personnalisé
 
     // Construire les filtres
     const where: {
@@ -27,10 +29,25 @@ export async function GET(request: NextRequest) {
         gte?: Date;
         lte?: Date;
       };
+      mandate?: {
+        group?: string;
+        establishmentTypeId?: string;
+      };
     } = {};
 
     if (mandateId) {
       where.mandateId = mandateId;
+    }
+
+    // ✅ NOUVEAU: Filtrage par groupe ou type d'établissement
+    if (group || establishmentTypeId) {
+      where.mandate = {};
+      if (group) {
+        where.mandate.group = group;
+      }
+      if (establishmentTypeId) {
+        where.mandate.establishmentTypeId = establishmentTypeId;
+      }
     }
 
     if (startDate || endDate) {
@@ -51,6 +68,11 @@ export async function GET(request: NextRequest) {
           select: {
             name: true,
             group: true,
+            establishmentType: {
+              select: {
+                label: true,
+              },
+            },
           },
         },
       },
@@ -66,13 +88,28 @@ export async function GET(request: NextRequest) {
       "Date de création",
     ];
 
-    const csvRows = dayValues.map((value) => [
-      formatDate(value.date),
-      value.mandate.name,
-      value.mandate.group === "HEBERGEMENT" ? "Hébergement" : "Restauration",
-      value.value.toFixed(2),
-      formatDateTime(value.createdAt),
-    ]);
+    const csvRows = dayValues.map((value) => {
+      // ✅ AMÉLIORER: Obtenir le nom du type d'établissement
+      let groupName: string;
+      if (value.mandate.establishmentType) {
+        // Type personnalisé
+        groupName = value.mandate.establishmentType.label;
+      } else {
+        // Type par défaut
+        groupName =
+          value.mandate.group === "HEBERGEMENT"
+            ? "Hébergement"
+            : "Restauration";
+      }
+
+      return [
+        formatDate(value.date),
+        value.mandate.name,
+        groupName,
+        value.value.toFixed(2),
+        formatDateTime(value.createdAt),
+      ];
+    });
 
     // Construire le contenu CSV
     const csvContent = [
