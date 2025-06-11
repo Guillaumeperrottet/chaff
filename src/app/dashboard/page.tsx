@@ -963,6 +963,7 @@ export default function DashboardPage() {
                 </Button>
 
                 <Button
+                  onClick={() => router.push("/dashboard/import")}
                   variant="outline"
                   size="sm"
                   className="border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-colors"
