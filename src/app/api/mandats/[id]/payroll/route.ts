@@ -109,16 +109,17 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       (_, i) => {
         const month = startMonth + i;
         const manualEntry = manualEntries.find((e) => e.month === month);
-        
+
         // ✅ NOUVEAU: Chercher l'import Gastrotime pour ce mois
         const gastrotimeImport = gastrotimeImports.find(
           (imp) => imp.period === `${year}-${month.toString().padStart(2, "0")}`
         );
-        
+
         const revenue = revenueData[i];
 
         // Prioriser saisie manuelle, sinon import Gastrotime
-        const payrollCost = manualEntry?.totalCost || gastrotimeImport?.totalCost || 0;
+        const payrollCost =
+          manualEntry?.totalCost || gastrotimeImport?.totalCost || 0;
         const ratio =
           revenue.totalRevenue > 0
             ? (payrollCost / revenue.totalRevenue) * 100
@@ -135,7 +136,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           revenue: revenue.totalRevenue,
           revenueEntries: revenue.entryCount,
           payrollToRevenueRatio: ratio,
-          hasData: !!manualEntry || !!gastrotimeImport || revenue.totalRevenue > 0,
+          hasData:
+            !!manualEntry || !!gastrotimeImport || revenue.totalRevenue > 0,
         };
       }
     );
@@ -146,8 +148,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       period: { startMonth, endMonth },
       summary: payrollSummary,
       totals: {
-        totalPayrollCost: manualEntries.reduce((sum, e) => sum + e.totalCost, 0) +
-                         gastrotimeImports.reduce((sum, e) => sum + e.totalCost, 0),
+        totalPayrollCost:
+          manualEntries.reduce((sum, e) => sum + e.totalCost, 0) +
+          gastrotimeImports.reduce((sum, e) => sum + e.totalCost, 0),
         totalRevenue: revenueData.reduce((sum, r) => sum + r.totalRevenue, 0),
         averageRatio: payrollSummary
           .filter((s) => s.payrollToRevenueRatio !== null)

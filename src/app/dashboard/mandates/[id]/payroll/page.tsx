@@ -251,7 +251,12 @@ export default function MandatePayrollPage() {
   // ✅ NOUVEAU: Fonction pour supprimer un import Gastrotime
   const handleDeleteGastrotimeImport = useCallback(
     async (importId: string) => {
-      if (!confirm("Supprimer cet import Gastrotime ? Cette action est irréversible.")) return;
+      if (
+        !confirm(
+          "Supprimer cet import Gastrotime ? Cette action est irréversible."
+        )
+      )
+        return;
 
       try {
         const response = await fetch(`/api/payroll/delete-import/${importId}`, {
@@ -268,7 +273,9 @@ export default function MandatePayrollPage() {
       } catch (error) {
         console.error("Erreur:", error);
         toast.error(
-          error instanceof Error ? error.message : "Erreur lors de la suppression"
+          error instanceof Error
+            ? error.message
+            : "Erreur lors de la suppression"
         );
       }
     },
@@ -466,6 +473,7 @@ export default function MandatePayrollPage() {
                 <TableHead className="text-right">CA</TableHead>
                 <TableHead className="text-right">Masse salariale</TableHead>
                 <TableHead className="text-right">Ratio %</TableHead>
+                <TableHead className="text-center">Charges sociales</TableHead>
                 <TableHead className="text-right">Employés</TableHead>
                 <TableHead>Notes</TableHead>
                 <TableHead className="w-[100px]">Actions</TableHead>
@@ -505,13 +513,18 @@ export default function MandatePayrollPage() {
                   <TableCell className="text-right">
                     {summary.manualEntry || summary.gastrotimeImport ? (
                       <>
-                        {summary.manualEntry 
+                        {summary.manualEntry
                           ? formatCurrency(summary.manualEntry.totalCost)
-                          : formatCurrency(summary.gastrotimeImport!.totalCost)
-                        }
+                          : formatCurrency(summary.gastrotimeImport!.totalCost)}
                         <div className="text-xs text-muted-foreground">
                           {summary.manualEntry ? (
-                            <>+{formatCurrency(summary.manualEntry.socialCharges)} charges</>
+                            <>
+                              +
+                              {formatCurrency(
+                                summary.manualEntry.socialCharges
+                              )}{" "}
+                              charges
+                            </>
                           ) : (
                             <span className="italic">Import Gastrotime</span>
                           )}
@@ -531,10 +544,45 @@ export default function MandatePayrollPage() {
                       </span>
                     </div>
                   </TableCell>
+                  <TableCell className="text-center">
+                    {(() => {
+                      // Pour les imports Gastrotime, extraire le taux depuis les notes
+                      if (summary.manualEntry?.notes) {
+                        const socialChargesRate = extractSocialChargesRate(
+                          summary.manualEntry.notes
+                        );
+                        if (socialChargesRate !== null) {
+                          return (
+                            <div className="text-sm font-medium text-primary">
+                              {socialChargesRate}%
+                            </div>
+                          );
+                        }
+                      }
+
+                      // Pour les saisies manuelles, calculer le pourcentage si possible
+                      if (
+                        summary.manualEntry?.grossAmount &&
+                        summary.manualEntry?.socialCharges
+                      ) {
+                        const rate =
+                          (summary.manualEntry.socialCharges /
+                            summary.manualEntry.grossAmount) *
+                          100;
+                        return (
+                          <div className="text-sm text-muted-foreground">
+                            {rate.toFixed(1)}%
+                          </div>
+                        );
+                      }
+
+                      return <span className="text-muted-foreground">-</span>;
+                    })()}
+                  </TableCell>
                   <TableCell className="text-right">
-                    {summary.manualEntry?.employeeCount || 
-                     summary.gastrotimeImport?.totalEmployees || 
-                     "-"}
+                    {summary.manualEntry?.employeeCount ||
+                      summary.gastrotimeImport?.totalEmployees ||
+                      "-"}
                   </TableCell>
                   <TableCell>
                     {summary.manualEntry?.notes && (
@@ -632,6 +680,7 @@ export default function MandatePayrollPage() {
                 >
                   {formatPercentage(payrollData.totals.averageRatio)}
                 </TableCell>
+                <TableCell></TableCell>
                 <TableCell></TableCell>
                 <TableCell></TableCell>
                 <TableCell></TableCell>

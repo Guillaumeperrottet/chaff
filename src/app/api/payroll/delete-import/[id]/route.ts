@@ -35,10 +35,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     });
 
     if (!importRecord) {
-      return NextResponse.json(
-        { error: "Import non trouvé" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Import non trouvé" }, { status: 404 });
     }
 
     // Vérifier que l'utilisateur a accès à cette organisation
@@ -47,8 +44,10 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       include: { Organization: true },
     });
 
-    if (!userWithOrg?.Organization || 
-        userWithOrg.Organization.id !== importRecord.mandate.organizationId) {
+    if (
+      !userWithOrg?.Organization ||
+      userWithOrg.Organization.id !== importRecord.mandate.organizationId
+    ) {
       return NextResponse.json(
         { error: "Accès non autorisé" },
         { status: 403 }
@@ -60,18 +59,19 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       where: { id },
     });
 
-    console.log(`✅ Import Gastrotime supprimé: ${id} (${importRecord.mandate.name})`);
+    console.log(
+      `✅ Import Gastrotime supprimé: ${id} (${importRecord.mandate.name})`
+    );
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: true,
       message: "Import supprimé avec succès",
       deletedImport: {
         id: importRecord.id,
         period: importRecord.period,
         mandateName: importRecord.mandate.name,
-      }
+      },
     });
-
   } catch (error) {
     console.error("❌ Erreur lors de la suppression de l'import:", error);
     return NextResponse.json(
