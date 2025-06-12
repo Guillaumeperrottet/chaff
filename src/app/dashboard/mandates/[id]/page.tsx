@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   Table,
   TableBody,
@@ -31,6 +31,12 @@ import {
   TooltipTrigger,
 } from "@/app/components/ui/tooltip";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/app/components/ui/dropdown-menu";
+import {
   CalendarIcon,
   Download,
   Loader2,
@@ -42,6 +48,7 @@ import {
   RefreshCw,
   FileSpreadsheet,
   Info,
+  ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import PrintableCAReport from "@/app/components/ca/PrintableCAReport";
@@ -128,9 +135,13 @@ interface CAResponse {
 
 export default function MandateCAPage() {
   const params = useParams();
+  const router = useRouter();
   const mandateId = params.id as string;
 
   const [caData, setCAData] = useState<CAResponse | null>(null);
+  const [availableMandates, setAvailableMandates] = useState<
+    Array<{ id: string; name: string }>
+  >([]);
   const [loading, setLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState(
     new Date().getFullYear().toString()
@@ -171,6 +182,27 @@ export default function MandateCAPage() {
 
     loadCAData();
   }, [mandateId, selectedYear, selectedSemester]);
+
+  // Charger la liste des mandats disponibles
+  useEffect(() => {
+    const loadAvailableMandates = async () => {
+      try {
+        const response = await fetch("/api/mandats");
+        if (response.ok) {
+          const mandates = await response.json();
+          setAvailableMandates(
+            mandates.map((m: { id: string; name: string }) => ({
+              id: m.id,
+              name: m.name,
+            }))
+          );
+        }
+      } catch (error) {
+        console.error("Erreur lors du chargement des mandats:", error);
+      }
+    };
+    loadAvailableMandates();
+  }, []);
 
   const handleRefresh = () => {
     const loadCAData = async () => {
@@ -265,28 +297,6 @@ export default function MandateCAPage() {
     );
   };
 
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-        </div>
-      </div>
-    );
-  }
-
-  if (!caData) {
-    return (
-      <div className="space-y-6">
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">
-            Aucune donnée CA trouvée pour ce mandat
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   // Créer la structure de données pour le tableau
   const tableData = () => {
     if (!caData)
@@ -348,7 +358,34 @@ export default function MandateCAPage() {
     return { rows, totals, payrollTotals };
   };
 
+  // Fonction pour naviguer vers un autre mandat
+  const handleMandateChange = (newMandateId: string) => {
+    router.push(`/dashboard/mandates/${newMandateId}`);
+  };
+
   const { rows, totals, payrollTotals } = tableData();
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!caData) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">
+            Aucune donnée CA trouvée pour ce mandat
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <TooltipProvider>
@@ -367,9 +404,51 @@ export default function MandateCAPage() {
 
               {/* Infos du mandat */}
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">
-                  {caData.mandate.name}
-                </h1>
+                {/* Nom du mandat avec menu déroulant discret */}
+                <div className="flex items-center gap-2">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="flex items-center gap-1 text-2xl font-bold text-gray-900 hover:text-blue-600 transition-colors duration-200 group">
+                        {caData.mandate.name}
+                        <ChevronDown className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-blue-500" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-64">
+                      {availableMandates
+                        .filter((mandate) => mandate.id !== mandateId)
+                        .map((mandate) => (
+                          <DropdownMenuItem
+                            key={mandate.id}
+                            onClick={() => handleMandateChange(mandate.id)}
+                            className="cursor-pointer"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
+                                {mandate.name.charAt(0).toUpperCase()}
+                              </div>
+                              <div>
+                                <div className="font-medium">
+                                  {mandate.name}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  Voir l&apos;analyse CA
+                                </div>
+                              </div>
+                            </div>
+                          </DropdownMenuItem>
+                        ))}
+                      {availableMandates.filter(
+                        (mandate) => mandate.id !== mandateId
+                      ).length === 0 && (
+                        <DropdownMenuItem disabled>
+                          <div className="text-muted-foreground">
+                            Aucun autre mandat disponible
+                          </div>
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
                 <div className="flex items-center space-x-2 text-sm text-gray-600">
                   <span>
                     Analyse CA • {selectedSemester === "1" ? "1er" : "2ème"}{" "}
