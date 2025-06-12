@@ -54,7 +54,6 @@ import {
   Info,
   Filter,
   Menu,
-  ChevronRight,
   Building2,
   MapPin,
 } from "lucide-react";
@@ -587,130 +586,6 @@ export default function DashboardPage() {
       : "Aucune donnée";
   };
 
-  // ✅ COMPOSANT Badge pour MOBILE
-  const TypeBadge = ({
-    campus,
-  }: {
-    campus: DashboardData & { payroll?: PayrollRatioData };
-  }) => (
-    <Badge variant={getTypeVariant(campus.category)} className="text-xs mt-1">
-      {getTypeIcon(campus.category)}
-      {getTypeLabel(campus.category)}
-    </Badge>
-  );
-
-  // ✅ MODIFIER LE COMPOSANT MobileCampusCard
-  const MobileCampusCard = ({
-    campus,
-  }: {
-    campus: DashboardData & { payroll?: PayrollRatioData };
-  }) => (
-    <Card className="mb-4">
-      <CardContent className="p-4">
-        {/* Header avec nom et catégorie */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex-1">
-            <h3 className="font-semibold text-lg">{campus.name}</h3>
-            {/* ✅ UTILISER LE NOUVEAU COMPOSANT */}
-            <TypeBadge campus={campus} />
-          </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuItem
-                onClick={() => router.push(`/dashboard/mandates/${campus.id}`)}
-              >
-                <Eye className="mr-2 h-4 w-4" />
-                Voir détails CA
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() =>
-                  router.push(`/dashboard/mandates/${campus.id}/payroll`)
-                }
-              >
-                <Calculator className="mr-2 h-4 w-4" />
-                Masse salariale
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() =>
-                  router.push(`/dashboard/mandates/${campus.id}/edit`)
-                }
-              >
-                <Edit className="mr-2 h-4 w-4" />
-                Modifier
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-
-        {/* Métriques principales */}
-        <div className="grid grid-cols-2 gap-3 mb-3">
-          <div className="bg-slate-50 p-3 rounded-lg">
-            <div className="text-xs text-slate-600 mb-1">Performance</div>
-            <div className="font-semibold text-blue-600">
-              {campus.performance}
-            </div>
-          </div>
-
-          <div className="bg-slate-50 p-3 rounded-lg">
-            <div className="text-xs text-slate-600 mb-1">Ratio MS</div>
-            {campus.payroll ? (
-              <div
-                className={`flex items-center gap-1 ${getRatioColor(campus.payroll.payrollToRevenueRatio)}`}
-              >
-                {getRatioIcon(campus.payroll.ratioTrend)}
-                <span className="font-semibold">
-                  {formatPercentage(campus.payroll.payrollToRevenueRatio)}
-                </span>
-              </div>
-            ) : (
-              <div className="text-muted-foreground text-sm">-</div>
-            )}
-          </div>
-        </div>
-
-        {/* Dernière saisie */}
-        <div className="flex items-center justify-between text-sm text-slate-600 mb-3">
-          <span>Dernière saisie:</span>
-          <span className="font-medium">{campus.lastEntry || "Jamais"}</span>
-        </div>
-
-        {/* CA récents (derniers 3 jours seulement sur mobile) */}
-        <div className="bg-blue-50 p-3 rounded-lg">
-          <div className="text-xs font-medium text-blue-900 mb-2">
-            CA récent
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            {dashboardData?.columnLabels.slice(-3).map((col) => (
-              <div key={col.key} className="text-center">
-                <div className="text-xs text-blue-700">{col.label}</div>
-                <div className="text-sm font-semibold text-blue-900">
-                  {campus.values[col.key] || "0.00"}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Bouton voir plus */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => router.push(`/dashboard/mandates/${campus.id}`)}
-          className="w-full mt-3 text-blue-600"
-        >
-          Voir tous les détails
-          <ChevronRight className="ml-2 h-4 w-4" />
-        </Button>
-      </CardContent>
-    </Card>
-  );
-
   // NOUVEAU : Composant filtres mobile
   const MobileFilters = () => (
     <Sheet open={showMobileFilters} onOpenChange={setShowMobileFilters}>
@@ -1219,211 +1094,184 @@ export default function DashboardPage() {
           </CardHeader>
 
           <CardContent>
-            {/* Affichage conditionnel : Cards sur mobile, Table sur desktop */}
-            {isMobile ? (
-              /* Version MOBILE - Cards */
-              <div className="space-y-4">
-                {mergedData.length === 0 ? (
-                  <EmptyState
-                    type="mandates"
-                    onPrimaryAction={() =>
-                      router.push("/dashboard/mandates/create")
-                    }
-                  />
-                ) : (
-                  mergedData.map((campus) => (
-                    <MobileCampusCard key={campus.id} campus={campus} />
-                  ))
-                )}
+            {/* Affichage Table pour toutes les plateformes */}
+            {mergedData.length === 0 ? (
+              /* EmptyState en pleine largeur quand pas de données */
+              <div className="w-full">
+                <EmptyState
+                  type="mandates"
+                  onPrimaryAction={() =>
+                    router.push("/dashboard/mandates/create")
+                  }
+                  className="min-h-[500px]"
+                />
               </div>
             ) : (
-              /* Version DESKTOP - Table OU EmptyState */
-              <>
-                {mergedData.length === 0 ? (
-                  /* EmptyState en pleine largeur quand pas de données */
-                  <div className="w-full">
-                    <EmptyState
-                      type="mandates"
-                      onPrimaryAction={() =>
-                        router.push("/dashboard/mandates/create")
-                      }
-                      className="min-h-[500px]"
-                    />
-                  </div>
-                ) : (
-                  /* Table normale quand il y a des données */
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="h-10">
-                          <TableHead className="min-w-[140px] py-2 text-xs">
-                            Campus
-                          </TableHead>
-                          <TableHead className="min-w-[100px] py-2 text-xs">
-                            Dernière saisie
-                          </TableHead>
-                          <TableHead className="min-w-[80px] py-2 text-xs">
-                            Top
-                          </TableHead>
-                          <TableHead className="text-center min-w-[80px] py-2 text-xs">
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <div className="flex items-center justify-center gap-1 cursor-help group">
-                                    <span className="font-medium">Ratio %</span>
-                                    <Info className="h-3 w-3 text-muted-foreground/40 group-hover:text-muted-foreground/60 transition-colors" />
-                                  </div>
-                                </TooltipTrigger>
-                                <TooltipContent
-                                  side="top"
-                                  className="max-w-xs bg-white border border-gray-200 shadow-sm p-3"
-                                  sideOffset={8}
-                                >
-                                  <div className="space-y-2.5 text-xs">
-                                    <div>
-                                      <div className="text-gray-600 mb-1">
-                                        Formule :
-                                      </div>
-                                      <div className="font-mono text-gray-900 bg-gray-50 px-2 py-1 rounded text-center">
-                                        (Masse Salariale ÷ CA) × 100
-                                      </div>
-                                    </div>
-                                    <div>
-                                      <div className="text-gray-600 mb-1.5">
-                                        Seuils :
-                                      </div>
-                                      <div className="space-y-1">
-                                        <div className="flex items-center gap-2 text-gray-700">
-                                          <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
-                                          <span>&lt; 25%</span>
-                                          <span className="text-gray-500">
-                                            Excellent
-                                          </span>
-                                        </div>
-                                        <div className="flex items-center gap-2 text-gray-700">
-                                          <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                                          <span>25-35%</span>
-                                          <span className="text-gray-500">
-                                            Bon
-                                          </span>
-                                        </div>
-                                        <div className="flex items-center gap-2 text-gray-700">
-                                          <div className="w-1.5 h-1.5 bg-amber-500 rounded-full"></div>
-                                          <span>35-50%</span>
-                                          <span className="text-gray-500">
-                                            Attention
-                                          </span>
-                                        </div>
-                                        <div className="flex items-center gap-2 text-gray-700">
-                                          <div className="w-1.5 h-1.5 bg-red-500 rounded-full"></div>
-                                          <span>&gt; 50%</span>
-                                          <span className="text-gray-500">
-                                            Critique
-                                          </span>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          </TableHead>
-                          {dashboardData.columnLabels.map((col) => (
-                            <TableHead
-                              key={col.key}
-                              className="text-center min-w-[80px] py-2 text-xs"
-                            >
-                              <div className="font-medium">{col.label}</div>
-                            </TableHead>
-                          ))}
-                          <TableHead className="w-[40px] py-2"></TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {/* ✅ NOUVEAU: Afficher tous les groupes dynamiquement */}
-                        {Object.entries(grouped).map(
-                          ([groupKey, groupData]) => {
-                            // Vérifier si ce groupe doit être affiché selon le filtre
-                            const shouldShowGroup = (() => {
-                              if (categoryFilter === "all") return true;
-                              if (
-                                categoryFilter === "hebergement" &&
-                                groupKey === "hebergement"
-                              )
-                                return true;
-                              if (
-                                categoryFilter === "restauration" &&
-                                groupKey === "restauration"
-                              )
-                                return true;
-                              return categoryFilter === groupKey;
-                            })();
-
-                            if (!shouldShowGroup) return null;
-
-                            return (
-                              <React.Fragment key={groupKey}>
-                                {/* Afficher les campus du groupe */}
-                                {groupData.map((campus) => (
-                                  <CampusRow key={campus.id} campus={campus} />
-                                ))}
-
-                                {/* Afficher le sous-total du groupe */}
-                                {groupData.length > 0 && (
-                                  <SubtotalRow
-                                    label={(() => {
-                                      if (groupKey === "hebergement")
-                                        return "Hébergement";
-                                      if (groupKey === "restauration")
-                                        return "Restauration";
-                                      return getTypeLabel(groupKey);
-                                    })()}
-                                    totals={groupTotals[groupKey]}
-                                    bgColor="bg-slate-50"
-                                    textColor="text-slate-700"
-                                    groupData={groupData}
-                                  />
-                                )}
-                              </React.Fragment>
-                            );
-                          }
-                        )}
-                      </TableBody>
-
-                      {/* Total général EXACTEMENT comme votre code original */}
-                      {categoryFilter === "all" && (
-                        <TableFooter>
-                          <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-150 border-t-4 border-gray-300 h-12">
-                            <TableCell
-                              colSpan={2}
-                              className="font-bold text-gray-900 py-2"
-                            >
-                              <span className="text-sm">Total général</span>
-                            </TableCell>
-                            <TableCell className="font-bold text-gray-900 py-2">
-                              <div className="text-xs">
-                                {calculateGrandTop()}
+              /* Table normale quand il y a des données */
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="h-10">
+                      <TableHead className="min-w-[140px] py-2 text-xs">
+                        Campus
+                      </TableHead>
+                      <TableHead className="min-w-[100px] py-2 text-xs">
+                        Dernière saisie
+                      </TableHead>
+                      <TableHead className="min-w-[80px] py-2 text-xs">
+                        Top
+                      </TableHead>
+                      <TableHead className="text-center min-w-[80px] py-2 text-xs">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="flex items-center justify-center gap-1 cursor-help group">
+                                <span className="font-medium">Ratio %</span>
+                                <Info className="h-3 w-3 text-muted-foreground/40 group-hover:text-muted-foreground/60 transition-colors" />
                               </div>
-                            </TableCell>
-                            <TableCell></TableCell>
-                            {dashboardData.columnLabels.map((col) => (
-                              <TableCell
-                                key={col.key}
-                                className="text-center font-bold text-gray-900 py-2"
-                              >
-                                <div className="text-sm">
-                                  {formatCurrency(grandTotals[col.key] || 0)}
+                            </TooltipTrigger>
+                            <TooltipContent
+                              side="top"
+                              className="max-w-xs bg-white border border-gray-200 shadow-sm p-3"
+                              sideOffset={8}
+                            >
+                              <div className="space-y-2.5 text-xs">
+                                <div>
+                                  <div className="text-gray-600 mb-1">
+                                    Formule :
+                                  </div>
+                                  <div className="font-mono text-gray-900 bg-gray-50 px-2 py-1 rounded text-center">
+                                    (Masse Salariale ÷ CA) × 100
+                                  </div>
                                 </div>
-                              </TableCell>
-                            ))}
-                            <TableCell></TableCell>
-                          </TableRow>
-                        </TableFooter>
-                      )}
-                    </Table>
-                  </div>
-                )}
-              </>
+                                <div>
+                                  <div className="text-gray-600 mb-1.5">
+                                    Seuils :
+                                  </div>
+                                  <div className="space-y-1">
+                                    <div className="flex items-center gap-2 text-gray-700">
+                                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+                                      <span>&lt; 25%</span>
+                                      <span className="text-gray-500">
+                                        Excellent
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-gray-700">
+                                      <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                                      <span>25-35%</span>
+                                      <span className="text-gray-500">Bon</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-gray-700">
+                                      <div className="w-1.5 h-1.5 bg-amber-500 rounded-full"></div>
+                                      <span>35-50%</span>
+                                      <span className="text-gray-500">
+                                        Attention
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-gray-700">
+                                      <div className="w-1.5 h-1.5 bg-red-500 rounded-full"></div>
+                                      <span>&gt; 50%</span>
+                                      <span className="text-gray-500">
+                                        Critique
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </TableHead>
+                      {dashboardData.columnLabels.map((col) => (
+                        <TableHead
+                          key={col.key}
+                          className="text-center min-w-[80px] py-2 text-xs"
+                        >
+                          <div className="font-medium">{col.label}</div>
+                        </TableHead>
+                      ))}
+                      <TableHead className="w-[40px] py-2"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {/* ✅ NOUVEAU: Afficher tous les groupes dynamiquement */}
+                    {Object.entries(grouped).map(([groupKey, groupData]) => {
+                      // Vérifier si ce groupe doit être affiché selon le filtre
+                      const shouldShowGroup = (() => {
+                        if (categoryFilter === "all") return true;
+                        if (
+                          categoryFilter === "hebergement" &&
+                          groupKey === "hebergement"
+                        )
+                          return true;
+                        if (
+                          categoryFilter === "restauration" &&
+                          groupKey === "restauration"
+                        )
+                          return true;
+                        return categoryFilter === groupKey;
+                      })();
+
+                      if (!shouldShowGroup) return null;
+
+                      return (
+                        <React.Fragment key={groupKey}>
+                          {/* Afficher les campus du groupe */}
+                          {groupData.map((campus) => (
+                            <CampusRow key={campus.id} campus={campus} />
+                          ))}
+
+                          {/* Afficher le sous-total du groupe */}
+                          {groupData.length > 0 && (
+                            <SubtotalRow
+                              label={(() => {
+                                if (groupKey === "hebergement")
+                                  return "Hébergement";
+                                if (groupKey === "restauration")
+                                  return "Restauration";
+                                return getTypeLabel(groupKey);
+                              })()}
+                              totals={groupTotals[groupKey]}
+                              bgColor="bg-slate-50"
+                              textColor="text-slate-700"
+                              groupData={groupData}
+                            />
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </TableBody>
+
+                  {/* Total général EXACTEMENT comme votre code original */}
+                  {categoryFilter === "all" && (
+                    <TableFooter>
+                      <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-150 border-t-4 border-gray-300 h-12">
+                        <TableCell
+                          colSpan={2}
+                          className="font-bold text-gray-900 py-2"
+                        >
+                          <span className="text-sm">Total général</span>
+                        </TableCell>
+                        <TableCell className="font-bold text-gray-900 py-2">
+                          <div className="text-xs">{calculateGrandTop()}</div>
+                        </TableCell>
+                        <TableCell></TableCell>
+                        {dashboardData.columnLabels.map((col) => (
+                          <TableCell
+                            key={col.key}
+                            className="text-center font-bold text-gray-900 py-2"
+                          >
+                            <div className="text-sm">
+                              {formatCurrency(grandTotals[col.key] || 0)}
+                            </div>
+                          </TableCell>
+                        ))}
+                        <TableCell></TableCell>
+                      </TableRow>
+                    </TableFooter>
+                  )}
+                </Table>
+              </div>
             )}
           </CardContent>
         </Card>
