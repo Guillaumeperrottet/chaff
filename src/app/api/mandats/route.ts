@@ -97,6 +97,7 @@ export async function GET(request: NextRequest) {
 
     const mandatesWithPayrollStats = await Promise.all(
       mandates.map(async (mandate) => {
+        // Récupérer les saisies manuelles
         const payrollEntries = await prisma.manualPayrollEntry.findMany({
           where: { mandateId: mandate.id },
           select: {
@@ -109,11 +110,61 @@ export async function GET(request: NextRequest) {
           take: 3,
         });
 
-        const hasPayrollData = payrollEntries.length > 0;
+        // Récupérer les imports Gastrotime
+        const gastrotimeImports = await prisma.payrollImportHistory.findMany({
+          where: { mandateId: mandate.id },
+          select: {
+            period: true,
+            totalCost: true,
+            totalEmployees: true,
+            importDate: true,
+          },
+          orderBy: { importDate: "desc" },
+          take: 3,
+        });
+
+        // Combiner les données pour déterminer le statut
+        const hasManualData = payrollEntries.length > 0;
+        const hasGastrotimeData = gastrotimeImports.length > 0;
+        const hasPayrollData = hasManualData || hasGastrotimeData;
+
+        // Déterminer la dernière entrée (manuelle ou import)
         const lastPayrollEntry = payrollEntries[0] || null;
+        const lastGastrotimeImport = gastrotimeImports[0] || null;
 
+        let lastPayrollEntryDate: Date | null = null;
         let currentMonthRatio: number | null = null;
+        let employeeCount: number | null = null;
 
+        // Logique pour la dernière entrée et le nombre d'employés
+        if (lastPayrollEntry && lastGastrotimeImport) {
+          const manualDate = new Date(
+            lastPayrollEntry.year,
+            lastPayrollEntry.month - 1,
+            1
+          );
+          const gastrotimeDate = new Date(lastGastrotimeImport.importDate);
+
+          if (gastrotimeDate > manualDate) {
+            lastPayrollEntryDate = gastrotimeDate;
+            employeeCount = lastGastrotimeImport.totalEmployees;
+          } else {
+            lastPayrollEntryDate = manualDate;
+            employeeCount = lastPayrollEntry.employeeCount;
+          }
+        } else if (lastPayrollEntry) {
+          lastPayrollEntryDate = new Date(
+            lastPayrollEntry.year,
+            lastPayrollEntry.month - 1,
+            1
+          );
+          employeeCount = lastPayrollEntry.employeeCount;
+        } else if (lastGastrotimeImport) {
+          lastPayrollEntryDate = new Date(lastGastrotimeImport.importDate);
+          employeeCount = lastGastrotimeImport.totalEmployees;
+        }
+
+        // Calculer le ratio pour le mois courant
         if (
           lastPayrollEntry &&
           lastPayrollEntry.year === currentYear &&
@@ -140,10 +191,35 @@ export async function GET(request: NextRequest) {
           }
         }
 
-        const employeeCount = lastPayrollEntry?.employeeCount || null;
-        const lastPayrollEntryDate = lastPayrollEntry
-          ? new Date(lastPayrollEntry.year, lastPayrollEntry.month - 1, 1)
-          : null;
+        // Sinon, vérifier s'il y a un import Gastrotime pour le mois courant
+        if (!currentMonthRatio && lastGastrotimeImport) {
+          const currentPeriod = `${currentYear}-${currentMonth.toString().padStart(2, "0")}`;
+          const currentMonthImport = gastrotimeImports.find(
+            (imp) => imp.period === currentPeriod
+          );
+
+          if (currentMonthImport) {
+            const monthStart = new Date(currentYear, currentMonth - 1, 1);
+            const monthEnd = new Date(currentYear, currentMonth, 0);
+
+            const monthlyRevenue = await prisma.dayValue.aggregate({
+              where: {
+                mandateId: mandate.id,
+                date: {
+                  gte: monthStart,
+                  lte: monthEnd,
+                },
+              },
+              _sum: { value: true },
+            });
+
+            const totalRevenue = monthlyRevenue._sum.value || 0;
+            if (totalRevenue > 0) {
+              currentMonthRatio =
+                (currentMonthImport.totalCost / totalRevenue) * 100;
+            }
+          }
+        }
 
         return {
           ...mandate,
@@ -186,28 +262,39 @@ export async function GET(request: NextRequest) {
             const monthStart = new Date(currentYear, currentMonth - 1, 1);
             const monthEnd = new Date(currentYear, currentMonth, 0);
 
-            const [monthlyRevenue, payrollEntry] = await Promise.all([
-              prisma.dayValue.aggregate({
-                where: {
-                  mandateId: mandate.id,
-                  date: { gte: monthStart, lte: monthEnd },
-                },
-                _sum: { value: true },
-              }),
-              prisma.manualPayrollEntry.findUnique({
-                where: {
-                  mandateId_year_month: {
+            const [monthlyRevenue, payrollEntry, gastrotimeImport] =
+              await Promise.all([
+                prisma.dayValue.aggregate({
+                  where: {
                     mandateId: mandate.id,
-                    year: currentYear,
-                    month: currentMonth,
+                    date: { gte: monthStart, lte: monthEnd },
                   },
-                },
-              }),
-            ]);
+                  _sum: { value: true },
+                }),
+                prisma.manualPayrollEntry.findUnique({
+                  where: {
+                    mandateId_year_month: {
+                      mandateId: mandate.id,
+                      year: currentYear,
+                      month: currentMonth,
+                    },
+                  },
+                }),
+                prisma.payrollImportHistory.findFirst({
+                  where: {
+                    mandateId: mandate.id,
+                    period: `${currentYear}-${currentMonth.toString().padStart(2, "0")}`,
+                  },
+                }),
+              ]);
+
+            // Prioriser saisie manuelle, sinon import Gastrotime
+            const payrollCost =
+              payrollEntry?.totalCost || gastrotimeImport?.totalCost || 0;
 
             return {
               revenue: monthlyRevenue._sum.value || 0,
-              payroll: payrollEntry?.totalCost || 0,
+              payroll: payrollCost,
             };
           })
       );
