@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   Card,
   CardContent,
@@ -50,6 +50,7 @@ import {
   Loader2,
   Save,
   BarChart3,
+  Upload,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -98,6 +99,7 @@ interface PayrollData {
 
 export default function MandatePayrollPage() {
   const params = useParams();
+  const router = useRouter();
   const mandateId = params.id as string;
 
   const [payrollData, setPayrollData] = useState<PayrollData | null>(null);
@@ -323,10 +325,7 @@ export default function MandatePayrollPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Select
-            value={selectedYear}
-            onValueChange={setSelectedYear} // ✅ FIX: Pas besoin de fonction wrapper
-          >
+          <Select value={selectedYear} onValueChange={setSelectedYear}>
             <SelectTrigger className="w-32">
               <SelectValue />
             </SelectTrigger>
@@ -338,6 +337,17 @@ export default function MandatePayrollPage() {
               ))}
             </SelectContent>
           </Select>
+          <Button
+            variant="outline"
+            onClick={() =>
+              router.push(
+                `/dashboard/payroll/import-with-validation?mandateId=${mandateId}`
+              )
+            }
+          >
+            <Upload className="mr-2 h-4 w-4" />
+            Import Gastrotime
+          </Button>
           <Button onClick={openNewEntryDialog}>
             <Plus className="mr-2 h-4 w-4" />
             Nouvelle saisie

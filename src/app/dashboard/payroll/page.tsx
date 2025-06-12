@@ -34,7 +34,6 @@ import {
   Search,
   Upload,
   BarChart3,
-  DollarSign,
   Calendar,
   Loader2,
   Filter,
@@ -57,18 +56,9 @@ interface Mandate {
   employeeCount?: number;
 }
 
-interface PayrollSummary {
-  totalMandates: number;
-  mandatesWithData: number;
-  totalEmployees: number;
-  globalRatio: number | null;
-  averageRatio: number | null;
-}
-
 export default function PayrollIndexPage() {
   const router = useRouter();
   const [mandates, setMandates] = useState<Mandate[]>([]);
-  const [summary, setSummary] = useState<PayrollSummary | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Filtres
@@ -90,7 +80,6 @@ export default function PayrollIndexPage() {
 
       const data = await response.json();
       setMandates(data.mandates || []);
-      setSummary(data.summary || null);
     } catch (error) {
       console.error("Erreur:", error);
       toast.error("Erreur lors du chargement des données");
@@ -181,91 +170,12 @@ export default function PayrollIndexPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            onClick={() =>
-              router.push("/dashboard/payroll/import-with-validation")
-            }
-          >
-            <Upload className="mr-2 h-4 w-4" />
-            Import Gastrotime
-          </Button>
           <Button onClick={() => router.push("/dashboard/analytics")}>
             <BarChart3 className="mr-2 h-4 w-4" />
             Analytics
           </Button>
         </div>
       </div>
-
-      {/* Vue d'ensemble */}
-      {summary && (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Établissements
-              </CardTitle>
-              <Building2 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{summary.totalMandates}</div>
-              <p className="text-xs text-muted-foreground">
-                {summary.mandatesWithData} avec données MS
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Employés total
-              </CardTitle>
-              <Calculator className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{summary.totalEmployees}</div>
-              <p className="text-xs text-muted-foreground">
-                Tous établissements
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Ratio global
-              </CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div
-                className={`text-2xl font-bold ${getRatioColor(summary.globalRatio)}`}
-              >
-                {formatPercentage(summary.globalRatio)}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Masse sal. / CA total
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Ratio moyen</CardTitle>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div
-                className={`text-2xl font-bold ${getRatioColor(summary.averageRatio)}`}
-              >
-                {formatPercentage(summary.averageRatio)}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Moyenne établissements
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      )}
 
       {/* Liste des établissements */}
       <Card>
