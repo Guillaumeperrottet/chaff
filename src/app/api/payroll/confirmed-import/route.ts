@@ -21,6 +21,7 @@ const ConfirmedImportSchema = z.object({
   metadata: z.object({
     filename: z.string(),
     defaultHourlyRate: z.number(),
+    socialChargesRate: z.number().optional().default(22), // ✅ NOUVEAU
     validationStats: z.object({
       totalEmployees: z.number(),
       exactMatches: z.number(),
@@ -29,6 +30,8 @@ const ConfirmedImportSchema = z.object({
       needsReview: z.number(),
       totalHours: z.number(),
       estimatedTotalCost: z.number(),
+      estimatedSocialCharges: z.number().optional(), // ✅ NOUVEAU
+      estimatedTotalWithCharges: z.number().optional(), // ✅ NOUVEAU
     }),
   }),
 });
@@ -121,8 +124,9 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // Calculer les charges sociales
-      const socialCharges = totalGrossAmount * 0.22;
+      // Calculer les charges sociales avec le taux personnalisé
+      const socialChargesRate = metadata.socialChargesRate || 22;
+      const socialCharges = totalGrossAmount * (socialChargesRate / 100);
       const totalCost = totalGrossAmount + socialCharges;
 
       // Créer ou mettre à jour l'entrée de masse salariale
@@ -139,7 +143,7 @@ export async function POST(request: NextRequest) {
           socialCharges: socialCharges,
           totalCost: totalCost,
           employeeCount: employees.length,
-          notes: `Import validé Gastrotime - ${metadata.filename}`,
+          notes: `Import validé Gastrotime - ${metadata.filename} (charges sociales: ${socialChargesRate}%)`,
           updatedAt: new Date(),
         },
         create: {
@@ -150,7 +154,7 @@ export async function POST(request: NextRequest) {
           socialCharges: socialCharges,
           totalCost: totalCost,
           employeeCount: employees.length,
-          notes: `Import validé Gastrotime - ${metadata.filename}`,
+          notes: `Import validé Gastrotime - ${metadata.filename} (charges sociales: ${socialChargesRate}%)`,
           createdBy: session.user.id,
         },
       });

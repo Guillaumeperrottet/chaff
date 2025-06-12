@@ -84,6 +84,7 @@ interface ValidationData {
   mandate: { id: string; name: string };
   filename: string;
   defaultHourlyRate: number;
+  socialChargesRate: number; // ✅ NOUVEAU: Taux de charges sociales
   validationResults: ValidationEmployee[];
   statistics: {
     totalEmployees: number;
@@ -93,6 +94,8 @@ interface ValidationData {
     needsReview: number;
     totalHours: number;
     estimatedTotalCost: number;
+    estimatedSocialCharges: number; // ✅ NOUVEAU: Charges sociales estimées
+    estimatedTotalWithCharges: number; // ✅ NOUVEAU: Coût total avec charges
   };
   canProceed: boolean;
 }
@@ -108,6 +111,8 @@ export default function ImportWithValidationPage() {
     new Date().toISOString().slice(0, 7)
   );
   const [defaultHourlyRate, setDefaultHourlyRate] = useState<string>("25");
+  // ✅ NOUVEAU: Taux de charges sociales personnalisable
+  const [socialChargesRate, setSocialChargesRate] = useState<string>("22");
 
   const [validationData, setValidationData] = useState<ValidationData | null>(
     null
@@ -145,7 +150,7 @@ export default function ImportWithValidationPage() {
   };
 
   const handleValidate = async () => {
-    if (!selectedFile || !selectedMandateId || !defaultHourlyRate) {
+    if (!selectedFile || !selectedMandateId || !defaultHourlyRate || !socialChargesRate) {
       toast.error("Veuillez remplir tous les champs");
       return;
     }
@@ -157,6 +162,7 @@ export default function ImportWithValidationPage() {
       formData.append("file", selectedFile);
       formData.append("mandateId", selectedMandateId);
       formData.append("defaultHourlyRate", defaultHourlyRate);
+      formData.append("socialChargesRate", socialChargesRate);
 
       const response = await fetch("/api/payroll/validate-import", {
         method: "POST",
@@ -255,6 +261,7 @@ export default function ImportWithValidationPage() {
         metadata: {
           filename: validationData.filename,
           defaultHourlyRate: validationData.defaultHourlyRate,
+          socialChargesRate: validationData.socialChargesRate, // ✅ NOUVEAU
           validationStats: validationData.statistics,
         },
       };
@@ -423,6 +430,28 @@ export default function ImportWithValidationPage() {
                 />
               </div>
 
+              {/* Charges sociales */}
+              <div className="space-y-2">
+                <Label htmlFor="socialChargesRate">
+                  Taux charges sociales (%)
+                </Label>
+                <Input
+                  id="socialChargesRate"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="100"
+                  value={socialChargesRate}
+                  onChange={(e) => setSocialChargesRate(e.target.value)}
+                  placeholder="22.0"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Pourcentage appliqué au salaire brut pour calculer les charges sociales
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4">
               {/* Fichier */}
               <div className="space-y-2">
                 <Label htmlFor="file">
@@ -458,6 +487,7 @@ export default function ImportWithValidationPage() {
                   !selectedFile ||
                   !selectedMandateId ||
                   !defaultHourlyRate ||
+                  !socialChargesRate ||
                   isValidating
                 }
                 className="w-full"
@@ -492,7 +522,7 @@ export default function ImportWithValidationPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-blue-600">
                     {validationData.statistics.totalEmployees}
@@ -538,7 +568,21 @@ export default function ImportWithValidationPage() {
                   </div>
                   <div className="text-sm text-muted-foreground flex items-center justify-center gap-1">
                     <DollarSign className="h-3 w-3" />
-                    Coût estimé
+                    Salaire brut
+                  </div>
+                </div>
+
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-purple-600">
+                    {formatCurrency(
+                      validationData.statistics.estimatedTotalWithCharges
+                    )}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Coût total employeur
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    (+{validationData.socialChargesRate}% charges)
                   </div>
                 </div>
               </div>

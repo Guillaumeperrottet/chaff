@@ -229,12 +229,16 @@ export async function POST(request: NextRequest) {
     const defaultHourlyRate = parseFloat(
       (formData.get("defaultHourlyRate") as string) || "25"
     );
+    const socialChargesRate = parseFloat(
+      (formData.get("socialChargesRate") as string) || "22"
+    );
 
     console.log("Paramètres reçus:", {
       fileName: file?.name,
       fileSize: file?.size,
       mandateId,
       defaultHourlyRate,
+      socialChargesRate,
     });
 
     if (!file || !mandateId) {
@@ -347,13 +351,20 @@ export async function POST(request: NextRequest) {
         matchConfidence: matchResult.confidence,
         proposedHourlyRate: proposedRate,
         rateSource: rateSource,
-        estimatedCost: csvEmp.totalHours * proposedRate * 1.22, // +22% charges
+        estimatedCost: csvEmp.totalHours * proposedRate, // Salaire brut seulement
         needsReview: needsReview,
         issues: issues,
       });
     }
 
     // Calculer les statistiques
+    const grossAmount = validationResults.reduce(
+      (sum, r) => sum + r.estimatedCost,
+      0
+    );
+    const socialCharges = grossAmount * (socialChargesRate / 100);
+    const totalWithCharges = grossAmount + socialCharges;
+
     const stats = {
       totalEmployees: validationResults.length,
       exactMatches: validationResults.filter((r) => r.matchType === "exact")
@@ -363,17 +374,18 @@ export async function POST(request: NextRequest) {
       noMatches: validationResults.filter((r) => r.matchType === "none").length,
       needsReview: validationResults.filter((r) => r.needsReview).length,
       totalHours: validationResults.reduce((sum, r) => sum + r.totalHours, 0),
-      estimatedTotalCost: validationResults.reduce(
-        (sum, r) => sum + r.estimatedCost,
-        0
-      ),
+      estimatedTotalCost: grossAmount, // Salaire brut
+      estimatedSocialCharges: socialCharges, // Charges sociales
+      estimatedTotalWithCharges: totalWithCharges, // Total employeur
     };
 
     console.log("Statistiques finales:", stats);
 
     return NextResponse.json({
+      mandate: { id: mandate.id, name: mandate.name },
       filename: file.name,
       defaultHourlyRate: defaultHourlyRate,
+      socialChargesRate: socialChargesRate, // ✅ NOUVEAU
       validationResults: validationResults,
       statistics: stats,
       canProceed: stats.needsReview === 0,
