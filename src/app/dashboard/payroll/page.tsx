@@ -53,6 +53,7 @@ interface Mandate {
   hasPayrollData?: boolean;
   lastPayrollEntry?: Date | null;
   currentMonthRatio?: number | null;
+  socialChargesRate?: number | null; // ✅ NOUVEAU: Taux de charges sociales du dernier import
   employeeCount?: number;
 }
 
@@ -244,6 +245,7 @@ export default function PayrollIndexPage() {
                 <TableHead>Type</TableHead>
                 <TableHead className="text-center">Employés</TableHead>
                 <TableHead className="text-center">Ratio actuel</TableHead>
+                <TableHead className="text-center">Charges sociales</TableHead>
                 <TableHead className="text-center">Status MS</TableHead>
                 <TableHead>Dernière saisie MS</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -296,6 +298,15 @@ export default function PayrollIndexPage() {
                       >
                         {formatPercentage(mandate.currentMonthRatio ?? null)}
                       </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {mandate.socialChargesRate ? (
+                        <div className="text-sm text-muted-foreground">
+                          {mandate.socialChargesRate}%
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-center">
                       <Badge variant={ratioStatus.variant}>

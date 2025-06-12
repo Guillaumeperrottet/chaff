@@ -72,6 +72,13 @@ interface PayrollSummary {
   month: number;
   monthName: string;
   manualEntry?: PayrollEntry;
+  gastrotimeImport?: {
+    id: string;
+    period: string;
+    totalCost: number;
+    totalEmployees: number;
+    importDate: string;
+  }; // ✅ NOUVEAU: Import Gastrotime
   revenue: number;
   revenueEntries: number;
   payrollToRevenueRatio: number | null;
@@ -240,6 +247,33 @@ export default function MandatePayrollPage() {
     },
     [mandateId, fetchPayrollData]
   ); // ✅ FIX: Dépendances correctes
+
+  // ✅ NOUVEAU: Fonction pour supprimer un import Gastrotime
+  const handleDeleteGastrotimeImport = useCallback(
+    async (importId: string) => {
+      if (!confirm("Supprimer cet import Gastrotime ? Cette action est irréversible.")) return;
+
+      try {
+        const response = await fetch(`/api/payroll/delete-import/${importId}`, {
+          method: "DELETE",
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || "Erreur lors de la suppression");
+        }
+
+        toast.success("Import Gastrotime supprimé avec succès");
+        fetchPayrollData(); // Recharger les données
+      } catch (error) {
+        console.error("Erreur:", error);
+        toast.error(
+          error instanceof Error ? error.message : "Erreur lors de la suppression"
+        );
+      }
+    },
+    [fetchPayrollData]
+  );
 
   const resetForm = useCallback(() => {
     setFormData({
@@ -451,6 +485,11 @@ export default function MandatePayrollPage() {
                           Saisi
                         </Badge>
                       )}
+                      {summary.gastrotimeImport && (
+                        <Badge variant="secondary" className="text-xs">
+                          Gastrotime
+                        </Badge>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell className="text-right">
@@ -464,14 +503,22 @@ export default function MandatePayrollPage() {
                     )}
                   </TableCell>
                   <TableCell className="text-right">
-                    {summary.manualEntry
-                      ? formatCurrency(summary.manualEntry.totalCost)
-                      : "-"}
-                    {summary.manualEntry && (
-                      <div className="text-xs text-muted-foreground">
-                        +{formatCurrency(summary.manualEntry.socialCharges)}{" "}
-                        charges
-                      </div>
+                    {summary.manualEntry || summary.gastrotimeImport ? (
+                      <>
+                        {summary.manualEntry 
+                          ? formatCurrency(summary.manualEntry.totalCost)
+                          : formatCurrency(summary.gastrotimeImport!.totalCost)
+                        }
+                        <div className="text-xs text-muted-foreground">
+                          {summary.manualEntry ? (
+                            <>+{formatCurrency(summary.manualEntry.socialCharges)} charges</>
+                          ) : (
+                            <span className="italic">Import Gastrotime</span>
+                          )}
+                        </div>
+                      </>
+                    ) : (
+                      "-"
                     )}
                   </TableCell>
                   <TableCell className="text-right">
@@ -485,7 +532,9 @@ export default function MandatePayrollPage() {
                     </div>
                   </TableCell>
                   <TableCell className="text-right">
-                    {summary.manualEntry?.employeeCount || "-"}
+                    {summary.manualEntry?.employeeCount || 
+                     summary.gastrotimeImport?.totalEmployees || 
+                     "-"}
                   </TableCell>
                   <TableCell>
                     {summary.manualEntry?.notes && (
@@ -495,7 +544,9 @@ export default function MandatePayrollPage() {
                         </span>
                         {/* Afficher le taux de charges sociales si c'est un import Gastrotime */}
                         {(() => {
-                          const socialChargesRate = extractSocialChargesRate(summary.manualEntry.notes);
+                          const socialChargesRate = extractSocialChargesRate(
+                            summary.manualEntry.notes
+                          );
                           return socialChargesRate !== null ? (
                             <div className="text-xs text-muted-foreground italic">
                               Charges sociales: {socialChargesRate}%
@@ -508,11 +559,13 @@ export default function MandatePayrollPage() {
                   <TableCell>
                     <div className="flex items-center gap-1">
                       {summary.manualEntry ? (
+                        // Actions pour saisie manuelle
                         <>
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => handleEdit(summary)}
+                            title="Modifier la saisie manuelle"
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -522,11 +575,29 @@ export default function MandatePayrollPage() {
                             onClick={() =>
                               handleDelete(summary.year, summary.month)
                             }
+                            title="Supprimer la saisie manuelle"
+                            className="text-red-600 hover:text-red-700"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </>
+                      ) : summary.gastrotimeImport ? (
+                        // Actions pour import Gastrotime
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() =>
+                            handleDeleteGastrotimeImport(
+                              summary.gastrotimeImport!.id
+                            )
+                          }
+                          title="Supprimer l'import Gastrotime"
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       ) : (
+                        // Bouton d'ajout si aucune donnée
                         <Button
                           variant="ghost"
                           size="sm"
@@ -537,6 +608,7 @@ export default function MandatePayrollPage() {
                             }));
                             setIsDialogOpen(true);
                           }}
+                          title="Ajouter une saisie manuelle"
                         >
                           <Plus className="h-4 w-4" />
                         </Button>

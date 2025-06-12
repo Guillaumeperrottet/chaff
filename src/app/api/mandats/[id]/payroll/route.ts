@@ -62,6 +62,20 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       orderBy: [{ year: "asc" }, { month: "asc" }],
     });
 
+    // ✅ NOUVEAU: Récupérer les imports Gastrotime pour la période
+    const gastrotimeImports = await prisma.payrollImportHistory.findMany({
+      where: {
+        mandateId: id,
+        period: {
+          in: Array.from({ length: endMonth - startMonth + 1 }, (_, i) => {
+            const month = startMonth + i;
+            return `${year}-${month.toString().padStart(2, "0")}`;
+          }),
+        },
+      },
+      orderBy: { importDate: "desc" },
+    });
+
     // Récupérer les données CA correspondantes pour calculer les ratios
     const revenueData = await Promise.all(
       Array.from({ length: endMonth - startMonth + 1 }, (_, i) => {
@@ -95,9 +109,16 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       (_, i) => {
         const month = startMonth + i;
         const manualEntry = manualEntries.find((e) => e.month === month);
+        
+        // ✅ NOUVEAU: Chercher l'import Gastrotime pour ce mois
+        const gastrotimeImport = gastrotimeImports.find(
+          (imp) => imp.period === `${year}-${month.toString().padStart(2, "0")}`
+        );
+        
         const revenue = revenueData[i];
 
-        const payrollCost = manualEntry?.totalCost || 0;
+        // Prioriser saisie manuelle, sinon import Gastrotime
+        const payrollCost = manualEntry?.totalCost || gastrotimeImport?.totalCost || 0;
         const ratio =
           revenue.totalRevenue > 0
             ? (payrollCost / revenue.totalRevenue) * 100
@@ -110,10 +131,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             month: "long",
           }),
           manualEntry,
+          gastrotimeImport, // ✅ NOUVEAU: Inclure l'import Gastrotime
           revenue: revenue.totalRevenue,
           revenueEntries: revenue.entryCount,
           payrollToRevenueRatio: ratio,
-          hasData: !!manualEntry || revenue.totalRevenue > 0,
+          hasData: !!manualEntry || !!gastrotimeImport || revenue.totalRevenue > 0,
         };
       }
     );
@@ -124,10 +146,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       period: { startMonth, endMonth },
       summary: payrollSummary,
       totals: {
-        totalPayrollCost: manualEntries.reduce(
-          (sum, e) => sum + e.totalCost,
-          0
-        ),
+        totalPayrollCost: manualEntries.reduce((sum, e) => sum + e.totalCost, 0) +
+                         gastrotimeImports.reduce((sum, e) => sum + e.totalCost, 0),
         totalRevenue: revenueData.reduce((sum, r) => sum + r.totalRevenue, 0),
         averageRatio: payrollSummary
           .filter((s) => s.payrollToRevenueRatio !== null)

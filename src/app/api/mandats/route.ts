@@ -105,6 +105,7 @@ export async function GET(request: NextRequest) {
             month: true,
             totalCost: true,
             employeeCount: true,
+            notes: true,
           },
           orderBy: [{ year: "desc" }, { month: "desc" }],
           take: 3,
@@ -128,13 +129,22 @@ export async function GET(request: NextRequest) {
         const hasGastrotimeData = gastrotimeImports.length > 0;
         const hasPayrollData = hasManualData || hasGastrotimeData;
 
-        // Déterminer la dernière entrée (manuelle ou import)
         const lastPayrollEntry = payrollEntries[0] || null;
         const lastGastrotimeImport = gastrotimeImports[0] || null;
+
+        // ✅ NOUVEAU: Fonction pour extraire le taux de charges sociales des notes
+        const extractSocialChargesRate = (
+          notes: string | null
+        ): number | null => {
+          if (!notes) return null;
+          const match = notes.match(/charges sociales:\s*(\d+(?:\.\d+)?)%/);
+          return match ? parseFloat(match[1]) : null;
+        };
 
         let lastPayrollEntryDate: Date | null = null;
         let currentMonthRatio: number | null = null;
         let employeeCount: number | null = null;
+        let socialChargesRate: number | null = null; // ✅ NOUVEAU
 
         // Logique pour la dernière entrée et le nombre d'employés
         if (lastPayrollEntry && lastGastrotimeImport) {
@@ -148,9 +158,13 @@ export async function GET(request: NextRequest) {
           if (gastrotimeDate > manualDate) {
             lastPayrollEntryDate = gastrotimeDate;
             employeeCount = lastGastrotimeImport.totalEmployees;
+            // Pas de taux spécifique pour les imports Gastrotime (pour l'instant)
           } else {
             lastPayrollEntryDate = manualDate;
             employeeCount = lastPayrollEntry.employeeCount;
+            socialChargesRate = extractSocialChargesRate(
+              lastPayrollEntry.notes
+            );
           }
         } else if (lastPayrollEntry) {
           lastPayrollEntryDate = new Date(
@@ -159,6 +173,7 @@ export async function GET(request: NextRequest) {
             1
           );
           employeeCount = lastPayrollEntry.employeeCount;
+          socialChargesRate = extractSocialChargesRate(lastPayrollEntry.notes);
         } else if (lastGastrotimeImport) {
           lastPayrollEntryDate = new Date(lastGastrotimeImport.importDate);
           employeeCount = lastGastrotimeImport.totalEmployees;
@@ -239,6 +254,7 @@ export async function GET(request: NextRequest) {
           hasPayrollData,
           lastPayrollEntry: lastPayrollEntryDate,
           currentMonthRatio,
+          socialChargesRate, // ✅ NOUVEAU
           employeeCount,
         };
       })
