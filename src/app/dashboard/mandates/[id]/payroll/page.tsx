@@ -312,7 +312,10 @@ export default function MandatePayrollPage() {
   return (
     <div className="space-y-6">
       {/* Navigation */}
-      <BackButton href="/dashboard/mandates" label="Retour aux mandats" />
+      <BackButton
+        href="/dashboard/payroll"
+        label="Retour a la masse salariale"
+      />
 
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -346,11 +349,11 @@ export default function MandatePayrollPage() {
             }
           >
             <Upload className="mr-2 h-4 w-4" />
-            Import Gastrotime
+            Import avec Gastrotime
           </Button>
           <Button onClick={openNewEntryDialog}>
             <Plus className="mr-2 h-4 w-4" />
-            Nouvelle saisie
+            Saisie manuelle
           </Button>
         </div>
       </div>
