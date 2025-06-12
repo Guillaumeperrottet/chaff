@@ -35,15 +35,8 @@ import {
   BarChart3,
   RefreshCw,
   FileSpreadsheet,
-  HelpCircle,
 } from "lucide-react";
 import { toast } from "sonner";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/app/components/ui/tooltip";
 import PrintableCAReport from "@/app/components/ca/PrintableCAReport";
 
 // Types pour les données CA
@@ -726,236 +719,100 @@ export default function MandateCAPage() {
 
       {/* Statistiques de performance - En bas de page */}
       <div className="print:hidden">
-        <TooltipProvider>
-          {/* Section CA - Chiffre d'Affaires */}
-          <div className="mb-6">
-            <div className="flex items-center gap-2 mb-3">
-              <DollarSign className="h-5 w-5 text-blue-600" />
-              <h3 className="text-lg font-semibold text-gray-900">
-                Chiffre d&apos;Affaires
-              </h3>
-              <span className="text-sm text-gray-500">
-                {selectedSemester === "1" ? "1er semestre" : "2ème semestre"}{" "}
-                {selectedYear}
-              </span>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-base">CA Total</CardTitle>
-                  <DollarSign className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="text-2xl font-bold">
-                      {formatCurrency(caData.summary.grandTotal)}
-                    </div>
-                    {caData.summary.yearOverYearGrowth.revenue !== null && (
-                      <div className="flex items-center text-xs">
-                        {getGrowthIcon(
-                          caData.summary.yearOverYearGrowth.revenue
-                        )}
-                        <span className="ml-1">
-                          {formatPercentage(
-                            caData.summary.yearOverYearGrowth.revenue
-                          )}{" "}
-                          vs {parseInt(selectedYear) - 1}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-base">Meilleur Mois</CardTitle>
-                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="text-2xl font-bold">
-                      {formatCurrency(caData.summary.bestPeriod.totalValue)}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      {caData.summary.bestPeriod.label}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <div className="flex items-center gap-1">
-                    <CardTitle className="text-base">Évol. CA</CardTitle>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="text-xs">
-                          Évolution du chiffre d&apos;affaires par rapport à la
-                          même période de l&apos;année précédente
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                  <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      {getGrowthIcon(caData.summary.yearOverYearGrowth.revenue)}
-                      <span className="text-lg font-bold">
-                        {formatPercentage(
-                          caData.summary.yearOverYearGrowth.revenue
-                        )}
-                      </span>
-                    </div>
-                    <div className="text-sm text-muted-foreground">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-base">CA Total</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="text-2xl font-bold">
+                  {formatCurrency(caData.summary.grandTotal)}
+                </div>
+                {caData.summary.yearOverYearGrowth.revenue !== null && (
+                  <div className="flex items-center text-xs">
+                    {getGrowthIcon(caData.summary.yearOverYearGrowth.revenue)}
+                    <span className="ml-1">
+                      {formatPercentage(
+                        caData.summary.yearOverYearGrowth.revenue
+                      )}{" "}
                       vs {parseInt(selectedYear) - 1}
-                    </div>
+                    </span>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
-          {/* Section Masse Salariale & Ratios */}
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <Calculator className="h-5 w-5 text-green-600" />
-              <h3 className="text-lg font-semibold text-gray-900">
-                Masse Salariale & Ratios
-              </h3>
-              <span className="text-sm text-gray-500">
-                Analyse des coûts de personnel
-              </span>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-base">Masse Salariale</CardTitle>
-                  <Calculator className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="text-2xl font-bold">
-                      {formatCurrency(caData.summary.totalPayrollCost)}
-                    </div>
-                    {caData.summary.yearOverYearGrowth.payroll !== null && (
-                      <div className="flex items-center text-xs">
-                        {getGrowthIcon(
-                          caData.summary.yearOverYearGrowth.payroll
-                        )}
-                        <span className="ml-1">
-                          {formatPercentage(
-                            caData.summary.yearOverYearGrowth.payroll
-                          )}{" "}
-                          vs {parseInt(selectedYear) - 1}
-                        </span>
-                      </div>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-base">Masse Salariale</CardTitle>
+              <Calculator className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="text-2xl font-bold">
+                  {formatCurrency(caData.summary.totalPayrollCost)}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Ratio global:{" "}
+                  {caData.summary.globalPayrollRatio
+                    ? formatPercentage(caData.summary.globalPayrollRatio, false)
+                    : "-"}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-base">Meilleur Mois</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="text-2xl font-bold">
+                  {formatCurrency(caData.summary.bestPeriod.totalValue)}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {caData.summary.bestPeriod.label}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-base">Évolution annuelle</CardTitle>
+              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  {getGrowthIcon(caData.summary.yearOverYearGrowth.revenue)}
+                  <span className="text-sm">
+                    CA:{" "}
+                    {formatPercentage(
+                      caData.summary.yearOverYearGrowth.revenue
                     )}
+                  </span>
+                </div>
+                {caData.summary.yearOverYearGrowth.payroll !== null && (
+                  <div className="flex items-center gap-2">
+                    {getGrowthIcon(caData.summary.yearOverYearGrowth.payroll)}
+                    <span className="text-sm">
+                      MS:{" "}
+                      {formatPercentage(
+                        caData.summary.yearOverYearGrowth.payroll
+                      )}
+                    </span>
                   </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <div className="flex items-center gap-1">
-                    <CardTitle className="text-base">Ratio Global</CardTitle>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <div className="text-xs space-y-1">
-                          <p className="font-medium">
-                            Formule : (Masse Salariale ÷ CA) × 100
-                          </p>
-                          <div className="space-y-0.5">
-                            <p>• Excellent : &lt; 25%</p>
-                            <p>• Bon : 25-35%</p>
-                            <p>• Attention : 35-50%</p>
-                            <p>• Critique : &gt; 50%</p>
-                          </div>
-                        </div>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                  <Calculator className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="text-2xl font-bold">
-                      {caData.summary.globalPayrollRatio
-                        ? formatPercentage(
-                            caData.summary.globalPayrollRatio,
-                            false
-                          )
-                        : "-"}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Masse salariale / CA
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <div className="flex items-center gap-1">
-                    <CardTitle className="text-base">Évol. Ratio</CardTitle>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <div className="text-xs space-y-1">
-                          <p>
-                            Évolution du ratio masse salariale par rapport à la
-                            même période de l&apos;année précédente
-                          </p>
-                          <p className="text-muted-foreground">
-                            Une baisse indique une amélioration de
-                            l&apos;efficacité
-                          </p>
-                        </div>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {caData.summary.yearOverYearGrowth.payroll !== null &&
-                    caData.summary.yearOverYearGrowth.revenue !== null ? (
-                      <div className="flex items-center gap-2">
-                        {getGrowthIcon(
-                          caData.summary.yearOverYearGrowth.payroll -
-                            caData.summary.yearOverYearGrowth.revenue
-                        )}
-                        <span className="text-lg font-bold">
-                          {formatPercentage(
-                            caData.summary.yearOverYearGrowth.payroll -
-                              caData.summary.yearOverYearGrowth.revenue
-                          )}
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="text-lg font-bold text-muted-foreground">
-                        -
-                      </div>
-                    )}
-                    <div className="text-sm text-muted-foreground">
-                      Écart MS vs CA
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </TooltipProvider>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* Informations supplémentaires */}
