@@ -164,6 +164,19 @@ export async function GET(request: NextRequest) {
           employeeCount = lastGastrotimeImport.totalEmployees;
         }
 
+        // Si pas de données de masse salariale, utiliser le nombre d'employés réels
+        if (employeeCount === null) {
+          const activeEmployeesCount = await prisma.employee.count({
+            where: {
+              mandateId: mandate.id,
+              isActive: true,
+            },
+          });
+          if (activeEmployeesCount > 0) {
+            employeeCount = activeEmployeesCount;
+          }
+        }
+
         // Calculer le ratio pour le mois courant
         if (
           lastPayrollEntry &&
