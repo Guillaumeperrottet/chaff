@@ -31,12 +31,25 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       searchParams.get("year") || new Date().getFullYear().toString()
     );
 
-    // Nouveau: par défaut 12 mois à partir du mois courant
+    // Support pour endMonth (pour les semestres)
     const currentMonth = new Date().getMonth() + 1;
     const startMonth = parseInt(
       searchParams.get("startMonth") || currentMonth.toString()
     );
-    const period = searchParams.get("period") || "12months"; // 12 mois par défaut
+    const endMonth = searchParams.get("endMonth") 
+      ? parseInt(searchParams.get("endMonth")!)
+      : null;
+    const period = searchParams.get("period") || "12months";
+
+    // Calculer les périodes à récupérer
+    let periods;
+    if (endMonth) {
+      // Mode semestre avec startMonth et endMonth
+      periods = generatePeriodsRange(year, startMonth, endMonth);
+    } else {
+      // Mode classique avec period
+      periods = generatePeriods(year, startMonth, period);
+    }
 
     // Vérifier que le mandat existe
     const mandate = await prisma.mandate.findUnique({
@@ -52,9 +65,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     if (!mandate) {
       return NextResponse.json({ error: "Mandat non trouvé" }, { status: 404 });
     }
-
-    // Calculer les périodes à récupérer
-    const periods = generatePeriods(year, startMonth, period);
 
     // Récupérer les données pour chaque période (année courante + année précédente)
     const caData = await Promise.all(
@@ -342,6 +352,21 @@ function generatePeriods(year: number, startMonth: number, period: string) {
       year: periodYear,
       month: periodMonth,
       label: `${getMonthName(periodMonth)} ${periodYear}`,
+    });
+  }
+
+  return periods;
+}
+
+// Nouvelle fonction pour générer une plage de mois (semestres)
+function generatePeriodsRange(year: number, startMonth: number, endMonth: number) {
+  const periods = [];
+
+  for (let month = startMonth; month <= endMonth; month++) {
+    periods.push({
+      year: year,
+      month: month,
+      label: `${getMonthName(month)} ${year}`,
     });
   }
 

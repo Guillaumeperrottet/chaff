@@ -128,15 +128,24 @@ export default function MandateCAPage() {
   const [selectedYear, setSelectedYear] = useState(
     new Date().getFullYear().toString()
   );
+  const [selectedSemester, setSelectedSemester] = useState(() => {
+    // Démarrer sur le semestre actuel
+    const currentMonth = new Date().getMonth() + 1; // 1-12
+    return currentMonth <= 6 ? "1" : "2";
+  });
 
-  // Charger les données CA depuis l'API (toujours pour 12 mois complets)
+  // Charger les données CA depuis l'API (maintenant pour 6 mois par semestre)
   useEffect(() => {
     const loadCAData = async () => {
       try {
         setLoading(true);
 
+        // Calculer les mois pour le semestre sélectionné
+        const startMonth = selectedSemester === "1" ? 1 : 7;
+        const endMonth = selectedSemester === "1" ? 6 : 12;
+
         const response = await fetch(
-          `/api/mandats/${mandateId}/ca?year=${selectedYear}&startMonth=1&period=12months`
+          `/api/mandats/${mandateId}/ca?year=${selectedYear}&startMonth=${startMonth}&endMonth=${endMonth}&period=6months`
         );
 
         if (!response.ok) {
@@ -154,14 +163,19 @@ export default function MandateCAPage() {
     };
 
     loadCAData();
-  }, [mandateId, selectedYear]);
+  }, [mandateId, selectedYear, selectedSemester]);
 
   const handleRefresh = () => {
     const loadCAData = async () => {
       try {
         setLoading(true);
+        
+        // Calculer les mois pour le semestre sélectionné
+        const startMonth = selectedSemester === "1" ? 1 : 7;
+        const endMonth = selectedSemester === "1" ? 6 : 12;
+        
         const response = await fetch(
-          `/api/mandats/${mandateId}/ca?year=${selectedYear}&startMonth=1&period=12months`
+          `/api/mandats/${mandateId}/ca?year=${selectedYear}&startMonth=${startMonth}&endMonth=${endMonth}&period=6months`
         );
         if (!response.ok) throw new Error("Erreur lors du chargement");
         const data = await response.json();
@@ -185,8 +199,12 @@ export default function MandateCAPage() {
     try {
       toast.loading("Génération de l'export...");
 
+      // Calculer les mois pour le semestre sélectionné
+      const startMonth = selectedSemester === "1" ? 1 : 7;
+      const endMonth = selectedSemester === "1" ? 6 : 12;
+
       const response = await fetch(
-        `/api/export/ca/${mandateId}?year=${selectedYear}&startMonth=1&period=12months`
+        `/api/export/ca/${mandateId}?year=${selectedYear}&startMonth=${startMonth}&endMonth=${endMonth}&period=6months`
       );
 
       if (!response.ok) throw new Error("Erreur lors de l'export");
@@ -196,7 +214,8 @@ export default function MandateCAPage() {
       const a = document.createElement("a");
       a.style.display = "none";
       a.href = url;
-      a.download = `ca_${caData?.mandate.name}_${selectedYear}.csv`;
+      const semesterName = selectedSemester === "1" ? "S1" : "S2";
+      a.download = `ca_${caData?.mandate.name}_${selectedYear}_${semesterName}.csv`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -344,9 +363,11 @@ export default function MandateCAPage() {
                 {caData.mandate.name}
               </h1>
               <div className="flex items-center space-x-2 text-sm text-gray-600">
-                <span>Analyse CA • Année complète</span>
+                <span>Analyse CA • {selectedSemester === "1" ? "1er" : "2ème"} semestre</span>
                 <span className="text-blue-600">•</span>
-                <span>Janvier - Décembre {selectedYear}</span>
+                <span>
+                  {selectedSemester === "1" ? "Janvier - Juin" : "Juillet - Décembre"} {selectedYear}
+                </span>
               </div>
             </div>
           </div>
@@ -383,12 +404,14 @@ export default function MandateCAPage() {
           </div>
         </div>
 
-        {/* Sélecteur d'année intégré */}
+        {/* Sélecteurs d'année et semestre intégrés */}
         <div className="px-6 py-3 bg-gray-50 border-b">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <CalendarIcon className="h-4 w-4 text-gray-500" />
-              <span className="text-sm font-medium text-gray-700">Année :</span>
+              <span className="text-sm font-medium text-gray-700">Période :</span>
+              
+              {/* Sélecteur d'année */}
               <Select value={selectedYear} onValueChange={setSelectedYear}>
                 <SelectTrigger className="w-28 h-8">
                   <SelectValue />
@@ -401,8 +424,20 @@ export default function MandateCAPage() {
                   ))}
                 </SelectContent>
               </Select>
+              
+              {/* Sélecteur de semestre */}
+              <Select value={selectedSemester} onValueChange={setSelectedSemester}>
+                <SelectTrigger className="w-32 h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">1er semestre</SelectItem>
+                  <SelectItem value="2">2ème semestre</SelectItem>
+                </SelectContent>
+              </Select>
+              
               <span className="text-xs text-muted-foreground">
-                Période complète : Janvier - Décembre
+                {selectedSemester === "1" ? "Janvier - Juin" : "Juillet - Décembre"}
               </span>
             </div>
 
@@ -420,29 +455,29 @@ export default function MandateCAPage() {
         </div>
       </div>
 
-      {/* Tableau optimisé pour l'année complète - AFFICHAGE ÉCRAN */}
+      {/* Tableau optimisé pour 6 mois par semestre - AFFICHAGE ÉCRAN */}
       <div className="overflow-x-auto border rounded-lg print:hidden">
-        <Table className="text-xs">
+        <Table className="text-sm">
           <TableHeader>
             <TableRow>
-              <TableHead className="sticky left-0 bg-white border-r w-[50px] text-center text-xs p-1">
+              <TableHead className="sticky left-0 bg-white border-r w-[60px] text-center text-sm p-2">
                 Jour
               </TableHead>
               {caData.periods.map((period, index) => (
                 <TableHead
                   key={index}
-                  className="text-center w-[120px] border-r px-1 py-1"
+                  className="text-center w-[140px] border-r px-2 py-2"
                 >
-                  <div className="space-y-0.5">
-                    <div className="font-medium text-xs">
+                  <div className="space-y-1">
+                    <div className="font-medium text-sm">
                       {period.label.split(" ")[0]}
                     </div>
-                    <div className="text-[10px]">
+                    <div className="text-xs">
                       {period.label.split(" ")[1]}
                     </div>
-                    <div className="flex justify-between text-[10px] text-muted-foreground">
-                      <span>Curr</span>
-                      <span>Prev</span>
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Actuel</span>
+                      <span>Précéd.</span>
                     </div>
                   </div>
                 </TableHead>
@@ -451,16 +486,16 @@ export default function MandateCAPage() {
           </TableHeader>
           <TableBody>
             {rows.map((row) => (
-              <TableRow key={row.day} className="h-6">
-                <TableCell className="sticky left-0 bg-white border-r font-medium text-center py-0.5 text-xs p-1">
+              <TableRow key={row.day} className="h-8">
+                <TableCell className="sticky left-0 bg-white border-r font-medium text-center py-1 text-sm p-2">
                   {row.day.toString().padStart(2, "0")}
                 </TableCell>
                 {caData.periods.map((_, index) => (
                   <TableCell
                     key={index}
-                    className="text-center border-r px-0.5 py-0.5 whitespace-nowrap"
+                    className="text-center border-r px-1 py-1 whitespace-nowrap"
                   >
-                    <div className="flex justify-between items-center space-x-0.5 text-[10px]">
+                    <div className="flex justify-between items-center space-x-1 text-xs">
                       {/* Année courante */}
                       <div className="flex-1 text-left">
                         {row.values[`period_${index}`]?.current > 0
@@ -485,15 +520,15 @@ export default function MandateCAPage() {
 
             {/* Ligne des totaux CA */}
             <TableRow className="bg-blue-50 font-medium">
-              <TableCell className="sticky left-0 bg-blue-50 border-r text-center py-1 p-1">
-                <span className="text-[10px] font-bold">Total CA</span>
+              <TableCell className="sticky left-0 bg-blue-50 border-r text-center py-2 p-2">
+                <span className="text-sm font-bold">Total CA</span>
               </TableCell>
               {caData.periods.map((_, index) => (
                 <TableCell
                   key={index}
-                  className="text-center border-r px-0.5 py-1 whitespace-nowrap"
+                  className="text-center border-r px-1 py-2 whitespace-nowrap"
                 >
-                  <div className="flex justify-between items-center space-x-0.5 text-[10px]">
+                  <div className="flex justify-between items-center space-x-1 text-xs">
                     <div className="flex-1 text-left font-bold text-blue-700">
                       {(
                         (
@@ -523,23 +558,23 @@ export default function MandateCAPage() {
 
             {/* Ligne masse salariale */}
             <TableRow className="bg-green-50 font-medium">
-              <TableCell className="sticky left-0 bg-green-50 border-r text-center py-1 p-1">
-                <span className="text-[10px] font-bold">Masse Sal.</span>
+              <TableCell className="sticky left-0 bg-green-50 border-r text-center py-2 p-2">
+                <span className="text-sm font-bold">Masse Sal.</span>
               </TableCell>
               {caData.periods.map((period, index) => (
                 <TableCell
                   key={index}
-                  className="text-center border-r px-0.5 py-1 whitespace-nowrap"
+                  className="text-center border-r px-1 py-2 whitespace-nowrap"
                 >
-                  <div className="flex justify-between items-center space-x-0.5 text-[10px]">
+                  <div className="flex justify-between items-center space-x-1 text-xs">
                     <div className="flex-1 text-left">
                       {period.payrollData ? (
-                        <div className="space-y-0.5">
+                        <div className="space-y-1">
                           <div className="font-bold text-green-700">
                             {(period.payrollData.totalCost / 1000).toFixed(0)}k
                           </div>
                           {period.payrollData.employeeCount && (
-                            <div className="text-[9px] text-green-600">
+                            <div className="text-[10px] text-green-600">
                               {period.payrollData.employeeCount}emp
                             </div>
                           )}
@@ -572,15 +607,15 @@ export default function MandateCAPage() {
 
             {/* Ligne ratio */}
             <TableRow className="bg-yellow-50 font-medium">
-              <TableCell className="sticky left-0 bg-yellow-50 border-r text-center py-1 p-1">
-                <span className="text-[10px] font-bold">Ratio %</span>
+              <TableCell className="sticky left-0 bg-yellow-50 border-r text-center py-2 p-2">
+                <span className="text-sm font-bold">Ratio %</span>
               </TableCell>
               {caData.periods.map((period, index) => (
                 <TableCell
                   key={index}
-                  className="text-center border-r px-0.5 py-1 whitespace-nowrap"
+                  className="text-center border-r px-1 py-2 whitespace-nowrap"
                 >
-                  <div className="flex justify-between items-center space-x-0.5 text-[10px]">
+                  <div className="flex justify-between items-center space-x-1 text-xs">
                     <div className="flex-1 text-center font-bold text-yellow-700">
                       {period.payrollToRevenueRatio
                         ? `${period.payrollToRevenueRatio.toFixed(1)}%`
@@ -593,15 +628,15 @@ export default function MandateCAPage() {
 
             {/* Ligne évolution */}
             <TableRow className="bg-purple-50 font-medium">
-              <TableCell className="sticky left-0 bg-purple-50 border-r text-center py-1 p-1">
-                <span className="text-[10px] font-bold">Évol. %</span>
+              <TableCell className="sticky left-0 bg-purple-50 border-r text-center py-2 p-2">
+                <span className="text-sm font-bold">Évol. %</span>
               </TableCell>
               {caData.periods.map((period, index) => (
                 <TableCell
                   key={index}
-                  className="text-center border-r px-0.5 py-1 whitespace-nowrap"
+                  className="text-center border-r px-1 py-2 whitespace-nowrap"
                 >
-                  <div className="flex justify-between items-center space-x-0.5 text-[10px]">
+                  <div className="flex justify-between items-center space-x-1 text-xs">
                     <div className="flex-1 text-left font-bold">
                       {period.yearOverYear.revenueGrowth !== null ? (
                         <span
@@ -641,15 +676,15 @@ export default function MandateCAPage() {
 
             {/* Ligne cumul */}
             <TableRow className="bg-gray-100 font-medium">
-              <TableCell className="sticky left-0 bg-gray-100 border-r text-center py-1 p-1">
-                <span className="text-[10px] font-bold">Cumul</span>
+              <TableCell className="sticky left-0 bg-gray-100 border-r text-center py-2 p-2">
+                <span className="text-sm font-bold">Cumul</span>
               </TableCell>
               {caData.periods.map((period, index) => (
                 <TableCell
                   key={index}
-                  className="text-center border-r px-0.5 py-1 whitespace-nowrap"
+                  className="text-center border-r px-1 py-2 whitespace-nowrap"
                 >
-                  <div className="flex justify-between items-center space-x-0.5 text-[10px]">
+                  <div className="flex justify-between items-center space-x-1 text-xs">
                     <div className="flex-1 text-left font-bold text-gray-700">
                       {period.cumulativeTotal
                         ? (period.cumulativeTotal / 1000).toFixed(0) + "k"
@@ -776,8 +811,9 @@ export default function MandateCAPage() {
         <p>
           Données générées le{" "}
           {new Date(caData.meta.generatedAt).toLocaleString("fr-CH")} |
-          Comparaisons avec {parseInt(selectedYear) - 1} | Ratios masse
-          salariale inclus
+          Comparaisons avec {parseInt(selectedYear) - 1} | 
+          {selectedSemester === "1" ? "1er semestre" : "2ème semestre"} {selectedYear} |
+          Ratios masse salariale inclus
         </p>
       </div>
     </div>
