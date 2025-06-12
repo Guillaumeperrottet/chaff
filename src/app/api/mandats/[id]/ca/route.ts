@@ -36,7 +36,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const startMonth = parseInt(
       searchParams.get("startMonth") || currentMonth.toString()
     );
-    const endMonth = searchParams.get("endMonth") 
+    const endMonth = searchParams.get("endMonth")
       ? parseInt(searchParams.get("endMonth")!)
       : null;
     const period = searchParams.get("period") || "12months";
@@ -359,7 +359,11 @@ function generatePeriods(year: number, startMonth: number, period: string) {
 }
 
 // Nouvelle fonction pour générer une plage de mois (semestres)
-function generatePeriodsRange(year: number, startMonth: number, endMonth: number) {
+function generatePeriodsRange(
+  year: number,
+  startMonth: number,
+  endMonth: number
+) {
   const periods = [];
 
   for (let month = startMonth; month <= endMonth; month++) {
