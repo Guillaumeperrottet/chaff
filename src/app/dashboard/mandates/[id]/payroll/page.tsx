@@ -282,6 +282,14 @@ export default function MandatePayrollPage() {
     return <TrendingUp className="h-4 w-4 text-red-600" />;
   }, []); // ✅ FIX: Mémoriser pour éviter les re-renders
 
+  // ✅ NOUVEAU: Fonction pour extraire le taux de charges sociales des notes
+  const extractSocialChargesRate = useCallback((notes: string | undefined) => {
+    if (!notes) return null;
+    // Chercher le pattern "charges sociales: XX%"
+    const match = notes.match(/charges sociales:\s*(\d+(?:\.\d+)?)%/);
+    return match ? parseFloat(match[1]) : null;
+  }, []);
+
   // ✅ FIX: Gestion de l'état de chargement initial
   if (loading) {
     return (
@@ -481,9 +489,20 @@ export default function MandatePayrollPage() {
                   </TableCell>
                   <TableCell>
                     {summary.manualEntry?.notes && (
-                      <span className="text-sm text-muted-foreground truncate block max-w-[200px]">
-                        {summary.manualEntry.notes}
-                      </span>
+                      <div className="space-y-1">
+                        <span className="text-sm text-muted-foreground truncate block max-w-[200px]">
+                          {summary.manualEntry.notes}
+                        </span>
+                        {/* Afficher le taux de charges sociales si c'est un import Gastrotime */}
+                        {(() => {
+                          const socialChargesRate = extractSocialChargesRate(summary.manualEntry.notes);
+                          return socialChargesRate !== null ? (
+                            <div className="text-xs text-muted-foreground italic">
+                              Charges sociales: {socialChargesRate}%
+                            </div>
+                          ) : null;
+                        })()}
+                      </div>
                     )}
                   </TableCell>
                   <TableCell>

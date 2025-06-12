@@ -111,13 +111,6 @@ export default function PayrollIndexPage() {
     router.push(`/dashboard/mandates/${mandateId}/payroll`);
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("fr-CH", {
-      style: "currency",
-      currency: "CHF",
-    }).format(amount);
-  };
-
   const formatDate = (date: Date | null) => {
     if (!date) return "Jamais";
     return new Date(date).toLocaleDateString("fr-CH", {
@@ -249,7 +242,6 @@ export default function PayrollIndexPage() {
               <TableRow>
                 <TableHead>Établissement</TableHead>
                 <TableHead>Type</TableHead>
-                <TableHead className="text-right">CA Total</TableHead>
                 <TableHead className="text-center">Employés</TableHead>
                 <TableHead className="text-center">Ratio actuel</TableHead>
                 <TableHead className="text-center">Status MS</TableHead>
@@ -292,9 +284,6 @@ export default function PayrollIndexPage() {
                           </>
                         )}
                       </Badge>
-                    </TableCell>
-                    <TableCell className="text-right font-mono">
-                      {formatCurrency(mandate.totalRevenue)}
                     </TableCell>
                     <TableCell className="text-center">
                       {mandate.employeeCount || "-"}

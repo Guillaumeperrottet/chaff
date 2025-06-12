@@ -150,7 +150,12 @@ export default function ImportWithValidationPage() {
   };
 
   const handleValidate = async () => {
-    if (!selectedFile || !selectedMandateId || !defaultHourlyRate || !socialChargesRate) {
+    if (
+      !selectedFile ||
+      !selectedMandateId ||
+      !defaultHourlyRate ||
+      !socialChargesRate
+    ) {
       toast.error("Veuillez remplir tous les champs");
       return;
     }
@@ -446,7 +451,8 @@ export default function ImportWithValidationPage() {
                   placeholder="22.0"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Pourcentage appliqué au salaire brut pour calculer les charges sociales
+                  Pourcentage appliqué au salaire brut pour calculer les charges
+                  sociales
                 </p>
               </div>
             </div>
