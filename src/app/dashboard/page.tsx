@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Card,
-  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
@@ -573,125 +572,6 @@ export default function DashboardPage() {
     </Select>
   );
 
-  // ✅ COMPOSANT CampusRow (VERSION DESKTOP)
-  const CampusRow = ({
-    campus,
-  }: {
-    campus: DashboardData & { payroll?: PayrollRatioData };
-  }) => (
-    <TableRow key={campus.id} className="hover:bg-muted/50 h-12">
-      <TableCell className="py-2">
-        <div className="flex items-center space-x-1">
-          <div>
-            <div className="font-medium text-sm">{campus.name}</div>
-            <Badge variant={getTypeVariant()} className="text-xs h-4 px-1">
-              {getTypeIcon(campus.category)}
-              <span className="text-xs">{getTypeLabel(campus.category)}</span>
-            </Badge>
-          </div>
-        </div>
-      </TableCell>
-      <TableCell className="py-2">
-        <div className="text-xs">{campus.lastEntry || "Jamais"}</div>
-      </TableCell>
-      <TableCell className="py-2">
-        <div className="text-xs font-medium text-blue-600">
-          {campus.performance}
-        </div>
-      </TableCell>
-      {dashboardData?.columnLabels.map((col) => (
-        <TableCell key={col.key} className="text-center py-2">
-          <div className="text-xs font-medium">
-            {campus.values[col.key] || "0.00"}
-          </div>
-        </TableCell>
-      ))}
-      <TableCell className="py-2">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-6 w-6 p-0">
-              <MoreHorizontal className="h-3 w-3" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem
-              onClick={() => router.push(`/dashboard/mandates/${campus.id}`)}
-            >
-              <Eye className="mr-2 h-4 w-4" />
-              Chiffre d&apos;affaires
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() =>
-                router.push(`/dashboard/mandates/${campus.id}/payroll`)
-              }
-            >
-              <Calculator className="mr-2 h-4 w-4" />
-              Masse salariale
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() =>
-                router.push(`/dashboard/employees?mandateId=${campus.id}`)
-              }
-            >
-              <Users className="mr-2 h-4 w-4" />
-              Employés
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() =>
-                router.push(`/dashboard/mandates/${campus.id}/edit`)
-              }
-            >
-              <Edit className="mr-2 h-4 w-4" />
-              Modifier
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </TableCell>
-    </TableRow>
-  );
-
-  // Composant pour rendre une ligne de sous-total
-  const SubtotalRow = ({
-    label,
-    totals,
-    bgColor,
-    textColor,
-    groupData,
-  }: {
-    label: string;
-    totals: Record<string, number>;
-    bgColor: string;
-    textColor: string;
-    groupData?: Array<DashboardData & { payroll?: PayrollRatioData }>;
-  }) => {
-    const topPerformance = groupData
-      ? calculateGroupTop(groupData)
-      : "Aucune donnée";
-
-    return (
-      <TableRow className={`${bgColor} hover:${bgColor} border-t-2 h-10`}>
-        <TableCell colSpan={2} className={`font-semibold ${textColor} py-2`}>
-          <span className="text-sm">{label}</span>
-        </TableCell>
-        <TableCell className={`font-semibold ${textColor} py-2`}>
-          <div className="text-xs">{topPerformance}</div>
-        </TableCell>
-        {dashboardData?.columnLabels.map((col) => (
-          <TableCell
-            key={col.key}
-            className={`text-center font-semibold ${textColor} py-2`}
-          >
-            <div className="text-sm">
-              {formatCurrency(totals[col.key] || 0)}
-            </div>
-          </TableCell>
-        ))}
-        <TableCell></TableCell>
-      </TableRow>
-    );
-  };
-
   if (loading) {
     return (
       <div className="space-y-6">
@@ -800,449 +680,287 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Table principale - VERSION RESPONSIVE */}
-        <div className="space-y-4">
-          {/* Header avec filtres - reste dans une Card pour desktop */}
-          <Card className="shadow-lg border-slate-200 md:block hidden">
-            <CardHeader className="bg-white border-b border-slate-200 py-2">
-              <div className="relative flex items-center min-h-[60px]">
-                {/* Titre parfaitement centré */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                  <CardTitle className="text-xl font-bold text-slate-800 mb-2">
-                    Vue d&apos;ensemble du chiffre d&apos;affaires journalier
-                  </CardTitle>
-                  <CardDescription className="text-slate-600">
-                    <Link
-                      href="/dashboard/mandates"
-                      className="underline text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
-                    >
-                      Index des mandats
-                    </Link>
-                  </CardDescription>
-                </div>
-
-                {/* Filtres */}
-                <div className="absolute right-0 flex items-center gap-3">
-                  <div className="relative">
-                    <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-                    <Input
-                      placeholder="Rechercher..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-8 h-8 w-40 text-xs border-slate-200 focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 bg-white/80 placeholder:text-slate-400"
-                    />
-                  </div>
-
-                  <CategoryFilter />
-
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-28 h-8 text-xs border-slate-200 focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 bg-white/80">
-                      <SelectValue placeholder="Statut" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Tous statuts</SelectItem>
-                      <SelectItem value="active">Actif</SelectItem>
-                      <SelectItem value="inactive">Inactif</SelectItem>
-                      <SelectItem value="new">Nouveau</SelectItem>
-                      <SelectItem value="warning">Attention</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  {(searchTerm ||
-                    categoryFilter !== "all" ||
-                    statusFilter !== "all") && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setSearchTerm("");
-                        setCategoryFilter("all");
-                        setStatusFilter("all");
-                      }}
-                      className="h-8 px-2 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100"
-                    >
-                      ✕
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </CardHeader>
-          </Card>
-
-          {/* Header mobile compact */}
-          <div className="md:hidden space-y-3 px-4">
-            <div className="text-center">
-              <h2 className="text-lg font-bold text-slate-800">
-                CA journalier
-              </h2>
-              <Link
-                href="/dashboard/mandates"
-                className="text-sm underline text-slate-600 hover:text-slate-900 transition-colors"
-              >
-                Index des mandats
-              </Link>
-            </div>
-
-            {/* Filtres mobile */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-2">
-              <div className="relative flex-shrink-0">
-                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-                <Input
-                  placeholder="Rechercher..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-8 h-8 w-32 text-xs border-slate-200 focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 bg-white placeholder:text-slate-400"
-                />
+        {/* Header avec filtres */}
+        <Card className="shadow-lg border-slate-200">
+          <CardHeader className="bg-white border-b border-slate-200 py-2">
+            <div className="relative flex items-center min-h-[60px]">
+              {/* Titre parfaitement centré */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                <CardTitle className="text-xl font-bold text-slate-800 mb-2">
+                  Vue d&apos;ensemble du chiffre d&apos;affaires journalier
+                </CardTitle>
+                <CardDescription className="text-slate-600">
+                  <Link
+                    href="/dashboard/mandates"
+                    className="underline text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
+                  >
+                    Index des mandats
+                  </Link>
+                </CardDescription>
               </div>
 
-              <div className="flex-shrink-0">
+              {/* Filtres */}
+              <div className="absolute right-0 flex items-center gap-3">
+                <div className="relative">
+                  <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                  <Input
+                    placeholder="Rechercher..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-8 h-8 w-40 text-xs border-slate-200 focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 bg-white/80 placeholder:text-slate-400"
+                  />
+                </div>
+
                 <CategoryFilter />
-              </div>
 
-              <div className="flex-shrink-0">
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-24 h-8 text-xs border-slate-200 focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 bg-white">
+                  <SelectTrigger className="w-28 h-8 text-xs border-slate-200 focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 bg-white/80">
                     <SelectValue placeholder="Statut" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Tous</SelectItem>
+                    <SelectItem value="all">Tous statuts</SelectItem>
                     <SelectItem value="active">Actif</SelectItem>
                     <SelectItem value="inactive">Inactif</SelectItem>
                     <SelectItem value="new">Nouveau</SelectItem>
                     <SelectItem value="warning">Attention</SelectItem>
                   </SelectContent>
                 </Select>
+
+                {(searchTerm ||
+                  categoryFilter !== "all" ||
+                  statusFilter !== "all") && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setSearchTerm("");
+                      setCategoryFilter("all");
+                      setStatusFilter("all");
+                    }}
+                    className="h-8 px-2 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+                  >
+                    ✕
+                  </Button>
+                )}
               </div>
-
-              {(searchTerm ||
-                categoryFilter !== "all" ||
-                statusFilter !== "all") && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setSearchTerm("");
-                    setCategoryFilter("all");
-                    setStatusFilter("all");
-                  }}
-                  className="h-8 px-2 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 flex-shrink-0"
-                >
-                  ✕
-                </Button>
-              )}
             </div>
-          </div>
+          </CardHeader>
+        </Card>
 
-          {/* Table - LIBRE DE TOUT CONTENEUR sur mobile */}
-          {mergedData.length === 0 ? (
-            /* EmptyState en pleine largeur quand pas de données */
-            <div className="w-full px-4">
-              <EmptyState
-                type="mandates"
-                onPrimaryAction={() =>
-                  router.push("/dashboard/mandates/create")
-                }
-                className="min-h-[500px]"
-              />
-            </div>
-          ) : (
-            <>
-              {/* Desktop: Table dans Card */}
-              <div className="hidden md:block">
-                <Card className="shadow-lg border-slate-200">
-                  <CardContent className="p-0">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="h-10">
-                          <TableHead className="min-w-[140px] py-2 text-xs">
-                            Campus
-                          </TableHead>
-                          <TableHead className="min-w-[100px] py-2 text-xs">
-                            Dernière saisie
-                          </TableHead>
-                          <TableHead className="min-w-[80px] py-2 text-xs">
-                            Top
-                          </TableHead>
-                          {dashboardData.columnLabels.map((col) => (
-                            <TableHead
-                              key={col.key}
-                              className="text-center min-w-[80px] py-2 text-xs"
-                            >
-                              <div className="font-medium">{col.label}</div>
-                            </TableHead>
-                          ))}
-                          <TableHead className="w-[40px] py-2"></TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {/* Contenu du tableau identique */}
-                        {Object.entries(grouped).map(
-                          ([groupKey, groupData]) => {
-                            const shouldShowGroup = (() => {
-                              if (categoryFilter === "all") return true;
-                              if (
-                                categoryFilter === "hebergement" &&
-                                groupKey === "hebergement"
-                              )
-                                return true;
-                              if (
-                                categoryFilter === "restauration" &&
-                                groupKey === "restauration"
-                              )
-                                return true;
-                              return categoryFilter === groupKey;
-                            })();
+        {/* Table pure - AUCUN div conteneur */}
+        {mergedData.length === 0 ? (
+          <EmptyState
+            type="mandates"
+            onPrimaryAction={() => router.push("/dashboard/mandates/create")}
+            className="min-h-[500px]"
+          />
+        ) : (
+          <Table className="w-full">
+            <TableHeader>
+              <TableRow className="h-10">
+                <TableHead className="min-w-[140px] py-2 text-xs">
+                  Campus
+                </TableHead>
+                <TableHead className="min-w-[100px] py-2 text-xs">
+                  Dernière saisie
+                </TableHead>
+                <TableHead className="min-w-[80px] py-2 text-xs">Top</TableHead>
+                {dashboardData.columnLabels.map((col) => (
+                  <TableHead
+                    key={col.key}
+                    className="text-center min-w-[80px] py-2 text-xs"
+                  >
+                    <div className="font-medium">{col.label}</div>
+                  </TableHead>
+                ))}
+                <TableHead className="w-[40px] py-2"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Object.entries(grouped).map(([groupKey, groupData]) => {
+                const shouldShowGroup = (() => {
+                  if (categoryFilter === "all") return true;
+                  if (
+                    categoryFilter === "hebergement" &&
+                    groupKey === "hebergement"
+                  )
+                    return true;
+                  if (
+                    categoryFilter === "restauration" &&
+                    groupKey === "restauration"
+                  )
+                    return true;
+                  return categoryFilter === groupKey;
+                })();
 
-                            if (!shouldShowGroup) return null;
+                if (!shouldShowGroup) return null;
 
-                            return (
-                              <React.Fragment key={groupKey}>
-                                {groupData.map((campus) => (
-                                  <CampusRow key={campus.id} campus={campus} />
-                                ))}
-
-                                {groupData.length > 0 && (
-                                  <SubtotalRow
-                                    label={(() => {
-                                      if (groupKey === "hebergement")
-                                        return "Hébergement";
-                                      if (groupKey === "restauration")
-                                        return "Restauration";
-                                      return getTypeLabel(groupKey);
-                                    })()}
-                                    totals={groupTotals[groupKey]}
-                                    bgColor="bg-slate-50"
-                                    textColor="text-slate-700"
-                                    groupData={groupData}
-                                  />
-                                )}
-                              </React.Fragment>
-                            );
-                          }
-                        )}
-                      </TableBody>
-
-                      {categoryFilter === "all" && (
-                        <TableFooter>
-                          <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-150 border-t-4 border-gray-300 h-12">
-                            <TableCell
-                              colSpan={2}
-                              className="font-bold text-gray-900 py-2"
-                            >
-                              <span className="text-sm">Total général</span>
-                            </TableCell>
-                            <TableCell className="font-bold text-gray-900 py-2">
-                              <div className="text-xs">
-                                {calculateGrandTop()}
+                return (
+                  <React.Fragment key={groupKey}>
+                    {groupData.map((campus) => (
+                      <TableRow
+                        key={campus.id}
+                        className="hover:bg-muted/50 h-12"
+                      >
+                        <TableCell className="py-2">
+                          <div className="flex items-center space-x-1">
+                            <div>
+                              <div className="font-medium text-sm">
+                                {campus.name}
                               </div>
-                            </TableCell>
-                            {dashboardData.columnLabels.map((col) => (
-                              <TableCell
-                                key={col.key}
-                                className="text-center font-bold text-gray-900 py-2"
+                              <Badge
+                                variant={getTypeVariant()}
+                                className="text-xs h-4 px-1"
                               >
-                                <div className="text-sm">
-                                  {formatCurrency(grandTotals[col.key] || 0)}
-                                </div>
-                              </TableCell>
-                            ))}
-                            <TableCell></TableCell>
-                          </TableRow>
-                        </TableFooter>
-                      )}
-                    </Table>
-                  </CardContent>
-                </Card>
-              </div>
-
-              <div className="md:hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Campus</TableHead>
-                      <TableHead>Dernière</TableHead>
-                      <TableHead>Top</TableHead>
-                      {dashboardData.columnLabels.map((col) => (
-                        <TableHead key={col.key} className="text-center">
-                          {col.label}
-                        </TableHead>
-                      ))}
-                      <TableHead></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {Object.entries(grouped).map(([groupKey, groupData]) => {
-                      const shouldShowGroup = (() => {
-                        if (categoryFilter === "all") return true;
-                        if (
-                          categoryFilter === "hebergement" &&
-                          groupKey === "hebergement"
-                        )
-                          return true;
-                        if (
-                          categoryFilter === "restauration" &&
-                          groupKey === "restauration"
-                        )
-                          return true;
-                        return categoryFilter === groupKey;
-                      })();
-
-                      if (!shouldShowGroup) return null;
-
-                      return (
-                        <React.Fragment key={groupKey}>
-                          {groupData.map((campus) => (
-                            <TableRow key={campus.id}>
-                              <TableCell>
-                                <div>
-                                  <div className="font-medium text-sm">
-                                    {campus.name}
-                                  </div>
-                                  <Badge
-                                    variant={getTypeVariant()}
-                                    className="text-xs"
-                                  >
-                                    {getTypeIcon(campus.category)}
-                                    <span>{getTypeLabel(campus.category)}</span>
-                                  </Badge>
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <div className="text-xs">
-                                  {campus.lastEntry || "Jamais"}
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <div className="text-xs font-medium text-blue-600">
-                                  {campus.performance}
-                                </div>
-                              </TableCell>
-                              {dashboardData?.columnLabels.map((col) => (
-                                <TableCell
-                                  key={col.key}
-                                  className="text-center"
-                                >
-                                  <div className="text-xs font-medium">
-                                    {campus.values[col.key] || "0.00"}
-                                  </div>
-                                </TableCell>
-                              ))}
-                              <TableCell>
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      className="h-6 w-6 p-0"
-                                    >
-                                      <MoreHorizontal className="h-3 w-3" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    <DropdownMenuLabel>
-                                      Actions
-                                    </DropdownMenuLabel>
-                                    <DropdownMenuItem
-                                      onClick={() =>
-                                        router.push(
-                                          `/dashboard/mandates/${campus.id}`
-                                        )
-                                      }
-                                    >
-                                      <Eye className="mr-2 h-4 w-4" />
-                                      Chiffre d&apos;affaires
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      onClick={() =>
-                                        router.push(
-                                          `/dashboard/mandates/${campus.id}/payroll`
-                                        )
-                                      }
-                                    >
-                                      <Calculator className="mr-2 h-4 w-4" />
-                                      Masse salariale
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      onClick={() =>
-                                        router.push(
-                                          `/dashboard/employees?mandateId=${campus.id}`
-                                        )
-                                      }
-                                    >
-                                      <Users className="mr-2 h-4 w-4" />
-                                      Employés
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      onClick={() =>
-                                        router.push(
-                                          `/dashboard/mandates/${campus.id}/edit`
-                                        )
-                                      }
-                                    >
-                                      <Edit className="mr-2 h-4 w-4" />
-                                      Modifier
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-
-                          {groupData.length > 0 && (
-                            <TableRow className="bg-slate-50">
-                              <TableCell colSpan={2} className="font-semibold">
-                                {(() => {
-                                  if (groupKey === "hebergement")
-                                    return "Hébergement";
-                                  if (groupKey === "restauration")
-                                    return "Restauration";
-                                  return getTypeLabel(groupKey);
-                                })()}
-                              </TableCell>
-                              <TableCell className="font-semibold">
-                                {calculateGroupTop(groupData)}
-                              </TableCell>
-                              {dashboardData?.columnLabels.map((col) => (
-                                <TableCell
-                                  key={col.key}
-                                  className="text-center font-semibold"
-                                >
-                                  {formatCurrency(
-                                    groupTotals[groupKey][col.key] || 0
-                                  )}
-                                </TableCell>
-                              ))}
-                              <TableCell></TableCell>
-                            </TableRow>
-                          )}
-                        </React.Fragment>
-                      );
-                    })}
-
-                    {categoryFilter === "all" && (
-                      <TableRow className="bg-gray-100">
-                        <TableCell colSpan={2} className="font-bold">
-                          Total général
+                                {getTypeIcon(campus.category)}
+                                <span className="text-xs">
+                                  {getTypeLabel(campus.category)}
+                                </span>
+                              </Badge>
+                            </div>
+                          </div>
                         </TableCell>
-                        <TableCell className="font-bold">
-                          {calculateGrandTop()}
+                        <TableCell className="py-2">
+                          <div className="text-xs">
+                            {campus.lastEntry || "Jamais"}
+                          </div>
                         </TableCell>
-                        {dashboardData.columnLabels.map((col) => (
+                        <TableCell className="py-2">
+                          <div className="text-xs font-medium text-blue-600">
+                            {campus.performance}
+                          </div>
+                        </TableCell>
+                        {dashboardData?.columnLabels.map((col) => (
+                          <TableCell key={col.key} className="text-center py-2">
+                            <div className="text-xs font-medium">
+                              {campus.values[col.key] || "0.00"}
+                            </div>
+                          </TableCell>
+                        ))}
+                        <TableCell className="py-2">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-6 w-6 p-0">
+                                <MoreHorizontal className="h-3 w-3" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  router.push(
+                                    `/dashboard/mandates/${campus.id}`
+                                  )
+                                }
+                              >
+                                <Eye className="mr-2 h-4 w-4" />
+                                Chiffre d&apos;affaires
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  router.push(
+                                    `/dashboard/mandates/${campus.id}/payroll`
+                                  )
+                                }
+                              >
+                                <Calculator className="mr-2 h-4 w-4" />
+                                Masse salariale
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  router.push(
+                                    `/dashboard/employees?mandateId=${campus.id}`
+                                  )
+                                }
+                              >
+                                <Users className="mr-2 h-4 w-4" />
+                                Employés
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  router.push(
+                                    `/dashboard/mandates/${campus.id}/edit`
+                                  )
+                                }
+                              >
+                                <Edit className="mr-2 h-4 w-4" />
+                                Modifier
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+
+                    {groupData.length > 0 && (
+                      <TableRow className="bg-slate-50 hover:bg-slate-50 border-t-2 h-10">
+                        <TableCell
+                          colSpan={2}
+                          className="font-semibold text-slate-700 py-2"
+                        >
+                          <span className="text-sm">
+                            {(() => {
+                              if (groupKey === "hebergement")
+                                return "Hébergement";
+                              if (groupKey === "restauration")
+                                return "Restauration";
+                              return getTypeLabel(groupKey);
+                            })()}
+                          </span>
+                        </TableCell>
+                        <TableCell className="font-semibold text-slate-700 py-2">
+                          <div className="text-xs">
+                            {calculateGroupTop(groupData)}
+                          </div>
+                        </TableCell>
+                        {dashboardData?.columnLabels.map((col) => (
                           <TableCell
                             key={col.key}
-                            className="text-center font-bold"
+                            className="text-center font-semibold text-slate-700 py-2"
                           >
-                            {formatCurrency(grandTotals[col.key] || 0)}
+                            <div className="text-sm">
+                              {formatCurrency(
+                                groupTotals[groupKey][col.key] || 0
+                              )}
+                            </div>
                           </TableCell>
                         ))}
                         <TableCell></TableCell>
                       </TableRow>
                     )}
-                  </TableBody>
-                </Table>
-              </div>
-            </>
-          )}
-        </div>
+                  </React.Fragment>
+                );
+              })}
+            </TableBody>
+
+            {categoryFilter === "all" && (
+              <TableFooter>
+                <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-150 border-t-4 border-gray-300 h-12">
+                  <TableCell
+                    colSpan={2}
+                    className="font-bold text-gray-900 py-2"
+                  >
+                    <span className="text-sm">Total général</span>
+                  </TableCell>
+                  <TableCell className="font-bold text-gray-900 py-2">
+                    <div className="text-xs">{calculateGrandTop()}</div>
+                  </TableCell>
+                  {dashboardData.columnLabels.map((col) => (
+                    <TableCell
+                      key={col.key}
+                      className="text-center font-bold text-gray-900 py-2"
+                    >
+                      <div className="text-sm">
+                        {formatCurrency(grandTotals[col.key] || 0)}
+                      </div>
+                    </TableCell>
+                  ))}
+                  <TableCell></TableCell>
+                </TableRow>
+              </TableFooter>
+            )}
+          </Table>
+        )}
       </div>
     </TooltipProvider>
   );
