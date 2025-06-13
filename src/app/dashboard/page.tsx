@@ -915,170 +915,168 @@ export default function DashboardPage() {
               </div>
             ) : (
               /* Table normale quand il y a des données */
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="h-10">
-                      <TableHead className="min-w-[140px] py-2 text-xs">
-                        Campus
-                      </TableHead>
-                      <TableHead className="min-w-[100px] py-2 text-xs">
-                        Dernière saisie
-                      </TableHead>
-                      <TableHead className="min-w-[80px] py-2 text-xs">
-                        Top
-                      </TableHead>
-                      <TableHead className="text-center min-w-[80px] py-2 text-xs">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div className="flex items-center justify-center gap-1 cursor-help group">
-                                <span className="font-medium">Ratio %</span>
-                                <Info className="h-3 w-3 text-muted-foreground/40 group-hover:text-muted-foreground/60 transition-colors" />
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent
-                              side="top"
-                              className="max-w-xs bg-white border border-gray-200 shadow-sm p-3"
-                              sideOffset={8}
-                            >
-                              <div className="space-y-2.5 text-xs">
-                                <div>
-                                  <div className="text-gray-600 mb-1">
-                                    Formule :
-                                  </div>
-                                  <div className="font-mono text-gray-900 bg-gray-50 px-2 py-1 rounded text-center">
-                                    (Masse Salariale ÷ CA) × 100
-                                  </div>
-                                </div>
-                                <div>
-                                  <div className="text-gray-600 mb-1.5">
-                                    Seuils :
-                                  </div>
-                                  <div className="space-y-1">
-                                    <div className="flex items-center gap-2 text-gray-700">
-                                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
-                                      <span>&lt; 25%</span>
-                                      <span className="text-gray-500">
-                                        Excellent
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center gap-2 text-gray-700">
-                                      <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                                      <span>25-35%</span>
-                                      <span className="text-gray-500">Bon</span>
-                                    </div>
-                                    <div className="flex items-center gap-2 text-gray-700">
-                                      <div className="w-1.5 h-1.5 bg-amber-500 rounded-full"></div>
-                                      <span>35-50%</span>
-                                      <span className="text-gray-500">
-                                        Attention
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center gap-2 text-gray-700">
-                                      <div className="w-1.5 h-1.5 bg-red-500 rounded-full"></div>
-                                      <span>&gt; 50%</span>
-                                      <span className="text-gray-500">
-                                        Critique
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </TableHead>
-                      {dashboardData.columnLabels.map((col) => (
-                        <TableHead
-                          key={col.key}
-                          className="text-center min-w-[80px] py-2 text-xs"
-                        >
-                          <div className="font-medium">{col.label}</div>
-                        </TableHead>
-                      ))}
-                      <TableHead className="w-[40px] py-2"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {/* ✅ NOUVEAU: Afficher tous les groupes dynamiquement */}
-                    {Object.entries(grouped).map(([groupKey, groupData]) => {
-                      // Vérifier si ce groupe doit être affiché selon le filtre
-                      const shouldShowGroup = (() => {
-                        if (categoryFilter === "all") return true;
-                        if (
-                          categoryFilter === "hebergement" &&
-                          groupKey === "hebergement"
-                        )
-                          return true;
-                        if (
-                          categoryFilter === "restauration" &&
-                          groupKey === "restauration"
-                        )
-                          return true;
-                        return categoryFilter === groupKey;
-                      })();
-
-                      if (!shouldShowGroup) return null;
-
-                      return (
-                        <React.Fragment key={groupKey}>
-                          {/* Afficher les campus du groupe */}
-                          {groupData.map((campus) => (
-                            <CampusRow key={campus.id} campus={campus} />
-                          ))}
-
-                          {/* Afficher le sous-total du groupe */}
-                          {groupData.length > 0 && (
-                            <SubtotalRow
-                              label={(() => {
-                                if (groupKey === "hebergement")
-                                  return "Hébergement";
-                                if (groupKey === "restauration")
-                                  return "Restauration";
-                                return getTypeLabel(groupKey);
-                              })()}
-                              totals={groupTotals[groupKey]}
-                              bgColor="bg-slate-50"
-                              textColor="text-slate-700"
-                              groupData={groupData}
-                            />
-                          )}
-                        </React.Fragment>
-                      );
-                    })}
-                  </TableBody>
-
-                  {/* Total général EXACTEMENT comme votre code original */}
-                  {categoryFilter === "all" && (
-                    <TableFooter>
-                      <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-150 border-t-4 border-gray-300 h-12">
-                        <TableCell
-                          colSpan={2}
-                          className="font-bold text-gray-900 py-2"
-                        >
-                          <span className="text-sm">Total général</span>
-                        </TableCell>
-                        <TableCell className="font-bold text-gray-900 py-2">
-                          <div className="text-xs">{calculateGrandTop()}</div>
-                        </TableCell>
-                        <TableCell></TableCell>
-                        {dashboardData.columnLabels.map((col) => (
-                          <TableCell
-                            key={col.key}
-                            className="text-center font-bold text-gray-900 py-2"
-                          >
-                            <div className="text-sm">
-                              {formatCurrency(grandTotals[col.key] || 0)}
+              <Table>
+                <TableHeader>
+                  <TableRow className="h-10">
+                    <TableHead className="min-w-[140px] py-2 text-xs">
+                      Campus
+                    </TableHead>
+                    <TableHead className="min-w-[100px] py-2 text-xs">
+                      Dernière saisie
+                    </TableHead>
+                    <TableHead className="min-w-[80px] py-2 text-xs">
+                      Top
+                    </TableHead>
+                    <TableHead className="text-center min-w-[80px] py-2 text-xs">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex items-center justify-center gap-1 cursor-help group">
+                              <span className="font-medium">Ratio %</span>
+                              <Info className="h-3 w-3 text-muted-foreground/40 group-hover:text-muted-foreground/60 transition-colors" />
                             </div>
-                          </TableCell>
+                          </TooltipTrigger>
+                          <TooltipContent
+                            side="top"
+                            className="max-w-xs bg-white border border-gray-200 shadow-sm p-3"
+                            sideOffset={8}
+                          >
+                            <div className="space-y-2.5 text-xs">
+                              <div>
+                                <div className="text-gray-600 mb-1">
+                                  Formule :
+                                </div>
+                                <div className="font-mono text-gray-900 bg-gray-50 px-2 py-1 rounded text-center">
+                                  (Masse Salariale ÷ CA) × 100
+                                </div>
+                              </div>
+                              <div>
+                                <div className="text-gray-600 mb-1.5">
+                                  Seuils :
+                                </div>
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-2 text-gray-700">
+                                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+                                    <span>&lt; 25%</span>
+                                    <span className="text-gray-500">
+                                      Excellent
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-2 text-gray-700">
+                                    <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                                    <span>25-35%</span>
+                                    <span className="text-gray-500">Bon</span>
+                                  </div>
+                                  <div className="flex items-center gap-2 text-gray-700">
+                                    <div className="w-1.5 h-1.5 bg-amber-500 rounded-full"></div>
+                                    <span>35-50%</span>
+                                    <span className="text-gray-500">
+                                      Attention
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-2 text-gray-700">
+                                    <div className="w-1.5 h-1.5 bg-red-500 rounded-full"></div>
+                                    <span>&gt; 50%</span>
+                                    <span className="text-gray-500">
+                                      Critique
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </TableHead>
+                    {dashboardData.columnLabels.map((col) => (
+                      <TableHead
+                        key={col.key}
+                        className="text-center min-w-[80px] py-2 text-xs"
+                      >
+                        <div className="font-medium">{col.label}</div>
+                      </TableHead>
+                    ))}
+                    <TableHead className="w-[40px] py-2"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {/* ✅ NOUVEAU: Afficher tous les groupes dynamiquement */}
+                  {Object.entries(grouped).map(([groupKey, groupData]) => {
+                    // Vérifier si ce groupe doit être affiché selon le filtre
+                    const shouldShowGroup = (() => {
+                      if (categoryFilter === "all") return true;
+                      if (
+                        categoryFilter === "hebergement" &&
+                        groupKey === "hebergement"
+                      )
+                        return true;
+                      if (
+                        categoryFilter === "restauration" &&
+                        groupKey === "restauration"
+                      )
+                        return true;
+                      return categoryFilter === groupKey;
+                    })();
+
+                    if (!shouldShowGroup) return null;
+
+                    return (
+                      <React.Fragment key={groupKey}>
+                        {/* Afficher les campus du groupe */}
+                        {groupData.map((campus) => (
+                          <CampusRow key={campus.id} campus={campus} />
                         ))}
-                        <TableCell></TableCell>
-                      </TableRow>
-                    </TableFooter>
-                  )}
-                </Table>
-              </div>
+
+                        {/* Afficher le sous-total du groupe */}
+                        {groupData.length > 0 && (
+                          <SubtotalRow
+                            label={(() => {
+                              if (groupKey === "hebergement")
+                                return "Hébergement";
+                              if (groupKey === "restauration")
+                                return "Restauration";
+                              return getTypeLabel(groupKey);
+                            })()}
+                            totals={groupTotals[groupKey]}
+                            bgColor="bg-slate-50"
+                            textColor="text-slate-700"
+                            groupData={groupData}
+                          />
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
+                </TableBody>
+
+                {/* Total général EXACTEMENT comme votre code original */}
+                {categoryFilter === "all" && (
+                  <TableFooter>
+                    <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-150 border-t-4 border-gray-300 h-12">
+                      <TableCell
+                        colSpan={2}
+                        className="font-bold text-gray-900 py-2"
+                      >
+                        <span className="text-sm">Total général</span>
+                      </TableCell>
+                      <TableCell className="font-bold text-gray-900 py-2">
+                        <div className="text-xs">{calculateGrandTop()}</div>
+                      </TableCell>
+                      <TableCell></TableCell>
+                      {dashboardData.columnLabels.map((col) => (
+                        <TableCell
+                          key={col.key}
+                          className="text-center font-bold text-gray-900 py-2"
+                        >
+                          <div className="text-sm">
+                            {formatCurrency(grandTotals[col.key] || 0)}
+                          </div>
+                        </TableCell>
+                      ))}
+                      <TableCell></TableCell>
+                    </TableRow>
+                  </TableFooter>
+                )}
+              </Table>
             )}
           </CardContent>
         </Card>
