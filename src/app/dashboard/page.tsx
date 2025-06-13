@@ -834,252 +834,568 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Table principale avec filtres intégrés dans le CardHeader */}
-        <Card className="shadow-lg border-slate-200">
-          <CardHeader className="bg-white border-b border-slate-200 py-2">
-            <div className="relative flex items-center min-h-[60px]">
-              {/* Titre parfaitement centré */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                <CardTitle className="text-xl font-bold text-slate-800 mb-2">
-                  Vue d&apos;ensemble du chiffre d&apos;affaires journalier
-                </CardTitle>
-                <CardDescription className="text-slate-600">
-                  <Link
-                    href="/dashboard/mandates"
-                    className="underline text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
-                  >
-                    Index des mandats
-                  </Link>
-                </CardDescription>
-              </div>
-
-              {/* Filtres */}
-              <div className="absolute right-0 flex items-center gap-3">
-                <div className="relative">
-                  <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-                  <Input
-                    placeholder="Rechercher..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-8 h-8 w-40 text-xs border-slate-200 focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 bg-white/80 placeholder:text-slate-400"
-                  />
+        {/* Table principale - VERSION RESPONSIVE */}
+        <div className="space-y-4">
+          {/* Header avec filtres - reste dans une Card pour desktop */}
+          <Card className="shadow-lg border-slate-200 md:block hidden">
+            <CardHeader className="bg-white border-b border-slate-200 py-2">
+              <div className="relative flex items-center min-h-[60px]">
+                {/* Titre parfaitement centré */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                  <CardTitle className="text-xl font-bold text-slate-800 mb-2">
+                    Vue d&apos;ensemble du chiffre d&apos;affaires journalier
+                  </CardTitle>
+                  <CardDescription className="text-slate-600">
+                    <Link
+                      href="/dashboard/mandates"
+                      className="underline text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
+                    >
+                      Index des mandats
+                    </Link>
+                  </CardDescription>
                 </div>
 
-                <CategoryFilter />
+                {/* Filtres */}
+                <div className="absolute right-0 flex items-center gap-3">
+                  <div className="relative">
+                    <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                    <Input
+                      placeholder="Rechercher..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-8 h-8 w-40 text-xs border-slate-200 focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 bg-white/80 placeholder:text-slate-400"
+                    />
+                  </div>
 
+                  <CategoryFilter />
+
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-28 h-8 text-xs border-slate-200 focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 bg-white/80">
+                      <SelectValue placeholder="Statut" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tous statuts</SelectItem>
+                      <SelectItem value="active">Actif</SelectItem>
+                      <SelectItem value="inactive">Inactif</SelectItem>
+                      <SelectItem value="new">Nouveau</SelectItem>
+                      <SelectItem value="warning">Attention</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  {(searchTerm ||
+                    categoryFilter !== "all" ||
+                    statusFilter !== "all") && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setSearchTerm("");
+                        setCategoryFilter("all");
+                        setStatusFilter("all");
+                      }}
+                      className="h-8 px-2 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+                    >
+                      ✕
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </CardHeader>
+          </Card>
+
+          {/* Header mobile compact */}
+          <div className="md:hidden space-y-3 px-4">
+            <div className="text-center">
+              <h2 className="text-lg font-bold text-slate-800">
+                CA journalier
+              </h2>
+              <Link
+                href="/dashboard/mandates"
+                className="text-sm underline text-slate-600 hover:text-slate-900 transition-colors"
+              >
+                Index des mandats
+              </Link>
+            </div>
+
+            {/* Filtres mobile */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-2">
+              <div className="relative flex-shrink-0">
+                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                <Input
+                  placeholder="Rechercher..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-8 h-8 w-32 text-xs border-slate-200 focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 bg-white placeholder:text-slate-400"
+                />
+              </div>
+
+              <div className="flex-shrink-0">
+                <CategoryFilter />
+              </div>
+
+              <div className="flex-shrink-0">
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-28 h-8 text-xs border-slate-200 focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 bg-white/80">
+                  <SelectTrigger className="w-24 h-8 text-xs border-slate-200 focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 bg-white">
                     <SelectValue placeholder="Statut" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Tous statuts</SelectItem>
+                    <SelectItem value="all">Tous</SelectItem>
                     <SelectItem value="active">Actif</SelectItem>
                     <SelectItem value="inactive">Inactif</SelectItem>
                     <SelectItem value="new">Nouveau</SelectItem>
                     <SelectItem value="warning">Attention</SelectItem>
                   </SelectContent>
                 </Select>
-
-                {(searchTerm ||
-                  categoryFilter !== "all" ||
-                  statusFilter !== "all") && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setSearchTerm("");
-                      setCategoryFilter("all");
-                      setStatusFilter("all");
-                    }}
-                    className="h-8 px-2 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100"
-                  >
-                    ✕
-                  </Button>
-                )}
               </div>
+
+              {(searchTerm ||
+                categoryFilter !== "all" ||
+                statusFilter !== "all") && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setCategoryFilter("all");
+                    setStatusFilter("all");
+                  }}
+                  className="h-8 px-2 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 flex-shrink-0"
+                >
+                  ✕
+                </Button>
+              )}
             </div>
-          </CardHeader>
+          </div>
 
-          <CardContent>
-            {/* Affichage Table pour toutes les plateformes */}
-            {mergedData.length === 0 ? (
-              /* EmptyState en pleine largeur quand pas de données */
-              <div className="w-full">
-                <EmptyState
-                  type="mandates"
-                  onPrimaryAction={() =>
-                    router.push("/dashboard/mandates/create")
-                  }
-                  className="min-h-[500px]"
-                />
-              </div>
-            ) : (
-              /* Table normale quand il y a des données */
-              <Table>
-                <TableHeader>
-                  <TableRow className="h-10">
-                    <TableHead className="min-w-[140px] py-2 text-xs">
-                      Campus
-                    </TableHead>
-                    <TableHead className="min-w-[100px] py-2 text-xs">
-                      Dernière saisie
-                    </TableHead>
-                    <TableHead className="min-w-[80px] py-2 text-xs">
-                      Top
-                    </TableHead>
-                    <TableHead className="text-center min-w-[80px] py-2 text-xs">
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div className="flex items-center justify-center gap-1 cursor-help group">
-                              <span className="font-medium">Ratio %</span>
-                              <Info className="h-3 w-3 text-muted-foreground/40 group-hover:text-muted-foreground/60 transition-colors" />
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent
-                            side="top"
-                            className="max-w-xs bg-white border border-gray-200 shadow-sm p-3"
-                            sideOffset={8}
-                          >
-                            <div className="space-y-2.5 text-xs">
-                              <div>
-                                <div className="text-gray-600 mb-1">
-                                  Formule :
-                                </div>
-                                <div className="font-mono text-gray-900 bg-gray-50 px-2 py-1 rounded text-center">
-                                  (Masse Salariale ÷ CA) × 100
-                                </div>
-                              </div>
-                              <div>
-                                <div className="text-gray-600 mb-1.5">
-                                  Seuils :
-                                </div>
-                                <div className="space-y-1">
-                                  <div className="flex items-center gap-2 text-gray-700">
-                                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
-                                    <span>&lt; 25%</span>
-                                    <span className="text-gray-500">
-                                      Excellent
-                                    </span>
+          {/* Table - LIBRE DE TOUT CONTENEUR sur mobile */}
+          {mergedData.length === 0 ? (
+            /* EmptyState en pleine largeur quand pas de données */
+            <div className="w-full px-4">
+              <EmptyState
+                type="mandates"
+                onPrimaryAction={() =>
+                  router.push("/dashboard/mandates/create")
+                }
+                className="min-h-[500px]"
+              />
+            </div>
+          ) : (
+            <>
+              {/* Desktop: Table dans Card */}
+              <div className="hidden md:block">
+                <Card className="shadow-lg border-slate-200">
+                  <CardContent className="p-0">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="h-10">
+                          <TableHead className="min-w-[140px] py-2 text-xs">
+                            Campus
+                          </TableHead>
+                          <TableHead className="min-w-[100px] py-2 text-xs">
+                            Dernière saisie
+                          </TableHead>
+                          <TableHead className="min-w-[80px] py-2 text-xs">
+                            Top
+                          </TableHead>
+                          <TableHead className="text-center min-w-[80px] py-2 text-xs">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="flex items-center justify-center gap-1 cursor-help group">
+                                    <span className="font-medium">Ratio %</span>
+                                    <Info className="h-3 w-3 text-muted-foreground/40 group-hover:text-muted-foreground/60 transition-colors" />
                                   </div>
-                                  <div className="flex items-center gap-2 text-gray-700">
-                                    <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                                    <span>25-35%</span>
-                                    <span className="text-gray-500">Bon</span>
+                                </TooltipTrigger>
+                                <TooltipContent
+                                  side="top"
+                                  className="max-w-xs bg-white border border-gray-200 shadow-sm p-3"
+                                  sideOffset={8}
+                                >
+                                  <div className="space-y-2.5 text-xs">
+                                    <div>
+                                      <div className="text-gray-600 mb-1">
+                                        Formule :
+                                      </div>
+                                      <div className="font-mono text-gray-900 bg-gray-50 px-2 py-1 rounded text-center">
+                                        (Masse Salariale ÷ CA) × 100
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <div className="text-gray-600 mb-1.5">
+                                        Seuils :
+                                      </div>
+                                      <div className="space-y-1">
+                                        <div className="flex items-center gap-2 text-gray-700">
+                                          <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+                                          <span>&lt; 25%</span>
+                                          <span className="text-gray-500">
+                                            Excellent
+                                          </span>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-gray-700">
+                                          <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                                          <span>25-35%</span>
+                                          <span className="text-gray-500">
+                                            Bon
+                                          </span>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-gray-700">
+                                          <div className="w-1.5 h-1.5 bg-amber-500 rounded-full"></div>
+                                          <span>35-50%</span>
+                                          <span className="text-gray-500">
+                                            Attention
+                                          </span>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-gray-700">
+                                          <div className="w-1.5 h-1.5 bg-red-500 rounded-full"></div>
+                                          <span>&gt; 50%</span>
+                                          <span className="text-gray-500">
+                                            Critique
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
                                   </div>
-                                  <div className="flex items-center gap-2 text-gray-700">
-                                    <div className="w-1.5 h-1.5 bg-amber-500 rounded-full"></div>
-                                    <span>35-50%</span>
-                                    <span className="text-gray-500">
-                                      Attention
-                                    </span>
-                                  </div>
-                                  <div className="flex items-center gap-2 text-gray-700">
-                                    <div className="w-1.5 h-1.5 bg-red-500 rounded-full"></div>
-                                    <span>&gt; 50%</span>
-                                    <span className="text-gray-500">
-                                      Critique
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </TableHead>
-                    {dashboardData.columnLabels.map((col) => (
-                      <TableHead
-                        key={col.key}
-                        className="text-center min-w-[80px] py-2 text-xs"
-                      >
-                        <div className="font-medium">{col.label}</div>
-                      </TableHead>
-                    ))}
-                    <TableHead className="w-[40px] py-2"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {/* ✅ NOUVEAU: Afficher tous les groupes dynamiquement */}
-                  {Object.entries(grouped).map(([groupKey, groupData]) => {
-                    // Vérifier si ce groupe doit être affiché selon le filtre
-                    const shouldShowGroup = (() => {
-                      if (categoryFilter === "all") return true;
-                      if (
-                        categoryFilter === "hebergement" &&
-                        groupKey === "hebergement"
-                      )
-                        return true;
-                      if (
-                        categoryFilter === "restauration" &&
-                        groupKey === "restauration"
-                      )
-                        return true;
-                      return categoryFilter === groupKey;
-                    })();
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </TableHead>
+                          {dashboardData.columnLabels.map((col) => (
+                            <TableHead
+                              key={col.key}
+                              className="text-center min-w-[80px] py-2 text-xs"
+                            >
+                              <div className="font-medium">{col.label}</div>
+                            </TableHead>
+                          ))}
+                          <TableHead className="w-[40px] py-2"></TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {/* Contenu du tableau identique */}
+                        {Object.entries(grouped).map(
+                          ([groupKey, groupData]) => {
+                            const shouldShowGroup = (() => {
+                              if (categoryFilter === "all") return true;
+                              if (
+                                categoryFilter === "hebergement" &&
+                                groupKey === "hebergement"
+                              )
+                                return true;
+                              if (
+                                categoryFilter === "restauration" &&
+                                groupKey === "restauration"
+                              )
+                                return true;
+                              return categoryFilter === groupKey;
+                            })();
 
-                    if (!shouldShowGroup) return null;
+                            if (!shouldShowGroup) return null;
 
-                    return (
-                      <React.Fragment key={groupKey}>
-                        {/* Afficher les campus du groupe */}
-                        {groupData.map((campus) => (
-                          <CampusRow key={campus.id} campus={campus} />
-                        ))}
+                            return (
+                              <React.Fragment key={groupKey}>
+                                {groupData.map((campus) => (
+                                  <CampusRow key={campus.id} campus={campus} />
+                                ))}
 
-                        {/* Afficher le sous-total du groupe */}
-                        {groupData.length > 0 && (
-                          <SubtotalRow
-                            label={(() => {
-                              if (groupKey === "hebergement")
-                                return "Hébergement";
-                              if (groupKey === "restauration")
-                                return "Restauration";
-                              return getTypeLabel(groupKey);
-                            })()}
-                            totals={groupTotals[groupKey]}
-                            bgColor="bg-slate-50"
-                            textColor="text-slate-700"
-                            groupData={groupData}
-                          />
+                                {groupData.length > 0 && (
+                                  <SubtotalRow
+                                    label={(() => {
+                                      if (groupKey === "hebergement")
+                                        return "Hébergement";
+                                      if (groupKey === "restauration")
+                                        return "Restauration";
+                                      return getTypeLabel(groupKey);
+                                    })()}
+                                    totals={groupTotals[groupKey]}
+                                    bgColor="bg-slate-50"
+                                    textColor="text-slate-700"
+                                    groupData={groupData}
+                                  />
+                                )}
+                              </React.Fragment>
+                            );
+                          }
                         )}
-                      </React.Fragment>
-                    );
-                  })}
-                </TableBody>
+                      </TableBody>
 
-                {/* Total général EXACTEMENT comme votre code original */}
-                {categoryFilter === "all" && (
-                  <TableFooter>
-                    <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-150 border-t-4 border-gray-300 h-12">
-                      <TableCell
-                        colSpan={2}
-                        className="font-bold text-gray-900 py-2"
-                      >
-                        <span className="text-sm">Total général</span>
-                      </TableCell>
-                      <TableCell className="font-bold text-gray-900 py-2">
-                        <div className="text-xs">{calculateGrandTop()}</div>
-                      </TableCell>
-                      <TableCell></TableCell>
-                      {dashboardData.columnLabels.map((col) => (
-                        <TableCell
-                          key={col.key}
-                          className="text-center font-bold text-gray-900 py-2"
-                        >
-                          <div className="text-sm">
-                            {formatCurrency(grandTotals[col.key] || 0)}
-                          </div>
-                        </TableCell>
-                      ))}
-                      <TableCell></TableCell>
-                    </TableRow>
-                  </TableFooter>
-                )}
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+                      {categoryFilter === "all" && (
+                        <TableFooter>
+                          <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-150 border-t-4 border-gray-300 h-12">
+                            <TableCell
+                              colSpan={2}
+                              className="font-bold text-gray-900 py-2"
+                            >
+                              <span className="text-sm">Total général</span>
+                            </TableCell>
+                            <TableCell className="font-bold text-gray-900 py-2">
+                              <div className="text-xs">
+                                {calculateGrandTop()}
+                              </div>
+                            </TableCell>
+                            <TableCell></TableCell>
+                            {dashboardData.columnLabels.map((col) => (
+                              <TableCell
+                                key={col.key}
+                                className="text-center font-bold text-gray-900 py-2"
+                              >
+                                <div className="text-sm">
+                                  {formatCurrency(grandTotals[col.key] || 0)}
+                                </div>
+                              </TableCell>
+                            ))}
+                            <TableCell></TableCell>
+                          </TableRow>
+                        </TableFooter>
+                      )}
+                    </Table>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Mobile: Table LIBRE de tout conteneur */}
+              <div className="md:hidden -mx-4">
+                <div className="min-w-full">
+                  <Table className="border-collapse">
+                    <TableHeader>
+                      <TableRow className="h-10 bg-white border-b">
+                        <TableHead className="sticky left-0 bg-white z-10 w-[120px] py-2 text-xs font-semibold border-r shadow-sm">
+                          Campus
+                        </TableHead>
+                        <TableHead className="w-[90px] py-2 text-xs font-semibold">
+                          Dernière
+                        </TableHead>
+                        <TableHead className="w-[100px] py-2 text-xs font-semibold">
+                          Top
+                        </TableHead>
+                        <TableHead className="text-center w-[60px] py-2 text-xs font-semibold">
+                          Ratio
+                        </TableHead>
+                        {dashboardData.columnLabels.map((col) => (
+                          <TableHead
+                            key={col.key}
+                            className="text-center w-[80px] py-2 text-xs font-semibold"
+                          >
+                            <div className="font-medium">{col.label}</div>
+                          </TableHead>
+                        ))}
+                        <TableHead className="w-[40px] py-2"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {Object.entries(grouped).map(([groupKey, groupData]) => {
+                        const shouldShowGroup = (() => {
+                          if (categoryFilter === "all") return true;
+                          if (
+                            categoryFilter === "hebergement" &&
+                            groupKey === "hebergement"
+                          )
+                            return true;
+                          if (
+                            categoryFilter === "restauration" &&
+                            groupKey === "restauration"
+                          )
+                            return true;
+                          return categoryFilter === groupKey;
+                        })();
+
+                        if (!shouldShowGroup) return null;
+
+                        return (
+                          <React.Fragment key={groupKey}>
+                            {groupData.map((campus) => (
+                              <TableRow
+                                key={campus.id}
+                                className="hover:bg-muted/50 h-12 bg-white"
+                              >
+                                <TableCell className="sticky left-0 bg-white z-10 py-2 border-r shadow-sm">
+                                  <div className="w-[110px]">
+                                    <div className="font-medium text-xs truncate">
+                                      {campus.name}
+                                    </div>
+                                    <Badge
+                                      variant={getTypeVariant(campus.category)}
+                                      className="text-[10px] h-3 px-1 mt-1"
+                                    >
+                                      <span className="text-[10px] truncate max-w-[60px]">
+                                        {getTypeLabel(campus.category)}
+                                      </span>
+                                    </Badge>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="py-2">
+                                  <div className="text-[10px] w-[80px] truncate">
+                                    {campus.lastEntry || "Jamais"}
+                                  </div>
+                                </TableCell>
+                                <TableCell className="py-2">
+                                  <div className="text-[10px] font-medium text-blue-600 w-[90px] truncate">
+                                    {campus.performance}
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-center py-2">
+                                  {campus.payroll ? (
+                                    <div
+                                      className={`flex items-center justify-center gap-1 ${getRatioColor(campus.payroll.payrollToRevenueRatio)}`}
+                                    >
+                                      {getRatioIcon(campus.payroll.ratioTrend)}
+                                      <span className="font-medium text-[10px]">
+                                        {formatPercentage(
+                                          campus.payroll.payrollToRevenueRatio
+                                        )}
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <div className="text-muted-foreground text-[10px]">
+                                      -
+                                    </div>
+                                  )}
+                                </TableCell>
+                                {dashboardData?.columnLabels.map((col) => (
+                                  <TableCell
+                                    key={col.key}
+                                    className="text-center py-2"
+                                  >
+                                    <div className="text-[10px] font-medium w-[70px] truncate">
+                                      {campus.values[col.key] || "0.00"}
+                                    </div>
+                                  </TableCell>
+                                ))}
+                                <TableCell className="py-2">
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        className="h-6 w-6 p-0"
+                                      >
+                                        <MoreHorizontal className="h-3 w-3" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuLabel>
+                                        Actions
+                                      </DropdownMenuLabel>
+                                      <DropdownMenuItem
+                                        onClick={() =>
+                                          router.push(
+                                            `/dashboard/mandates/${campus.id}`
+                                          )
+                                        }
+                                      >
+                                        <Eye className="mr-2 h-4 w-4" />
+                                        Chiffre d&apos;affaires
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() =>
+                                          router.push(
+                                            `/dashboard/mandates/${campus.id}/payroll`
+                                          )
+                                        }
+                                      >
+                                        <Calculator className="mr-2 h-4 w-4" />
+                                        Masse salariale
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() =>
+                                          router.push(
+                                            `/dashboard/employees?mandateId=${campus.id}`
+                                          )
+                                        }
+                                      >
+                                        <Users className="mr-2 h-4 w-4" />
+                                        Employés
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() =>
+                                          router.push(
+                                            `/dashboard/mandates/${campus.id}/edit`
+                                          )
+                                        }
+                                      >
+                                        <Edit className="mr-2 h-4 w-4" />
+                                        Modifier
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+
+                            {groupData.length > 0 && (
+                              <TableRow className="bg-slate-50 hover:bg-slate-50 border-t-2 h-10">
+                                <TableCell
+                                  colSpan={2}
+                                  className="sticky left-0 bg-slate-50 z-10 font-semibold text-slate-700 py-2 border-r shadow-sm"
+                                >
+                                  <span className="text-xs">
+                                    {(() => {
+                                      if (groupKey === "hebergement")
+                                        return "Hébergement";
+                                      if (groupKey === "restauration")
+                                        return "Restauration";
+                                      return getTypeLabel(groupKey);
+                                    })()}
+                                  </span>
+                                </TableCell>
+                                <TableCell className="font-semibold text-slate-700 py-2">
+                                  <div className="text-[10px] w-[90px] truncate">
+                                    {calculateGroupTop(groupData)}
+                                  </div>
+                                </TableCell>
+                                <TableCell></TableCell>
+                                {dashboardData?.columnLabels.map((col) => (
+                                  <TableCell
+                                    key={col.key}
+                                    className="text-center font-semibold text-slate-700 py-2"
+                                  >
+                                    <div className="text-[10px] w-[70px] truncate">
+                                      {formatCurrency(
+                                        groupTotals[groupKey][col.key] || 0
+                                      )}
+                                    </div>
+                                  </TableCell>
+                                ))}
+                                <TableCell></TableCell>
+                              </TableRow>
+                            )}
+                          </React.Fragment>
+                        );
+                      })}
+
+                      {categoryFilter === "all" && (
+                        <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-150 border-t-4 border-gray-300 h-12">
+                          <TableCell
+                            colSpan={2}
+                            className="sticky left-0 bg-gradient-to-r from-gray-50 to-gray-100 z-10 font-bold text-gray-900 py-2 border-r shadow-sm"
+                          >
+                            <span className="text-xs">Total général</span>
+                          </TableCell>
+                          <TableCell className="font-bold text-gray-900 py-2">
+                            <div className="text-[10px] w-[90px] truncate">
+                              {calculateGrandTop()}
+                            </div>
+                          </TableCell>
+                          <TableCell></TableCell>
+                          {dashboardData.columnLabels.map((col) => (
+                            <TableCell
+                              key={col.key}
+                              className="text-center font-bold text-gray-900 py-2"
+                            >
+                              <div className="text-[10px] w-[70px] truncate">
+                                {formatCurrency(grandTotals[col.key] || 0)}
+                              </div>
+                            </TableCell>
+                          ))}
+                          <TableCell></TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </TooltipProvider>
   );
