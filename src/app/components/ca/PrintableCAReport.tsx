@@ -107,6 +107,7 @@ export default function PrintableCAReport({
       style: "decimal",
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
+      useGrouping: true, // Active les séparateurs de milliers
     }).format(amount);
   };
 

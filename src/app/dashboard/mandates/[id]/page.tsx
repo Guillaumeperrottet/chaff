@@ -276,6 +276,7 @@ export default function MandateCAPage() {
       style: "decimal",
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
+      useGrouping: true, // Active les séparateurs de milliers
     }).format(amount);
   };
 
