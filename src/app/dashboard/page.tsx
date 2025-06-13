@@ -755,25 +755,27 @@ export default function DashboardPage() {
             className="min-h-[500px]"
           />
         ) : (
-          <Table className="w-full">
+          <Table className="w-full min-w-[1200px]">
             <TableHeader>
-              <TableRow className="h-10">
-                <TableHead className="min-w-[140px] py-2 text-xs">
+              <TableRow className="h-12">
+                <TableHead className="w-[200px] py-3 text-sm font-semibold">
                   Campus
                 </TableHead>
-                <TableHead className="min-w-[100px] py-2 text-xs">
+                <TableHead className="w-[140px] py-3 text-sm font-semibold">
                   Dernière saisie
                 </TableHead>
-                <TableHead className="min-w-[80px] py-2 text-xs">Top</TableHead>
+                <TableHead className="w-[160px] py-3 text-sm font-semibold">
+                  Top
+                </TableHead>
                 {dashboardData.columnLabels.map((col) => (
                   <TableHead
                     key={col.key}
-                    className="text-center min-w-[80px] py-2 text-xs"
+                    className="text-center w-[120px] py-3 text-sm font-semibold"
                   >
-                    <div className="font-medium">{col.label}</div>
+                    {col.label}
                   </TableHead>
                 ))}
-                <TableHead className="w-[40px] py-2"></TableHead>
+                <TableHead className="w-[60px] py-3"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -800,48 +802,48 @@ export default function DashboardPage() {
                     {groupData.map((campus) => (
                       <TableRow
                         key={campus.id}
-                        className="hover:bg-muted/50 h-12"
+                        className="hover:bg-muted/50 h-14"
                       >
-                        <TableCell className="py-2">
-                          <div className="flex items-center space-x-1">
+                        <TableCell className="py-3">
+                          <div className="flex items-center space-x-2">
                             <div>
-                              <div className="font-medium text-sm">
+                              <div className="font-medium text-base">
                                 {campus.name}
                               </div>
                               <Badge
                                 variant={getTypeVariant()}
-                                className="text-xs h-4 px-1"
+                                className="text-sm h-5 px-2 mt-1"
                               >
                                 {getTypeIcon(campus.category)}
-                                <span className="text-xs">
+                                <span className="ml-1">
                                   {getTypeLabel(campus.category)}
                                 </span>
                               </Badge>
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell className="py-2">
-                          <div className="text-xs">
+                        <TableCell className="py-3">
+                          <div className="text-sm">
                             {campus.lastEntry || "Jamais"}
                           </div>
                         </TableCell>
-                        <TableCell className="py-2">
-                          <div className="text-xs font-medium text-blue-600">
+                        <TableCell className="py-3">
+                          <div className="text-sm font-medium text-blue-600">
                             {campus.performance}
                           </div>
                         </TableCell>
                         {dashboardData?.columnLabels.map((col) => (
-                          <TableCell key={col.key} className="text-center py-2">
-                            <div className="text-xs font-medium">
+                          <TableCell key={col.key} className="text-center py-3">
+                            <div className="text-sm font-medium">
                               {campus.values[col.key] || "0.00"}
                             </div>
                           </TableCell>
                         ))}
-                        <TableCell className="py-2">
+                        <TableCell className="py-3">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-6 w-6 p-0">
-                                <MoreHorizontal className="h-3 w-3" />
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <MoreHorizontal className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
@@ -893,12 +895,12 @@ export default function DashboardPage() {
                     ))}
 
                     {groupData.length > 0 && (
-                      <TableRow className="bg-slate-50 hover:bg-slate-50 border-t-2 h-10">
+                      <TableRow className="bg-slate-50 hover:bg-slate-50 border-t-2 h-12">
                         <TableCell
                           colSpan={2}
-                          className="font-semibold text-slate-700 py-2"
+                          className="font-semibold text-slate-700 py-3"
                         >
-                          <span className="text-sm">
+                          <span className="text-base">
                             {(() => {
                               if (groupKey === "hebergement")
                                 return "Hébergement";
@@ -908,17 +910,17 @@ export default function DashboardPage() {
                             })()}
                           </span>
                         </TableCell>
-                        <TableCell className="font-semibold text-slate-700 py-2">
-                          <div className="text-xs">
+                        <TableCell className="font-semibold text-slate-700 py-3">
+                          <div className="text-sm">
                             {calculateGroupTop(groupData)}
                           </div>
                         </TableCell>
                         {dashboardData?.columnLabels.map((col) => (
                           <TableCell
                             key={col.key}
-                            className="text-center font-semibold text-slate-700 py-2"
+                            className="text-center font-semibold text-slate-700 py-3"
                           >
-                            <div className="text-sm">
+                            <div className="text-base">
                               {formatCurrency(
                                 groupTotals[groupKey][col.key] || 0
                               )}
@@ -935,22 +937,22 @@ export default function DashboardPage() {
 
             {categoryFilter === "all" && (
               <TableFooter>
-                <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-150 border-t-4 border-gray-300 h-12">
+                <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-150 border-t-4 border-gray-300 h-14">
                   <TableCell
                     colSpan={2}
-                    className="font-bold text-gray-900 py-2"
+                    className="font-bold text-gray-900 py-3"
                   >
-                    <span className="text-sm">Total général</span>
+                    <span className="text-base">Total général</span>
                   </TableCell>
-                  <TableCell className="font-bold text-gray-900 py-2">
-                    <div className="text-xs">{calculateGrandTop()}</div>
+                  <TableCell className="font-bold text-gray-900 py-3">
+                    <div className="text-sm">{calculateGrandTop()}</div>
                   </TableCell>
                   {dashboardData.columnLabels.map((col) => (
                     <TableCell
                       key={col.key}
-                      className="text-center font-bold text-gray-900 py-2"
+                      className="text-center font-bold text-gray-900 py-3"
                     >
-                      <div className="text-sm">
+                      <div className="text-base">
                         {formatCurrency(grandTotals[col.key] || 0)}
                       </div>
                     </TableCell>
