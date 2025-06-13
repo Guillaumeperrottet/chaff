@@ -363,7 +363,7 @@ export default function MandateCAPage() {
     router.push(`/dashboard/mandates/${newMandateId}`);
   };
 
-  const { rows, totals, payrollTotals } = tableData();
+  const { rows, totals } = tableData();
 
   if (loading) {
     return (
@@ -654,6 +654,100 @@ export default function MandateCAPage() {
                 ))}
               </TableRow>
 
+              {/* Ligne évolution CA */}
+              <TableRow className="bg-indigo-50 font-medium">
+                <TableCell className="sticky left-0 bg-indigo-50 border-r text-center py-2 p-2">
+                  <span className="text-sm font-bold text-indigo-800">
+                    Évol. CA %
+                  </span>
+                </TableCell>
+                {caData.periods.map((period, index) => (
+                  <TableCell
+                    key={index}
+                    className="text-center border-r px-1 py-2 whitespace-nowrap"
+                  >
+                    <div className="flex justify-center items-center text-xs">
+                      {period.yearOverYear.revenueGrowth !== null ? (
+                        <span
+                          className={`font-bold ${
+                            period.yearOverYear.revenueGrowth >= 0
+                              ? "text-green-600"
+                              : "text-red-600"
+                          }`}
+                        >
+                          {period.yearOverYear.revenueGrowth >= 0 ? "+" : ""}
+                          {period.yearOverYear.revenueGrowth.toFixed(1)}%
+                        </span>
+                      ) : (
+                        "-"
+                      )}
+                    </div>
+                  </TableCell>
+                ))}
+              </TableRow>
+
+              {/* Ligne cumul */}
+              <TableRow className="bg-gray-100 font-medium">
+                <TableCell className="sticky left-0 bg-gray-100 border-r text-center py-2 p-2">
+                  <div className="flex items-center justify-center gap-1">
+                    <span className="text-sm font-bold">Cumul</span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-3 w-3 text-gray-600 cursor-help hover:text-gray-700 transition-colors" />
+                      </TooltipTrigger>
+                      <TooltipContent
+                        side="right"
+                        className="max-w-xs bg-white border border-gray-200 shadow-lg p-3"
+                        sideOffset={8}
+                      >
+                        <div className="space-y-2 text-xs">
+                          <div className="font-semibold text-gray-900">
+                            Cumul depuis le début du semestre
+                          </div>
+                          <div className="text-gray-600">
+                            Somme progressive des valeurs depuis le début de la
+                            période sélectionnée.
+                          </div>
+                          <div className="space-y-1">
+                            <div className="text-gray-600">
+                              <span className="font-medium">Gauche :</span>{" "}
+                              Cumul de la masse salariale
+                            </div>
+                            <div className="text-gray-600">
+                              <span className="font-medium">Droite :</span>{" "}
+                              Cumul du CA
+                            </div>
+                          </div>
+                          <div className="text-gray-500 text-[10px]">
+                            Permet de suivre la progression des objectifs en
+                            cours de période.
+                          </div>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                </TableCell>
+                {caData.periods.map((period, index) => (
+                  <TableCell
+                    key={index}
+                    className="text-center border-r px-1 py-2 whitespace-nowrap"
+                  >
+                    <div className="flex justify-between items-center space-x-1 text-[11px]">
+                      <div className="flex-1 text-right font-bold text-gray-600">
+                        {period.cumulativePayroll
+                          ? formatCurrency(period.cumulativePayroll)
+                          : "-"}
+                      </div>
+                      <div className="flex-1 text-left font-bold text-gray-700">
+                        {period.cumulativeTotal
+                          ? formatCurrency(period.cumulativeTotal)
+                          : "-"}
+                      </div>
+                    </div>
+                  </TableCell>
+                ))}
+              </TableRow>
+
               {/* Ligne séparatrice vide */}
               <TableRow className="h-4">
                 <TableCell className="sticky left-0 bg-white border-r"></TableCell>
@@ -662,7 +756,7 @@ export default function MandateCAPage() {
                 ))}
               </TableRow>
 
-              {/* Ligne masse salariale */}
+              {/* Ligne masse salariale
               <TableRow className="bg-green-50 font-medium">
                 <TableCell className="sticky left-0 bg-green-50 border-r text-center py-2 p-2">
                   <span className="text-sm font-bold">Masse Sal.</span>
@@ -709,10 +803,10 @@ export default function MandateCAPage() {
                     </div>
                   </TableCell>
                 ))}
-              </TableRow>
+              </TableRow> */}
 
               {/* Ligne ratio */}
-              <TableRow className="bg-yellow-50 font-medium">
+              {/* <TableRow className="bg-yellow-50 font-medium">
                 <TableCell className="sticky left-0 bg-yellow-50 border-r text-center py-2 p-2">
                   <div className="flex items-center justify-center gap-1">
                     <span className="text-sm font-bold">Ratio %</span>
@@ -773,7 +867,7 @@ export default function MandateCAPage() {
                     </div>
                   </TableCell>
                 ))}
-              </TableRow>
+              </TableRow> */}
 
               {/* Ligne évolution */}
               <TableRow className="bg-purple-50 font-medium">
@@ -853,68 +947,6 @@ export default function MandateCAPage() {
                         ) : (
                           "-"
                         )}
-                      </div>
-                    </div>
-                  </TableCell>
-                ))}
-              </TableRow>
-
-              {/* Ligne cumul */}
-              <TableRow className="bg-gray-100 font-medium">
-                <TableCell className="sticky left-0 bg-gray-100 border-r text-center py-2 p-2">
-                  <div className="flex items-center justify-center gap-1">
-                    <span className="text-sm font-bold">Cumul</span>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="h-3 w-3 text-gray-600 cursor-help hover:text-gray-700 transition-colors" />
-                      </TooltipTrigger>
-                      <TooltipContent
-                        side="right"
-                        className="max-w-xs bg-white border border-gray-200 shadow-lg p-3"
-                        sideOffset={8}
-                      >
-                        <div className="space-y-2 text-xs">
-                          <div className="font-semibold text-gray-900">
-                            Cumul depuis le début du semestre
-                          </div>
-                          <div className="text-gray-600">
-                            Somme progressive des valeurs depuis le début de la
-                            période sélectionnée.
-                          </div>
-                          <div className="space-y-1">
-                            <div className="text-gray-600">
-                              <span className="font-medium">Gauche :</span>{" "}
-                              Cumul de la masse salariale
-                            </div>
-                            <div className="text-gray-600">
-                              <span className="font-medium">Droite :</span>{" "}
-                              Cumul du CA
-                            </div>
-                          </div>
-                          <div className="text-gray-500 text-[10px]">
-                            Permet de suivre la progression des objectifs en
-                            cours de période.
-                          </div>
-                        </div>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                </TableCell>
-                {caData.periods.map((period, index) => (
-                  <TableCell
-                    key={index}
-                    className="text-center border-r px-1 py-2 whitespace-nowrap"
-                  >
-                    <div className="flex justify-between items-center space-x-1 text-[11px]">
-                      <div className="flex-1 text-right font-bold text-gray-600">
-                        {period.cumulativePayroll
-                          ? formatCurrency(period.cumulativePayroll)
-                          : "-"}
-                      </div>
-                      <div className="flex-1 text-left font-bold text-gray-700">
-                        {period.cumulativeTotal
-                          ? formatCurrency(period.cumulativeTotal)
-                          : "-"}
                       </div>
                     </div>
                   </TableCell>
