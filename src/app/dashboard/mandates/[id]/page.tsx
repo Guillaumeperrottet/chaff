@@ -607,7 +607,7 @@ export default function MandateCAPage() {
                       key={index}
                       className="text-center border-r px-1 py-1 whitespace-nowrap"
                     >
-                      <div className="flex justify-between items-center space-x-1 text-[11px]">
+                      <div className="flex justify-between items-center space-x-1 text-sm">
                         {/* Année précédente */}
                         <div className="flex-1 text-left text-muted-foreground">
                           {row.values[`period_${index}`]?.previous > 0
@@ -617,7 +617,7 @@ export default function MandateCAPage() {
                             : "-"}
                         </div>
                         {/* Année courante */}
-                        <div className="flex-1 text-right">
+                        <div className="flex-1 text-right font-medium">
                           {row.values[`period_${index}`]?.current > 0
                             ? formatCurrency(
                                 row.values[`period_${index}`].current
@@ -640,7 +640,7 @@ export default function MandateCAPage() {
                     key={index}
                     className="text-center border-r px-1 py-2 whitespace-nowrap"
                   >
-                    <div className="flex justify-between items-center space-x-1 text-[11px]">
+                    <div className="flex justify-between items-center space-x-1 text-sm">
                       <div className="flex-1 text-left text-blue-600">
                         {formatCurrency(
                           (
@@ -738,7 +738,7 @@ export default function MandateCAPage() {
                     key={index}
                     className="text-center border-r px-1 py-2 whitespace-nowrap"
                   >
-                    <div className="flex justify-between items-center space-x-1 text-[11px]">
+                    <div className="flex justify-between items-center space-x-1 text-sm">
                       {/* Année précédente - à gauche */}
                       <div className="flex-1 text-left text-muted-foreground">
                         {period.cumulativePreviousYearRevenue
