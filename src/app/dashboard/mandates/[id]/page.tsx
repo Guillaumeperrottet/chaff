@@ -781,40 +781,6 @@ export default function MandateCAPage() {
                     <span className="text-sm font-bold text-emerald-800">
                       Évol. Cumul %
                     </span>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="h-3 w-3 text-emerald-600 cursor-help hover:text-emerald-700 transition-colors" />
-                      </TooltipTrigger>
-                      <TooltipContent
-                        side="right"
-                        className="max-w-xs bg-white border border-gray-200 shadow-lg p-3"
-                        sideOffset={8}
-                      >
-                        <div className="space-y-2 text-xs">
-                          <div className="font-semibold text-gray-900">
-                            Évolution des cumuls
-                          </div>
-                          <div className="text-gray-600">
-                            Compare les cumuls de l&apos;année courante avec les
-                            cumuls de l&apos;année précédente à la même période.
-                          </div>
-                          <div className="space-y-1">
-                            <div className="text-gray-600">
-                              <span className="font-medium">Gauche :</span>{" "}
-                              Évolution cumul MS
-                            </div>
-                            <div className="text-gray-600">
-                              <span className="font-medium">Droite :</span>{" "}
-                              Évolution cumul CA
-                            </div>
-                          </div>
-                          <div className="text-gray-500 text-[10px]">
-                            Formule : ((Cumul actuel - Cumul N-1) ÷ Cumul N-1) ×
-                            100
-                          </div>
-                        </div>
-                      </TooltipContent>
-                    </Tooltip>
                   </div>
                 </TableCell>
                 {caData.periods.map((period, index) => (

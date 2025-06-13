@@ -325,10 +325,28 @@ export default function DashboardPage() {
 
   // Fonctions utilitaires inchangées
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("fr-CH", {
-      style: "currency",
-      currency: "CHF",
-    }).format(value);
+    // Formatage manuel avec apostrophe suisse si Intl ne fonctionne pas
+    try {
+      const formatted = new Intl.NumberFormat("de-CH", {
+        style: "currency",
+        currency: "CHF",
+        useGrouping: true,
+      }).format(value);
+      
+      // Si le formatage ne contient pas d'apostrophe, forcer manuellement
+      if (value >= 1000 && !formatted.includes("'")) {
+        const parts = value.toFixed(2).split('.');
+        const integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, "'");
+        return `CHF ${integerPart}.${parts[1]}`;
+      }
+      
+      return formatted;
+    } catch {
+      // Fallback manuel
+      const parts = value.toFixed(2).split('.');
+      const integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, "'");
+      return `CHF ${integerPart}.${parts[1]}`;
+    }
   };
 
   const formatPercentage = (value: number | null) => {
