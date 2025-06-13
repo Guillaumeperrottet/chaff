@@ -221,15 +221,10 @@ export default function DashboardPage() {
 
   // ✅ FONCTION POUR OBTENIR LA COULEUR D'UN TYPE
   const getTypeVariant = (
-    groupId: string
+    _groupId: string // Le paramètre est conservé pour la compatibilité mais non utilisé
   ): "default" | "secondary" | "outline" => {
-    if (groupId === "HEBERGEMENT" || groupId === "Hébergement")
-      return "default";
-    if (groupId === "RESTAURATION" || groupId === "Restauration")
-      return "secondary";
-
-    // Types personnalisés
-    return "outline";
+    // Tous les types utilisent maintenant la même couleur que la Restauration
+    return "secondary";
   };
 
   // ✅ MODIFIER LE useEffect POUR CHARGER AUSSI LES TYPES
