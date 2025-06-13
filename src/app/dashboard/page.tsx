@@ -1055,29 +1055,35 @@ export default function DashboardPage() {
                 </Card>
               </div>
 
-              {/* Mobile: Table LIBRE de tout conteneur - largeur naturelle */}
-              <div className="md:hidden -mx-4 overflow-x-auto">
-                <Table className="border-collapse w-auto">
+              {/* Mobile: Table pleine largeur sans scroll */}
+              <div className="md:hidden -mx-4">
+                <Table className="w-full table-fixed border-collapse">
                   <TableHeader>
                     <TableRow className="h-10 bg-white border-b">
-                      <TableHead className="sticky left-0 bg-white z-10 min-w-[140px] py-2 text-xs font-semibold border-r shadow-sm">
+                      <TableHead className="w-[35%] px-2 py-2 text-xs font-semibold border-r">
                         Campus
                       </TableHead>
-                      <TableHead className="min-w-[100px] py-2 text-xs font-semibold whitespace-nowrap">
+                      <TableHead className="w-[15%] px-1 py-2 text-xs font-semibold">
                         Dernière
                       </TableHead>
-                      <TableHead className="min-w-[120px] py-2 text-xs font-semibold whitespace-nowrap">
+                      <TableHead className="w-[20%] px-1 py-2 text-xs font-semibold">
                         Top
                       </TableHead>
-                      {dashboardData.columnLabels.map((col) => (
+                      {dashboardData.columnLabels.map((col, index) => (
                         <TableHead
                           key={col.key}
-                          className="text-center min-w-[90px] py-2 text-xs font-semibold whitespace-nowrap"
+                          className={`text-center px-1 py-2 text-xs font-semibold ${
+                            index < dashboardData.columnLabels.length - 1
+                              ? "w-[7.5%]"
+                              : "w-[7.5%]"
+                          }`}
                         >
-                          <div className="font-medium">{col.label}</div>
+                          <div className="truncate">{col.label}</div>
                         </TableHead>
                       ))}
-                      <TableHead className="min-w-[50px] py-2"></TableHead>
+                      <TableHead className="w-[15%] px-1 py-2 text-xs font-semibold">
+                        Actions
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1106,42 +1112,42 @@ export default function DashboardPage() {
                               key={campus.id}
                               className="hover:bg-muted/50 h-12 bg-white"
                             >
-                              <TableCell className="sticky left-0 bg-white z-10 py-2 border-r shadow-sm min-w-[140px]">
-                                <div className="w-full">
+                              <TableCell className="px-2 py-2 border-r">
+                                <div className="flex flex-col">
                                   <div className="font-medium text-xs truncate">
                                     {campus.name}
                                   </div>
                                   <Badge
                                     variant={getTypeVariant()}
-                                    className="text-[10px] h-3 px-1 mt-1"
+                                    className="text-[10px] h-3 px-1 mt-1 w-fit"
                                   >
-                                    <span className="text-[10px] truncate max-w-[80px]">
+                                    <span className="truncate max-w-[60px]">
                                       {getTypeLabel(campus.category)}
                                     </span>
                                   </Badge>
                                 </div>
                               </TableCell>
-                              <TableCell className="py-2 min-w-[100px]">
-                                <div className="text-xs whitespace-nowrap">
+                              <TableCell className="px-1 py-2">
+                                <div className="text-[10px] truncate">
                                   {campus.lastEntry || "Jamais"}
                                 </div>
                               </TableCell>
-                              <TableCell className="py-2 min-w-[120px]">
-                                <div className="text-xs font-medium text-blue-600 whitespace-nowrap">
+                              <TableCell className="px-1 py-2">
+                                <div className="text-[10px] font-medium text-blue-600 truncate">
                                   {campus.performance}
                                 </div>
                               </TableCell>
                               {dashboardData?.columnLabels.map((col) => (
                                 <TableCell
                                   key={col.key}
-                                  className="text-center py-2 min-w-[90px]"
+                                  className="text-center px-1 py-2"
                                 >
-                                  <div className="text-xs font-medium whitespace-nowrap">
+                                  <div className="text-[10px] font-medium truncate">
                                     {campus.values[col.key] || "0.00"}
                                   </div>
                                 </TableCell>
                               ))}
-                              <TableCell className="py-2 min-w-[50px]">
+                              <TableCell className="px-1 py-2 text-center">
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
                                     <Button
@@ -1205,9 +1211,9 @@ export default function DashboardPage() {
                             <TableRow className="bg-slate-50 hover:bg-slate-50 border-t-2 h-10">
                               <TableCell
                                 colSpan={2}
-                                className="sticky left-0 bg-slate-50 z-10 font-semibold text-slate-700 py-2 border-r shadow-sm min-w-[240px]"
+                                className="font-semibold text-slate-700 px-2 py-2 border-r"
                               >
-                                <span className="text-xs whitespace-nowrap">
+                                <span className="text-xs truncate">
                                   {(() => {
                                     if (groupKey === "hebergement")
                                       return "Hébergement";
@@ -1217,24 +1223,24 @@ export default function DashboardPage() {
                                   })()}
                                 </span>
                               </TableCell>
-                              <TableCell className="font-semibold text-slate-700 py-2 min-w-[120px]">
-                                <div className="text-xs whitespace-nowrap">
+                              <TableCell className="font-semibold text-slate-700 px-1 py-2">
+                                <div className="text-[10px] truncate">
                                   {calculateGroupTop(groupData)}
                                 </div>
                               </TableCell>
                               {dashboardData?.columnLabels.map((col) => (
                                 <TableCell
                                   key={col.key}
-                                  className="text-center font-semibold text-slate-700 py-2 min-w-[90px]"
+                                  className="text-center font-semibold text-slate-700 px-1 py-2"
                                 >
-                                  <div className="text-xs whitespace-nowrap">
+                                  <div className="text-[10px] truncate">
                                     {formatCurrency(
                                       groupTotals[groupKey][col.key] || 0
                                     )}
                                   </div>
                                 </TableCell>
                               ))}
-                              <TableCell className="min-w-[50px]"></TableCell>
+                              <TableCell className="px-1 py-2"></TableCell>
                             </TableRow>
                           )}
                         </React.Fragment>
@@ -1245,28 +1251,28 @@ export default function DashboardPage() {
                       <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-150 border-t-4 border-gray-300 h-12">
                         <TableCell
                           colSpan={2}
-                          className="sticky left-0 bg-gradient-to-r from-gray-50 to-gray-100 z-10 font-bold text-gray-900 py-2 border-r shadow-sm min-w-[240px]"
+                          className="font-bold text-gray-900 px-2 py-2 border-r"
                         >
-                          <span className="text-xs whitespace-nowrap">
+                          <span className="text-xs truncate">
                             Total général
                           </span>
                         </TableCell>
-                        <TableCell className="font-bold text-gray-900 py-2 min-w-[120px]">
-                          <div className="text-xs whitespace-nowrap">
+                        <TableCell className="font-bold text-gray-900 px-1 py-2">
+                          <div className="text-[10px] truncate">
                             {calculateGrandTop()}
                           </div>
                         </TableCell>
                         {dashboardData.columnLabels.map((col) => (
                           <TableCell
                             key={col.key}
-                            className="text-center font-bold text-gray-900 py-2 min-w-[90px]"
+                            className="text-center font-bold text-gray-900 px-1 py-2"
                           >
-                            <div className="text-xs whitespace-nowrap">
+                            <div className="text-[10px] truncate">
                               {formatCurrency(grandTotals[col.key] || 0)}
                             </div>
                           </TableCell>
                         ))}
-                        <TableCell className="min-w-[50px]"></TableCell>
+                        <TableCell className="px-1 py-2"></TableCell>
                       </TableRow>
                     )}
                   </TableBody>
