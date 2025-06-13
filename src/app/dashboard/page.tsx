@@ -332,18 +332,18 @@ export default function DashboardPage() {
         currency: "CHF",
         useGrouping: true,
       }).format(value);
-      
+
       // Si le formatage ne contient pas d'apostrophe, forcer manuellement
       if (value >= 1000 && !formatted.includes("'")) {
-        const parts = value.toFixed(2).split('.');
+        const parts = value.toFixed(2).split(".");
         const integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, "'");
         return `CHF ${integerPart}.${parts[1]}`;
       }
-      
+
       return formatted;
     } catch {
       // Fallback manuel
-      const parts = value.toFixed(2).split('.');
+      const parts = value.toFixed(2).split(".");
       const integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, "'");
       return `CHF ${integerPart}.${parts[1]}`;
     }

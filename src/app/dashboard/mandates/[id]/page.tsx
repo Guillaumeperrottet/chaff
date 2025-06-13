@@ -497,30 +497,15 @@ export default function MandateCAPage() {
 
             {/* Boutons d'action */}
             <div className="flex items-center space-x-3">
-              <Button
-                onClick={handleRefresh}
-                variant="outline"
-                size="sm"
-                className="hover:bg-blue-50 hover:border-blue-300 transition-all duration-200"
-              >
+              <Button onClick={handleRefresh} variant="outline" size="sm">
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Actualiser
               </Button>
-              <Button
-                onClick={handleExport}
-                variant="outline"
-                size="sm"
-                className="hover:bg-green-50 hover:border-green-300 transition-all duration-200"
-              >
+              <Button onClick={handleExport} variant="outline" size="sm">
                 <FileSpreadsheet className="h-4 w-4 mr-2" />
                 Exporter
               </Button>
-              <Button
-                onClick={handlePrint}
-                variant="outline"
-                size="sm"
-                className="hover:bg-purple-50 hover:border-purple-300 transition-all duration-200"
-              >
+              <Button onClick={handlePrint} variant="outline" size="sm">
                 <Download className="h-4 w-4 mr-2" />
                 Imprimer
               </Button>
@@ -649,8 +634,8 @@ export default function MandateCAPage() {
               ))}
 
               {/* Ligne des totaux CA */}
-              <TableRow className="bg-blue-50 font-medium">
-                <TableCell className="sticky left-0 bg-blue-50 border-r text-center py-2 p-2">
+              <TableRow className="bg-gray-100 font-medium">
+                <TableCell className="sticky left-0 bg-gray-100 border-r text-center py-2 p-2">
                   <span className="text-sm font-bold">Total CA</span>
                 </TableCell>
                 {caData.periods.map((_, index) => (
@@ -659,7 +644,7 @@ export default function MandateCAPage() {
                     className="text-center border-r px-1 py-2 whitespace-nowrap"
                   >
                     <div className="flex justify-between items-center space-x-1 text-sm">
-                      <div className="flex-1 text-left text-blue-600">
+                      <div className="flex-1 text-left text-muted-foreground">
                         {formatCurrency(
                           (
                             totals as Record<
@@ -669,7 +654,7 @@ export default function MandateCAPage() {
                           )[`period_${index}`]?.previous || 0
                         )}
                       </div>
-                      <div className="flex-1 text-right font-bold text-blue-700">
+                      <div className="flex-1 text-right font-bold">
                         {formatCurrency(
                           (
                             totals as Record<
@@ -685,11 +670,9 @@ export default function MandateCAPage() {
               </TableRow>
 
               {/* Ligne évolution CA */}
-              <TableRow className="bg-indigo-50 font-medium">
-                <TableCell className="sticky left-0 bg-indigo-50 border-r text-center py-2 p-2">
-                  <span className="text-sm font-bold text-indigo-800">
-                    Évol. CA %
-                  </span>
+              <TableRow className="bg-gray-100 font-medium">
+                <TableCell className="sticky left-0 bg-gray-100 border-r text-center py-2 p-2">
+                  <span className="text-sm font-bold">Évol. CA %</span>
                 </TableCell>
                 {caData.periods.map((period, index) => (
                   <TableCell
@@ -716,7 +699,7 @@ export default function MandateCAPage() {
                     <span className="text-sm font-bold">Cumul</span>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Info className="h-3 w-3 text-gray-600 cursor-help hover:text-gray-700 transition-colors" />
+                        <Info className="h-3 w-3 text-gray-600 cursor-help" />
                       </TooltipTrigger>
                       <TooltipContent
                         side="right"
@@ -775,12 +758,10 @@ export default function MandateCAPage() {
               </TableRow>
 
               {/* Ligne évolution du cumul */}
-              <TableRow className="bg-emerald-50 font-medium">
-                <TableCell className="sticky left-0 bg-emerald-50 border-r text-center py-2 p-2">
+              <TableRow className="bg-gray-100 font-medium">
+                <TableCell className="sticky left-0 bg-gray-100 border-r text-center py-2 p-2">
                   <div className="flex items-center justify-center gap-1">
-                    <span className="text-sm font-bold text-emerald-800">
-                      Évol. Cumul %
-                    </span>
+                    <span className="text-sm font-bold">Évol. Cumul %</span>
                   </div>
                 </TableCell>
                 {caData.periods.map((period, index) => (
