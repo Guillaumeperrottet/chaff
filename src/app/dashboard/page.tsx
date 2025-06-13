@@ -41,9 +41,6 @@ import {
   Calculator,
   BarChart3,
   Users,
-  TrendingUp,
-  TrendingDown,
-  Info,
   Building2,
   MapPin,
 } from "lucide-react";
@@ -56,12 +53,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/app/components/ui/select";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/app/components/ui/tooltip";
+import { TooltipProvider } from "@/app/components/ui/tooltip";
 import { toast } from "sonner";
 
 // ✅ INTERFACES MISES À JOUR
@@ -342,25 +334,6 @@ export default function DashboardPage() {
     }
   };
 
-  const formatPercentage = (value: number | null) => {
-    if (value === null) return "-";
-    return `${value.toFixed(1)}%`;
-  };
-
-  const getRatioColor = (ratio: number | null) => {
-    if (ratio === null) return "text-muted-foreground";
-    if (ratio < 25) return "text-green-600";
-    if (ratio < 35) return "text-yellow-600";
-    return "text-red-600";
-  };
-
-  const getRatioIcon = (trend: string | undefined) => {
-    if (trend === "up") return <TrendingUp className="h-3 w-3 text-red-600" />;
-    if (trend === "down")
-      return <TrendingDown className="h-3 w-3 text-green-600" />;
-    return null;
-  };
-
   // ✅ NOUVELLE FONCTION D'EXPORT
   const handleExport = async () => {
     try {
@@ -626,20 +599,6 @@ export default function DashboardPage() {
           {campus.performance}
         </div>
       </TableCell>
-      <TableCell className="text-center py-2">
-        {campus.payroll ? (
-          <div
-            className={`flex items-center justify-center gap-1 ${getRatioColor(campus.payroll.payrollToRevenueRatio)}`}
-          >
-            {getRatioIcon(campus.payroll.ratioTrend)}
-            <span className="font-medium text-xs">
-              {formatPercentage(campus.payroll.payrollToRevenueRatio)}
-            </span>
-          </div>
-        ) : (
-          <div className="text-muted-foreground text-xs">-</div>
-        )}
-      </TableCell>
       {dashboardData?.columnLabels.map((col) => (
         <TableCell key={col.key} className="text-center py-2">
           <div className="text-xs font-medium">
@@ -718,7 +677,6 @@ export default function DashboardPage() {
         <TableCell className={`font-semibold ${textColor} py-2`}>
           <div className="text-xs">{topPerformance}</div>
         </TableCell>
-        <TableCell></TableCell>
         {dashboardData?.columnLabels.map((col) => (
           <TableCell
             key={col.key}
@@ -1005,69 +963,6 @@ export default function DashboardPage() {
                           <TableHead className="min-w-[80px] py-2 text-xs">
                             Top
                           </TableHead>
-                          <TableHead className="text-center min-w-[80px] py-2 text-xs">
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <div className="flex items-center justify-center gap-1 cursor-help group">
-                                    <span className="font-medium">Ratio %</span>
-                                    <Info className="h-3 w-3 text-muted-foreground/40 group-hover:text-muted-foreground/60 transition-colors" />
-                                  </div>
-                                </TooltipTrigger>
-                                <TooltipContent
-                                  side="top"
-                                  className="max-w-xs bg-white border border-gray-200 shadow-sm p-3"
-                                  sideOffset={8}
-                                >
-                                  <div className="space-y-2.5 text-xs">
-                                    <div>
-                                      <div className="text-gray-600 mb-1">
-                                        Formule :
-                                      </div>
-                                      <div className="font-mono text-gray-900 bg-gray-50 px-2 py-1 rounded text-center">
-                                        (Masse Salariale ÷ CA) × 100
-                                      </div>
-                                    </div>
-                                    <div>
-                                      <div className="text-gray-600 mb-1.5">
-                                        Seuils :
-                                      </div>
-                                      <div className="space-y-1">
-                                        <div className="flex items-center gap-2 text-gray-700">
-                                          <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
-                                          <span>&lt; 25%</span>
-                                          <span className="text-gray-500">
-                                            Excellent
-                                          </span>
-                                        </div>
-                                        <div className="flex items-center gap-2 text-gray-700">
-                                          <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                                          <span>25-35%</span>
-                                          <span className="text-gray-500">
-                                            Bon
-                                          </span>
-                                        </div>
-                                        <div className="flex items-center gap-2 text-gray-700">
-                                          <div className="w-1.5 h-1.5 bg-amber-500 rounded-full"></div>
-                                          <span>35-50%</span>
-                                          <span className="text-gray-500">
-                                            Attention
-                                          </span>
-                                        </div>
-                                        <div className="flex items-center gap-2 text-gray-700">
-                                          <div className="w-1.5 h-1.5 bg-red-500 rounded-full"></div>
-                                          <span>&gt; 50%</span>
-                                          <span className="text-gray-500">
-                                            Critique
-                                          </span>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          </TableHead>
                           {dashboardData.columnLabels.map((col) => (
                             <TableHead
                               key={col.key}
@@ -1141,7 +1036,6 @@ export default function DashboardPage() {
                                 {calculateGrandTop()}
                               </div>
                             </TableCell>
-                            <TableCell></TableCell>
                             {dashboardData.columnLabels.map((col) => (
                               <TableCell
                                 key={col.key}
@@ -1179,9 +1073,6 @@ export default function DashboardPage() {
                         </TableHead>
                         <TableHead className="min-w-[100px] py-2 text-xs font-semibold whitespace-nowrap">
                           Top
-                        </TableHead>
-                        <TableHead className="text-center min-w-[60px] py-2 text-xs font-semibold whitespace-nowrap">
-                          Ratio
                         </TableHead>
                         {dashboardData.columnLabels.map((col) => (
                           <TableHead
@@ -1244,24 +1135,6 @@ export default function DashboardPage() {
                                   <div className="text-[10px] font-medium text-blue-600 truncate whitespace-nowrap">
                                     {campus.performance}
                                   </div>
-                                </TableCell>
-                                <TableCell className="text-center py-2 min-w-[60px]">
-                                  {campus.payroll ? (
-                                    <div
-                                      className={`flex items-center justify-center gap-1 ${getRatioColor(campus.payroll.payrollToRevenueRatio)}`}
-                                    >
-                                      {getRatioIcon(campus.payroll.ratioTrend)}
-                                      <span className="font-medium text-[10px] whitespace-nowrap">
-                                        {formatPercentage(
-                                          campus.payroll.payrollToRevenueRatio
-                                        )}
-                                      </span>
-                                    </div>
-                                  ) : (
-                                    <div className="text-muted-foreground text-[10px]">
-                                      -
-                                    </div>
-                                  )}
                                 </TableCell>
                                 {dashboardData?.columnLabels.map((col) => (
                                   <TableCell
@@ -1354,7 +1227,6 @@ export default function DashboardPage() {
                                     {calculateGroupTop(groupData)}
                                   </div>
                                 </TableCell>
-                                <TableCell className="min-w-[60px]"></TableCell>
                                 {dashboardData?.columnLabels.map((col) => (
                                   <TableCell
                                     key={col.key}
@@ -1389,7 +1261,6 @@ export default function DashboardPage() {
                               {calculateGrandTop()}
                             </div>
                           </TableCell>
-                          <TableCell className="min-w-[60px]"></TableCell>
                           {dashboardData.columnLabels.map((col) => (
                             <TableCell
                               key={col.key}
