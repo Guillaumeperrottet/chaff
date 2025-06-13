@@ -1055,156 +1055,141 @@ export default function DashboardPage() {
                 </Card>
               </div>
 
-              {/* Mobile: Table pleine largeur sans conteneur */}
-              <Table className="md:hidden w-full table-fixed border-collapse -mx-4">
-                <TableHeader>
-                  <TableRow className="h-10 bg-white border-b">
-                    <TableHead className="sticky left-0 bg-white z-10 w-[140px] py-2 text-xs font-semibold border-r shadow-sm">
-                      Campus
-                    </TableHead>
-                    <TableHead className="w-[100px] py-2 text-xs font-semibold whitespace-nowrap">
-                      Dernière
-                    </TableHead>
-                    <TableHead className="w-[120px] py-2 text-xs font-semibold whitespace-nowrap">
-                      Top
-                    </TableHead>
-                    {dashboardData.columnLabels.map((col) => (
-                      <TableHead
-                        key={col.key}
-                        className="text-center w-[90px] py-2 text-xs font-semibold whitespace-nowrap"
-                      >
-                        <div className="font-medium">{col.label}</div>
-                      </TableHead>
-                    ))}
-                    <TableHead className="w-[50px] py-2"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {Object.entries(grouped).map(([groupKey, groupData]) => {
-                    const shouldShowGroup = (() => {
-                      if (categoryFilter === "all") return true;
-                      if (
-                        categoryFilter === "hebergement" &&
-                        groupKey === "hebergement"
-                      )
-                        return true;
-                      if (
-                        categoryFilter === "restauration" &&
-                        groupKey === "restauration"
-                      )
-                        return true;
-                      return categoryFilter === groupKey;
-                    })();
+              <div className="md:hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Campus</TableHead>
+                      <TableHead>Dernière</TableHead>
+                      <TableHead>Top</TableHead>
+                      {dashboardData.columnLabels.map((col) => (
+                        <TableHead key={col.key} className="text-center">
+                          {col.label}
+                        </TableHead>
+                      ))}
+                      <TableHead></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {Object.entries(grouped).map(([groupKey, groupData]) => {
+                      const shouldShowGroup = (() => {
+                        if (categoryFilter === "all") return true;
+                        if (
+                          categoryFilter === "hebergement" &&
+                          groupKey === "hebergement"
+                        )
+                          return true;
+                        if (
+                          categoryFilter === "restauration" &&
+                          groupKey === "restauration"
+                        )
+                          return true;
+                        return categoryFilter === groupKey;
+                      })();
 
-                    if (!shouldShowGroup) return null;
+                      if (!shouldShowGroup) return null;
 
-                    return (
-                      <React.Fragment key={groupKey}>
-                        {groupData.map((campus) => (
-                          <TableRow
-                            key={campus.id}
-                            className="hover:bg-muted/50 h-12 bg-white"
-                          >
-                            <TableCell className="sticky left-0 bg-white z-10 py-2 border-r shadow-sm w-[140px]">
-                              <div className="w-full">
-                                <div className="font-medium text-xs truncate">
-                                  {campus.name}
-                                </div>
-                                <Badge
-                                  variant={getTypeVariant()}
-                                  className="text-[10px] h-3 px-1 mt-1"
-                                >
-                                  <span className="text-[10px] truncate max-w-[80px]">
-                                    {getTypeLabel(campus.category)}
-                                  </span>
-                                </Badge>
-                              </div>
-                            </TableCell>
-                            <TableCell className="py-2 w-[100px]">
-                              <div className="text-xs whitespace-nowrap">
-                                {campus.lastEntry || "Jamais"}
-                              </div>
-                            </TableCell>
-                            <TableCell className="py-2 w-[120px]">
-                              <div className="text-xs font-medium text-blue-600 whitespace-nowrap">
-                                {campus.performance}
-                              </div>
-                            </TableCell>
-                            {dashboardData?.columnLabels.map((col) => (
-                              <TableCell
-                                key={col.key}
-                                className="text-center py-2 w-[90px]"
-                              >
-                                <div className="text-xs font-medium whitespace-nowrap">
-                                  {campus.values[col.key] || "0.00"}
+                      return (
+                        <React.Fragment key={groupKey}>
+                          {groupData.map((campus) => (
+                            <TableRow key={campus.id}>
+                              <TableCell>
+                                <div>
+                                  <div className="font-medium text-sm">
+                                    {campus.name}
+                                  </div>
+                                  <Badge
+                                    variant={getTypeVariant()}
+                                    className="text-xs"
+                                  >
+                                    {getTypeIcon(campus.category)}
+                                    <span>{getTypeLabel(campus.category)}</span>
+                                  </Badge>
                                 </div>
                               </TableCell>
-                            ))}
-                            <TableCell className="py-2 w-[50px]">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    className="h-6 w-6 p-0"
-                                  >
-                                    <MoreHorizontal className="h-3 w-3" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                  <DropdownMenuItem
-                                    onClick={() =>
-                                      router.push(
-                                        `/dashboard/mandates/${campus.id}`
-                                      )
-                                    }
-                                  >
-                                    <Eye className="mr-2 h-4 w-4" />
-                                    Chiffre d&apos;affaires
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() =>
-                                      router.push(
-                                        `/dashboard/mandates/${campus.id}/payroll`
-                                      )
-                                    }
-                                  >
-                                    <Calculator className="mr-2 h-4 w-4" />
-                                    Masse salariale
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() =>
-                                      router.push(
-                                        `/dashboard/employees?mandateId=${campus.id}`
-                                      )
-                                    }
-                                  >
-                                    <Users className="mr-2 h-4 w-4" />
-                                    Employés
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() =>
-                                      router.push(
-                                        `/dashboard/mandates/${campus.id}/edit`
-                                      )
-                                    }
-                                  >
-                                    <Edit className="mr-2 h-4 w-4" />
-                                    Modifier
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </TableCell>
-                          </TableRow>
-                        ))}
+                              <TableCell>
+                                <div className="text-xs">
+                                  {campus.lastEntry || "Jamais"}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="text-xs font-medium text-blue-600">
+                                  {campus.performance}
+                                </div>
+                              </TableCell>
+                              {dashboardData?.columnLabels.map((col) => (
+                                <TableCell
+                                  key={col.key}
+                                  className="text-center"
+                                >
+                                  <div className="text-xs font-medium">
+                                    {campus.values[col.key] || "0.00"}
+                                  </div>
+                                </TableCell>
+                              ))}
+                              <TableCell>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      className="h-6 w-6 p-0"
+                                    >
+                                      <MoreHorizontal className="h-3 w-3" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuLabel>
+                                      Actions
+                                    </DropdownMenuLabel>
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        router.push(
+                                          `/dashboard/mandates/${campus.id}`
+                                        )
+                                      }
+                                    >
+                                      <Eye className="mr-2 h-4 w-4" />
+                                      Chiffre d&apos;affaires
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        router.push(
+                                          `/dashboard/mandates/${campus.id}/payroll`
+                                        )
+                                      }
+                                    >
+                                      <Calculator className="mr-2 h-4 w-4" />
+                                      Masse salariale
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        router.push(
+                                          `/dashboard/employees?mandateId=${campus.id}`
+                                        )
+                                      }
+                                    >
+                                      <Users className="mr-2 h-4 w-4" />
+                                      Employés
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        router.push(
+                                          `/dashboard/mandates/${campus.id}/edit`
+                                        )
+                                      }
+                                    >
+                                      <Edit className="mr-2 h-4 w-4" />
+                                      Modifier
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </TableCell>
+                            </TableRow>
+                          ))}
 
-                        {groupData.length > 0 && (
-                          <TableRow className="bg-slate-50 hover:bg-slate-50 border-t-2 h-10">
-                            <TableCell
-                              colSpan={2}
-                              className="sticky left-0 bg-slate-50 z-10 font-semibold text-slate-700 py-2 border-r shadow-sm w-[240px]"
-                            >
-                              <span className="text-xs whitespace-nowrap">
+                          {groupData.length > 0 && (
+                            <TableRow className="bg-slate-50">
+                              <TableCell colSpan={2} className="font-semibold">
                                 {(() => {
                                   if (groupKey === "hebergement")
                                     return "Hébergement";
@@ -1212,62 +1197,49 @@ export default function DashboardPage() {
                                     return "Restauration";
                                   return getTypeLabel(groupKey);
                                 })()}
-                              </span>
-                            </TableCell>
-                            <TableCell className="font-semibold text-slate-700 py-2 w-[120px]">
-                              <div className="text-xs whitespace-nowrap">
+                              </TableCell>
+                              <TableCell className="font-semibold">
                                 {calculateGroupTop(groupData)}
-                              </div>
-                            </TableCell>
-                            {dashboardData?.columnLabels.map((col) => (
-                              <TableCell
-                                key={col.key}
-                                className="text-center font-semibold text-slate-700 py-2 w-[90px]"
-                              >
-                                <div className="text-xs whitespace-nowrap">
+                              </TableCell>
+                              {dashboardData?.columnLabels.map((col) => (
+                                <TableCell
+                                  key={col.key}
+                                  className="text-center font-semibold"
+                                >
                                   {formatCurrency(
                                     groupTotals[groupKey][col.key] || 0
                                   )}
-                                </div>
-                              </TableCell>
-                            ))}
-                            <TableCell className="w-[50px]"></TableCell>
-                          </TableRow>
-                        )}
-                      </React.Fragment>
-                    );
-                  })}
+                                </TableCell>
+                              ))}
+                              <TableCell></TableCell>
+                            </TableRow>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
 
-                  {categoryFilter === "all" && (
-                    <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-150 border-t-4 border-gray-300 h-12">
-                      <TableCell
-                        colSpan={2}
-                        className="sticky left-0 bg-gradient-to-r from-gray-50 to-gray-100 z-10 font-bold text-gray-900 py-2 border-r shadow-sm w-[240px]"
-                      >
-                        <span className="text-xs whitespace-nowrap">
+                    {categoryFilter === "all" && (
+                      <TableRow className="bg-gray-100">
+                        <TableCell colSpan={2} className="font-bold">
                           Total général
-                        </span>
-                      </TableCell>
-                      <TableCell className="font-bold text-gray-900 py-2 w-[120px]">
-                        <div className="text-xs whitespace-nowrap">
-                          {calculateGrandTop()}
-                        </div>
-                      </TableCell>
-                      {dashboardData.columnLabels.map((col) => (
-                        <TableCell
-                          key={col.key}
-                          className="text-center font-bold text-gray-900 py-2 w-[90px]"
-                        >
-                          <div className="text-xs whitespace-nowrap">
-                            {formatCurrency(grandTotals[col.key] || 0)}
-                          </div>
                         </TableCell>
-                      ))}
-                      <TableCell className="w-[50px]"></TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+                        <TableCell className="font-bold">
+                          {calculateGrandTop()}
+                        </TableCell>
+                        {dashboardData.columnLabels.map((col) => (
+                          <TableCell
+                            key={col.key}
+                            className="text-center font-bold"
+                          >
+                            {formatCurrency(grandTotals[col.key] || 0)}
+                          </TableCell>
+                        ))}
+                        <TableCell></TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
             </>
           )}
         </div>
