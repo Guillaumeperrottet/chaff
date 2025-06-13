@@ -220,9 +220,7 @@ export default function DashboardPage() {
   };
 
   // ✅ FONCTION POUR OBTENIR LA COULEUR D'UN TYPE
-  const getTypeVariant = (
-    _groupId: string // Le paramètre est conservé pour la compatibilité mais non utilisé
-  ): "default" | "secondary" | "outline" => {
+  const getTypeVariant = (): "default" | "secondary" | "outline" => {
     // Tous les types utilisent maintenant la même couleur que la Restauration
     return "secondary";
   };
@@ -613,10 +611,7 @@ export default function DashboardPage() {
         <div className="flex items-center space-x-1">
           <div>
             <div className="font-medium text-sm">{campus.name}</div>
-            <Badge
-              variant={getTypeVariant(campus.category)}
-              className="text-xs h-4 px-1"
-            >
+            <Badge variant={getTypeVariant()} className="text-xs h-4 px-1">
               {getTypeIcon(campus.category)}
               <span className="text-xs">{getTypeLabel(campus.category)}</span>
             </Badge>
@@ -1231,7 +1226,7 @@ export default function DashboardPage() {
                                       {campus.name}
                                     </div>
                                     <Badge
-                                      variant={getTypeVariant(campus.category)}
+                                      variant={getTypeVariant()}
                                       className="text-[10px] h-3 px-1 mt-1"
                                     >
                                       <span className="text-[10px] truncate max-w-[60px]">
