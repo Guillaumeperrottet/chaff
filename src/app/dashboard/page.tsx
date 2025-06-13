@@ -1153,33 +1153,37 @@ export default function DashboardPage() {
                 </Card>
               </div>
 
-              {/* Mobile: Table LIBRE de tout conteneur */}
-              <div className="md:hidden -mx-4">
-                <div className="min-w-full">
-                  <Table className="border-collapse">
+              {/* Mobile: Table LIBRE de tout conteneur avec largeur forcée */}
+              <div className="md:hidden -mx-4 overflow-x-auto">
+                <div className="min-w-max">
+                  {" "}
+                  {/* Changé de min-w-full à min-w-max */}
+                  <Table className="border-collapse w-auto">
+                    {" "}
+                    {/* Ajouté w-auto */}
                     <TableHeader>
                       <TableRow className="h-10 bg-white border-b">
-                        <TableHead className="sticky left-0 bg-white z-10 w-[120px] py-2 text-xs font-semibold border-r shadow-sm">
+                        <TableHead className="sticky left-0 bg-white z-10 min-w-[120px] py-2 text-xs font-semibold border-r shadow-sm">
                           Campus
                         </TableHead>
-                        <TableHead className="w-[90px] py-2 text-xs font-semibold">
+                        <TableHead className="min-w-[90px] py-2 text-xs font-semibold whitespace-nowrap">
                           Dernière
                         </TableHead>
-                        <TableHead className="w-[100px] py-2 text-xs font-semibold">
+                        <TableHead className="min-w-[100px] py-2 text-xs font-semibold whitespace-nowrap">
                           Top
                         </TableHead>
-                        <TableHead className="text-center w-[60px] py-2 text-xs font-semibold">
+                        <TableHead className="text-center min-w-[60px] py-2 text-xs font-semibold whitespace-nowrap">
                           Ratio
                         </TableHead>
                         {dashboardData.columnLabels.map((col) => (
                           <TableHead
                             key={col.key}
-                            className="text-center w-[80px] py-2 text-xs font-semibold"
+                            className="text-center min-w-[80px] py-2 text-xs font-semibold whitespace-nowrap"
                           >
                             <div className="font-medium">{col.label}</div>
                           </TableHead>
                         ))}
-                        <TableHead className="w-[40px] py-2"></TableHead>
+                        <TableHead className="min-w-[40px] py-2"></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1208,8 +1212,8 @@ export default function DashboardPage() {
                                 key={campus.id}
                                 className="hover:bg-muted/50 h-12 bg-white"
                               >
-                                <TableCell className="sticky left-0 bg-white z-10 py-2 border-r shadow-sm">
-                                  <div className="w-[110px]">
+                                <TableCell className="sticky left-0 bg-white z-10 py-2 border-r shadow-sm min-w-[120px]">
+                                  <div className="w-full">
                                     <div className="font-medium text-xs truncate">
                                       {campus.name}
                                     </div>
@@ -1223,23 +1227,23 @@ export default function DashboardPage() {
                                     </Badge>
                                   </div>
                                 </TableCell>
-                                <TableCell className="py-2">
-                                  <div className="text-[10px] w-[80px] truncate">
+                                <TableCell className="py-2 min-w-[90px]">
+                                  <div className="text-[10px] truncate whitespace-nowrap">
                                     {campus.lastEntry || "Jamais"}
                                   </div>
                                 </TableCell>
-                                <TableCell className="py-2">
-                                  <div className="text-[10px] font-medium text-blue-600 w-[90px] truncate">
+                                <TableCell className="py-2 min-w-[100px]">
+                                  <div className="text-[10px] font-medium text-blue-600 truncate whitespace-nowrap">
                                     {campus.performance}
                                   </div>
                                 </TableCell>
-                                <TableCell className="text-center py-2">
+                                <TableCell className="text-center py-2 min-w-[60px]">
                                   {campus.payroll ? (
                                     <div
                                       className={`flex items-center justify-center gap-1 ${getRatioColor(campus.payroll.payrollToRevenueRatio)}`}
                                     >
                                       {getRatioIcon(campus.payroll.ratioTrend)}
-                                      <span className="font-medium text-[10px]">
+                                      <span className="font-medium text-[10px] whitespace-nowrap">
                                         {formatPercentage(
                                           campus.payroll.payrollToRevenueRatio
                                         )}
@@ -1254,14 +1258,14 @@ export default function DashboardPage() {
                                 {dashboardData?.columnLabels.map((col) => (
                                   <TableCell
                                     key={col.key}
-                                    className="text-center py-2"
+                                    className="text-center py-2 min-w-[80px]"
                                   >
-                                    <div className="text-[10px] font-medium w-[70px] truncate">
+                                    <div className="text-[10px] font-medium truncate whitespace-nowrap">
                                       {campus.values[col.key] || "0.00"}
                                     </div>
                                   </TableCell>
                                 ))}
-                                <TableCell className="py-2">
+                                <TableCell className="py-2 min-w-[40px]">
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                       <Button
@@ -1325,9 +1329,9 @@ export default function DashboardPage() {
                               <TableRow className="bg-slate-50 hover:bg-slate-50 border-t-2 h-10">
                                 <TableCell
                                   colSpan={2}
-                                  className="sticky left-0 bg-slate-50 z-10 font-semibold text-slate-700 py-2 border-r shadow-sm"
+                                  className="sticky left-0 bg-slate-50 z-10 font-semibold text-slate-700 py-2 border-r shadow-sm min-w-[210px]"
                                 >
-                                  <span className="text-xs">
+                                  <span className="text-xs whitespace-nowrap">
                                     {(() => {
                                       if (groupKey === "hebergement")
                                         return "Hébergement";
@@ -1337,25 +1341,25 @@ export default function DashboardPage() {
                                     })()}
                                   </span>
                                 </TableCell>
-                                <TableCell className="font-semibold text-slate-700 py-2">
-                                  <div className="text-[10px] w-[90px] truncate">
+                                <TableCell className="font-semibold text-slate-700 py-2 min-w-[100px]">
+                                  <div className="text-[10px] truncate whitespace-nowrap">
                                     {calculateGroupTop(groupData)}
                                   </div>
                                 </TableCell>
-                                <TableCell></TableCell>
+                                <TableCell className="min-w-[60px]"></TableCell>
                                 {dashboardData?.columnLabels.map((col) => (
                                   <TableCell
                                     key={col.key}
-                                    className="text-center font-semibold text-slate-700 py-2"
+                                    className="text-center font-semibold text-slate-700 py-2 min-w-[80px]"
                                   >
-                                    <div className="text-[10px] w-[70px] truncate">
+                                    <div className="text-[10px] truncate whitespace-nowrap">
                                       {formatCurrency(
                                         groupTotals[groupKey][col.key] || 0
                                       )}
                                     </div>
                                   </TableCell>
                                 ))}
-                                <TableCell></TableCell>
+                                <TableCell className="min-w-[40px]"></TableCell>
                               </TableRow>
                             )}
                           </React.Fragment>
@@ -1366,27 +1370,29 @@ export default function DashboardPage() {
                         <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-150 border-t-4 border-gray-300 h-12">
                           <TableCell
                             colSpan={2}
-                            className="sticky left-0 bg-gradient-to-r from-gray-50 to-gray-100 z-10 font-bold text-gray-900 py-2 border-r shadow-sm"
+                            className="sticky left-0 bg-gradient-to-r from-gray-50 to-gray-100 z-10 font-bold text-gray-900 py-2 border-r shadow-sm min-w-[210px]"
                           >
-                            <span className="text-xs">Total général</span>
+                            <span className="text-xs whitespace-nowrap">
+                              Total général
+                            </span>
                           </TableCell>
-                          <TableCell className="font-bold text-gray-900 py-2">
-                            <div className="text-[10px] w-[90px] truncate">
+                          <TableCell className="font-bold text-gray-900 py-2 min-w-[100px]">
+                            <div className="text-[10px] truncate whitespace-nowrap">
                               {calculateGrandTop()}
                             </div>
                           </TableCell>
-                          <TableCell></TableCell>
+                          <TableCell className="min-w-[60px]"></TableCell>
                           {dashboardData.columnLabels.map((col) => (
                             <TableCell
                               key={col.key}
-                              className="text-center font-bold text-gray-900 py-2"
+                              className="text-center font-bold text-gray-900 py-2 min-w-[80px]"
                             >
-                              <div className="text-[10px] w-[70px] truncate">
+                              <div className="text-[10px] truncate whitespace-nowrap">
                                 {formatCurrency(grandTotals[col.key] || 0)}
                               </div>
                             </TableCell>
                           ))}
-                          <TableCell></TableCell>
+                          <TableCell className="min-w-[40px]"></TableCell>
                         </TableRow>
                       )}
                     </TableBody>

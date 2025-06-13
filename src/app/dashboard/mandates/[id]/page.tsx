@@ -678,21 +678,14 @@ export default function MandateCAPage() {
                     key={index}
                     className="text-center border-r px-1 py-2 whitespace-nowrap"
                   >
-                    <div className="flex justify-center items-center text-xs">
-                      {period.yearOverYear.revenueGrowth !== null ? (
-                        <span
-                          className={`font-bold ${
-                            period.yearOverYear.revenueGrowth >= 0
-                              ? "text-green-600"
-                              : "text-red-600"
-                          }`}
-                        >
-                          {period.yearOverYear.revenueGrowth >= 0 ? "+" : ""}
-                          {period.yearOverYear.revenueGrowth.toFixed(1)}%
-                        </span>
-                      ) : (
-                        "-"
-                      )}
+                    <div className="flex justify-center items-center text-sm">
+                      {period.yearOverYear.revenueGrowth !== null
+                        ? formatPercentage(
+                            period.yearOverYear.revenueGrowth,
+                            true,
+                            2
+                          )
+                        : "-"}
                     </div>
                   </TableCell>
                 ))}
@@ -836,90 +829,6 @@ export default function MandateCAPage() {
                   <TableCell key={index} className="border-r"></TableCell>
                 ))}
               </TableRow>
-
-              {/* Ligne évolution */}
-              <TableRow className="bg-purple-50 font-medium">
-                <TableCell className="sticky left-0 bg-purple-50 border-r text-center py-2 p-2">
-                  <div className="flex items-center justify-center gap-1">
-                    <span className="text-sm font-bold">Évol. %</span>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="h-3 w-3 text-purple-600 cursor-help hover:text-purple-700 transition-colors" />
-                      </TooltipTrigger>
-                      <TooltipContent
-                        side="right"
-                        className="max-w-xs bg-white border border-gray-200 shadow-lg p-3"
-                        sideOffset={8}
-                      >
-                        <div className="space-y-2 text-xs">
-                          <div className="font-semibold text-gray-900">
-                            Évolution annuelle
-                          </div>
-                          <div className="text-gray-600">
-                            Compare les données du mois actuel avec le même mois
-                            de l&apos;année précédente.
-                          </div>
-                          <div className="space-y-1">
-                            <div className="text-gray-600">
-                              <span className="font-medium">Gauche :</span>{" "}
-                              Évolution de la masse salariale
-                            </div>
-                            <div className="text-gray-600">
-                              <span className="font-medium">Droite :</span>{" "}
-                              Évolution du CA
-                            </div>
-                          </div>
-                          <div className="text-gray-500 text-[10px]">
-                            Formule : ((Valeur actuelle - Valeur N-1) ÷ Valeur
-                            N-1) × 100
-                          </div>
-                        </div>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                </TableCell>
-                {caData.periods.map((period, index) => (
-                  <TableCell
-                    key={index}
-                    className="text-center border-r px-1 py-2 whitespace-nowrap"
-                  >
-                    <div className="flex justify-between items-center space-x-1 text-xs">
-                      <div className="flex-1 text-right font-bold">
-                        {period.yearOverYear.payrollGrowth !== null ? (
-                          <span
-                            className={
-                              period.yearOverYear.payrollGrowth >= 0
-                                ? "text-green-600"
-                                : "text-red-600"
-                            }
-                          >
-                            {period.yearOverYear.payrollGrowth >= 0 ? "+" : ""}
-                            {period.yearOverYear.payrollGrowth.toFixed(1)}%
-                          </span>
-                        ) : (
-                          "-"
-                        )}
-                      </div>
-                      <div className="flex-1 text-left font-bold">
-                        {period.yearOverYear.revenueGrowth !== null ? (
-                          <span
-                            className={
-                              period.yearOverYear.revenueGrowth >= 0
-                                ? "text-green-600"
-                                : "text-red-600"
-                            }
-                          >
-                            {period.yearOverYear.revenueGrowth >= 0 ? "+" : ""}
-                            {period.yearOverYear.revenueGrowth.toFixed(1)}%
-                          </span>
-                        ) : (
-                          "-"
-                        )}
-                      </div>
-                    </div>
-                  </TableCell>
-                ))}
-              </TableRow>
             </TableBody>
           </Table>
         </div>
@@ -943,11 +852,13 @@ export default function MandateCAPage() {
                     {formatCurrency(caData.summary.grandTotal)}
                   </div>
                   {caData.summary.yearOverYearGrowth.revenue !== null && (
-                    <div className="flex items-center text-xs">
+                    <div className="flex items-center text-sm">
                       {getGrowthIcon(caData.summary.yearOverYearGrowth.revenue)}
                       <span className="ml-1">
                         {formatPercentage(
-                          caData.summary.yearOverYearGrowth.revenue
+                          caData.summary.yearOverYearGrowth.revenue,
+                          true,
+                          2
                         )}{" "}
                         vs {parseInt(selectedYear) - 1}
                       </span>
@@ -972,7 +883,8 @@ export default function MandateCAPage() {
                     {caData.summary.globalPayrollRatio
                       ? formatPercentage(
                           caData.summary.globalPayrollRatio,
-                          false
+                          false,
+                          2
                         )
                       : "-"}
                   </div>
@@ -1009,7 +921,9 @@ export default function MandateCAPage() {
                     <span className="text-sm">
                       CA:{" "}
                       {formatPercentage(
-                        caData.summary.yearOverYearGrowth.revenue
+                        caData.summary.yearOverYearGrowth.revenue,
+                        true,
+                        2
                       )}
                     </span>
                   </div>
@@ -1019,7 +933,9 @@ export default function MandateCAPage() {
                       <span className="text-sm">
                         MS:{" "}
                         {formatPercentage(
-                          caData.summary.yearOverYearGrowth.payroll
+                          caData.summary.yearOverYearGrowth.payroll,
+                          true,
+                          2
                         )}
                       </span>
                     </div>
