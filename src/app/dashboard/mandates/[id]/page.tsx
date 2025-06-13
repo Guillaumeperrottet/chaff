@@ -279,9 +279,17 @@ export default function MandateCAPage() {
     }).format(amount);
   };
 
-  const formatPercentage = (value: number | null, showSign = true) => {
+  const formatPercentage = (
+    value: number | null,
+    showSign = true,
+    decimals = 1
+  ) => {
     if (value === null) return "-";
-    const formatted = Math.abs(value).toFixed(1);
+    const formatted = new Intl.NumberFormat("fr-CH", {
+      style: "decimal",
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    }).format(Math.abs(value));
     const sign = value >= 0 ? "+" : "-";
     const color = value >= 0 ? "text-green-600" : "text-red-600";
     return (
@@ -803,25 +811,18 @@ export default function MandateCAPage() {
                     key={index}
                     className="text-center border-r px-1 py-2 whitespace-nowrap"
                   >
-                    <div className="flex justify-between items-center space-x-1 text-xs">
+                    <div className="flex justify-between items-center space-x-1 text-sm">
                       {/* Note: Comme on affiche maintenant seulement le CA dans les cumuls, 
                           on peut simplifier cette ligne pour afficher seulement l'évolution du cumul CA */}
                       <div className="flex-1 text-center font-bold">
                         {period.cumulativeRevenueGrowth !== null &&
-                        period.cumulativeRevenueGrowth !== undefined ? (
-                          <span
-                            className={
-                              period.cumulativeRevenueGrowth >= 0
-                                ? "text-green-600"
-                                : "text-red-600"
-                            }
-                          >
-                            {period.cumulativeRevenueGrowth >= 0 ? "+" : ""}
-                            {period.cumulativeRevenueGrowth.toFixed(1)}%
-                          </span>
-                        ) : (
-                          "-"
-                        )}
+                        period.cumulativeRevenueGrowth !== undefined
+                          ? formatPercentage(
+                              period.cumulativeRevenueGrowth,
+                              true,
+                              2
+                            )
+                          : "-"}
                       </div>
                     </div>
                   </TableCell>
@@ -835,119 +836,6 @@ export default function MandateCAPage() {
                   <TableCell key={index} className="border-r"></TableCell>
                 ))}
               </TableRow>
-
-              {/* Ligne masse salariale
-              <TableRow className="bg-green-50 font-medium">
-                <TableCell className="sticky left-0 bg-green-50 border-r text-center py-2 p-2">
-                  <span className="text-sm font-bold">Masse Sal.</span>
-                </TableCell>
-                {caData.periods.map((period, index) => (
-                  <TableCell
-                    key={index}
-                    className="text-center border-r px-1 py-2 whitespace-nowrap"
-                  >
-                    <div className="flex justify-between items-center space-x-1 text-[11px]">
-                      <div className="flex-1 text-right text-green-600">
-                        {(
-                          payrollTotals as Record<
-                            string,
-                            { current: number; previous: number }
-                          >
-                        )[`period_${index}`]?.previous > 0
-                          ? formatCurrency(
-                              (
-                                payrollTotals as Record<
-                                  string,
-                                  { current: number; previous: number }
-                                >
-                              )[`period_${index}`].previous
-                            )
-                          : "-"}
-                      </div>
-                      <div className="flex-1 text-left">
-                        {period.payrollData ? (
-                          <div className="space-y-1">
-                            <div className="font-bold text-green-700">
-                              {formatCurrency(period.payrollData.totalCost)}
-                            </div>
-                            {period.payrollData.employeeCount && (
-                              <div className="text-[10px] text-green-600">
-                                {period.payrollData.employeeCount} emp.
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          "-"
-                        )}
-                      </div>
-                    </div>
-                  </TableCell>
-                ))}
-              </TableRow> */}
-
-              {/* Ligne ratio */}
-              {/* <TableRow className="bg-yellow-50 font-medium">
-                <TableCell className="sticky left-0 bg-yellow-50 border-r text-center py-2 p-2">
-                  <div className="flex items-center justify-center gap-1">
-                    <span className="text-sm font-bold">Ratio %</span>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="h-3 w-3 text-yellow-600 cursor-help hover:text-yellow-700 transition-colors" />
-                      </TooltipTrigger>
-                      <TooltipContent
-                        side="right"
-                        className="max-w-xs bg-white border border-gray-200 shadow-lg p-3"
-                        sideOffset={8}
-                      >
-                        <div className="space-y-2 text-xs">
-                          <div className="font-semibold text-gray-900">
-                            Ratio Masse salariale / CA
-                          </div>
-                          <div className="text-gray-600">
-                            Formule : (Masse salariale ÷ Chiffre
-                            d&apos;affaires) × 100
-                          </div>
-                          <div className="space-y-1">
-                            <div className="text-gray-600 font-medium">
-                              Seuils recommandés :
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                              <span>{"< 25%"} : Excellent</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                              <span>25-35% : Bon</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
-                              <span>35-50% : Attention</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                              <span>{"> 50%"} : Critique</span>
-                            </div>
-                          </div>
-                        </div>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                </TableCell>
-                {caData.periods.map((period, index) => (
-                  <TableCell
-                    key={index}
-                    className="text-center border-r px-1 py-2 whitespace-nowrap"
-                  >
-                    <div className="flex justify-between items-center space-x-1 text-xs">
-                      <div className="flex-1 text-center font-bold text-yellow-700">
-                        {period.payrollToRevenueRatio
-                          ? `${period.payrollToRevenueRatio.toFixed(1)}%`
-                          : "-"}
-                      </div>
-                    </div>
-                  </TableCell>
-                ))}
-              </TableRow> */}
 
               {/* Ligne évolution */}
               <TableRow className="bg-purple-50 font-medium">
