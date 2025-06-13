@@ -774,6 +774,71 @@ export default function MandateCAPage() {
               </TableRow>
 
               {/* Ligne évolution du cumul */}
+              <TableRow className="bg-gray-100 font-medium">
+                <TableCell className="sticky left-0 bg-gray-100 border-r text-center py-2 p-2">
+                  <div className="flex items-center justify-center gap-1">
+                    <span className="text-sm font-bold">Cumul</span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-3 w-3 text-gray-600 cursor-help hover:text-gray-700 transition-colors" />
+                      </TooltipTrigger>
+                      <TooltipContent
+                        side="right"
+                        className="max-w-xs bg-white border border-gray-200 shadow-lg p-3"
+                        sideOffset={8}
+                      >
+                        <div className="space-y-2 text-xs">
+                          <div className="font-semibold text-gray-900">
+                            Cumul depuis le début du semestre
+                          </div>
+                          <div className="text-gray-600">
+                            Somme progressive des valeurs depuis le début de la
+                            période sélectionnée pour l&apos;année courante et
+                            l&apos;année précédente.
+                          </div>
+                          <div className="space-y-1">
+                            <div className="text-gray-600">
+                              <span className="font-medium">Gauche :</span>{" "}
+                              Cumul année précédente
+                            </div>
+                            <div className="text-gray-600">
+                              <span className="font-medium">Droite :</span>{" "}
+                              Cumul année courante
+                            </div>
+                          </div>
+                          <div className="text-gray-500 text-[10px]">
+                            Permet de comparer la progression des objectifs par
+                            rapport à l&apos;année précédente.
+                          </div>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                </TableCell>
+                {caData.periods.map((period, index) => (
+                  <TableCell
+                    key={index}
+                    className="text-center border-r px-1 py-2 whitespace-nowrap"
+                  >
+                    <div className="flex justify-between items-center space-x-1 text-[11px]">
+                      {/* Année précédente - à gauche */}
+                      <div className="flex-1 text-left text-muted-foreground">
+                        {period.cumulativePreviousYearRevenue
+                          ? formatCurrency(period.cumulativePreviousYearRevenue)
+                          : "-"}
+                      </div>
+                      {/* Année courante - à droite */}
+                      <div className="flex-1 text-right font-bold">
+                        {period.cumulativeTotal
+                          ? formatCurrency(period.cumulativeTotal)
+                          : "-"}
+                      </div>
+                    </div>
+                  </TableCell>
+                ))}
+              </TableRow>
+
+              {/* Ligne évolution du cumul */}
               <TableRow className="bg-emerald-50 font-medium">
                 <TableCell className="sticky left-0 bg-emerald-50 border-r text-center py-2 p-2">
                   <div className="flex items-center justify-center gap-1">
@@ -822,24 +887,9 @@ export default function MandateCAPage() {
                     className="text-center border-r px-1 py-2 whitespace-nowrap"
                   >
                     <div className="flex justify-between items-center space-x-1 text-xs">
-                      <div className="flex-1 text-right font-bold">
-                        {period.cumulativePayrollGrowth !== null &&
-                        period.cumulativePayrollGrowth !== undefined ? (
-                          <span
-                            className={
-                              period.cumulativePayrollGrowth >= 0
-                                ? "text-green-600"
-                                : "text-red-600"
-                            }
-                          >
-                            {period.cumulativePayrollGrowth >= 0 ? "+" : ""}
-                            {period.cumulativePayrollGrowth.toFixed(1)}%
-                          </span>
-                        ) : (
-                          "-"
-                        )}
-                      </div>
-                      <div className="flex-1 text-left font-bold">
+                      {/* Note: Comme on affiche maintenant seulement le CA dans les cumuls, 
+                          on peut simplifier cette ligne pour afficher seulement l'évolution du cumul CA */}
+                      <div className="flex-1 text-center font-bold">
                         {period.cumulativeRevenueGrowth !== null &&
                         period.cumulativeRevenueGrowth !== undefined ? (
                           <span
