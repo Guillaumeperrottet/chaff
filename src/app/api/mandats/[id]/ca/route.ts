@@ -246,18 +246,31 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       };
     });
 
-    // Calculer les totaux cumulés
+    // Calculer les totaux cumulés (année courante et année précédente)
     let cumulativeTotal = 0;
     let cumulativePayroll = 0;
+    let cumulativePreviousYearRevenue = 0;
+    let cumulativePreviousYearPayroll = 0;
+
     const cumulativeData = caData.map((period) => {
       cumulativeTotal += period.totalValue;
+      cumulativePreviousYearRevenue += period.yearOverYear.previousYearRevenue;
+
       if (period.payrollData) {
         cumulativePayroll += period.payrollData.totalCost;
       }
+
+      if (period.yearOverYear.previousYearPayroll) {
+        cumulativePreviousYearPayroll +=
+          period.yearOverYear.previousYearPayroll;
+      }
+
       return {
         ...period,
         cumulativeTotal,
         cumulativePayroll,
+        cumulativePreviousYearRevenue,
+        cumulativePreviousYearPayroll,
       };
     });
 

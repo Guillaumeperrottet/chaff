@@ -50,6 +50,8 @@ interface PeriodData {
   daysWithData: number;
   cumulativeTotal?: number;
   cumulativePayroll?: number;
+  cumulativePreviousYearRevenue?: number;
+  cumulativePreviousYearPayroll?: number;
   payrollData?: PayrollData;
   payrollToRevenueRatio?: number;
   yearOverYear: {
@@ -882,35 +884,31 @@ export default function PrintableCAReport({
                     key={index}
                     className="text-center border-r px-0.5 py-1 whitespace-nowrap print:text-[4px] print:p-0"
                   >
-                    <div className="flex justify-between items-center space-x-0.5 text-[10px] print:text-[4px] print:space-x-0">
-                      <div className="flex-1 text-left">
-                        <div className="text-blue-700 font-bold">
-                          {((period.cumulativeTotal || 0) / 1000).toFixed(0)}k
+                    <div className="space-y-0.5 text-[9px] print:text-[3px]">
+                      {/* Année précédente */}
+                      <div className="flex justify-between items-center space-x-0.5 text-gray-500">
+                        <div className="flex-1 text-left">
+                          {period.cumulativePreviousYearPayroll
+                            ? `${(period.cumulativePreviousYearPayroll / 1000).toFixed(0)}k`
+                            : "-"}
                         </div>
-                        {period.cumulativePayroll && (
-                          <div className="text-green-700 text-[9px] print:text-[3px]">
-                            MS: {(period.cumulativePayroll / 1000).toFixed(0)}k
-                          </div>
-                        )}
+                        <div className="flex-1 text-right">
+                          {period.cumulativePreviousYearRevenue
+                            ? `${(period.cumulativePreviousYearRevenue / 1000).toFixed(0)}k`
+                            : "-"}
+                        </div>
                       </div>
-                      <div className="flex-1 text-right text-muted-foreground">
-                        <div className="text-blue-600">
-                          {caData.periods
-                            .slice(0, index + 1)
-                            .reduce(
-                              (sum, p) =>
-                                sum + p.yearOverYear.previousYearRevenue,
-                              0
-                            ) > 0 &&
-                            (
-                              caData.periods
-                                .slice(0, index + 1)
-                                .reduce(
-                                  (sum, p) =>
-                                    sum + p.yearOverYear.previousYearRevenue,
-                                  0
-                                ) / 1000
-                            ).toFixed(0) + "k"}
+                      {/* Année courante */}
+                      <div className="flex justify-between items-center space-x-0.5">
+                        <div className="flex-1 text-left text-green-700 font-bold">
+                          {period.cumulativePayroll
+                            ? `${(period.cumulativePayroll / 1000).toFixed(0)}k`
+                            : "-"}
+                        </div>
+                        <div className="flex-1 text-right text-blue-700 font-bold">
+                          {period.cumulativeTotal
+                            ? `${(period.cumulativeTotal / 1000).toFixed(0)}k`
+                            : "-"}
                         </div>
                       </div>
                     </div>

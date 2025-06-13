@@ -80,6 +80,8 @@ interface PeriodData {
   daysWithData: number;
   cumulativeTotal?: number;
   cumulativePayroll?: number;
+  cumulativePreviousYearRevenue?: number;
+  cumulativePreviousYearPayroll?: number;
   payrollData?: PayrollData;
   payrollToRevenueRatio?: number;
   yearOverYear: {
@@ -706,21 +708,26 @@ export default function MandateCAPage() {
                           </div>
                           <div className="text-gray-600">
                             Somme progressive des valeurs depuis le début de la
-                            période sélectionnée.
+                            période sélectionnée pour l&apos;année courante et
+                            l&apos;année précédente.
                           </div>
                           <div className="space-y-1">
                             <div className="text-gray-600">
-                              <span className="font-medium">Gauche :</span>{" "}
-                              Cumul de la masse salariale
+                              <span className="font-medium">
+                                Ligne supérieure :
+                              </span>{" "}
+                              Année précédente (MS | CA)
                             </div>
                             <div className="text-gray-600">
-                              <span className="font-medium">Droite :</span>{" "}
-                              Cumul du CA
+                              <span className="font-medium">
+                                Ligne inférieure :
+                              </span>{" "}
+                              Année courante (MS | CA)
                             </div>
                           </div>
                           <div className="text-gray-500 text-[10px]">
-                            Permet de suivre la progression des objectifs en
-                            cours de période.
+                            Permet de comparer la progression des objectifs par
+                            rapport à l&apos;année précédente.
                           </div>
                         </div>
                       </TooltipContent>
@@ -732,16 +739,36 @@ export default function MandateCAPage() {
                     key={index}
                     className="text-center border-r px-1 py-2 whitespace-nowrap"
                   >
-                    <div className="flex justify-between items-center space-x-1 text-[11px]">
-                      <div className="flex-1 text-right font-bold text-gray-600">
-                        {period.cumulativePayroll
-                          ? formatCurrency(period.cumulativePayroll)
-                          : "-"}
+                    <div className="space-y-1 text-[11px]">
+                      {/* Année précédente */}
+                      <div className="flex justify-between items-center space-x-1 text-gray-500">
+                        <div className="flex-1 text-right">
+                          {period.cumulativePreviousYearPayroll
+                            ? formatCurrency(
+                                period.cumulativePreviousYearPayroll
+                              )
+                            : "-"}
+                        </div>
+                        <div className="flex-1 text-left">
+                          {period.cumulativePreviousYearRevenue
+                            ? formatCurrency(
+                                period.cumulativePreviousYearRevenue
+                              )
+                            : "-"}
+                        </div>
                       </div>
-                      <div className="flex-1 text-left font-bold text-gray-700">
-                        {period.cumulativeTotal
-                          ? formatCurrency(period.cumulativeTotal)
-                          : "-"}
+                      {/* Année courante */}
+                      <div className="flex justify-between items-center space-x-1">
+                        <div className="flex-1 text-right font-bold text-gray-700">
+                          {period.cumulativePayroll
+                            ? formatCurrency(period.cumulativePayroll)
+                            : "-"}
+                        </div>
+                        <div className="flex-1 text-left font-bold text-gray-800">
+                          {period.cumulativeTotal
+                            ? formatCurrency(period.cumulativeTotal)
+                            : "-"}
+                        </div>
                       </div>
                     </div>
                   </TableCell>
