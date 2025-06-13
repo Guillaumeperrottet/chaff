@@ -543,12 +543,12 @@ export default function MandateCAPage() {
 
               <div className="flex items-center space-x-3 text-xs text-muted-foreground">
                 <div className="flex items-center space-x-1">
-                  <div className="h-2 w-2 bg-blue-500 rounded-full"></div>
-                  <span>Année courante</span>
-                </div>
-                <div className="flex items-center space-x-1">
                   <div className="h-2 w-2 bg-gray-400 rounded-full"></div>
                   <span>Année précédente</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <div className="h-2 w-2 bg-blue-500 rounded-full"></div>
+                  <span>Année courante</span>
                 </div>
               </div>
             </div>
@@ -576,8 +576,8 @@ export default function MandateCAPage() {
                         {period.label.split(" ")[1]}
                       </div>
                       <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>Actuel</span>
                         <span>{parseInt(selectedYear) - 1}</span>
+                        <span>Actuel</span>
                       </div>
                     </div>
                   </TableHead>
@@ -596,19 +596,19 @@ export default function MandateCAPage() {
                       className="text-center border-r px-1 py-1 whitespace-nowrap"
                     >
                       <div className="flex justify-between items-center space-x-1 text-[11px]">
-                        {/* Année courante */}
-                        <div className="flex-1 text-left">
-                          {row.values[`period_${index}`]?.current > 0
-                            ? formatCurrency(
-                                row.values[`period_${index}`].current
-                              )
-                            : "-"}
-                        </div>
                         {/* Année précédente */}
-                        <div className="flex-1 text-right text-muted-foreground">
+                        <div className="flex-1 text-left text-muted-foreground">
                           {row.values[`period_${index}`]?.previous > 0
                             ? formatCurrency(
                                 row.values[`period_${index}`].previous
+                              )
+                            : "-"}
+                        </div>
+                        {/* Année courante */}
+                        <div className="flex-1 text-right">
+                          {row.values[`period_${index}`]?.current > 0
+                            ? formatCurrency(
+                                row.values[`period_${index}`].current
                               )
                             : "-"}
                         </div>
@@ -629,17 +629,7 @@ export default function MandateCAPage() {
                     className="text-center border-r px-1 py-2 whitespace-nowrap"
                   >
                     <div className="flex justify-between items-center space-x-1 text-[11px]">
-                      <div className="flex-1 text-left font-bold text-blue-700">
-                        {formatCurrency(
-                          (
-                            totals as Record<
-                              string,
-                              { current: number; previous: number }
-                            >
-                          )[`period_${index}`]?.current || 0
-                        )}
-                      </div>
-                      <div className="flex-1 text-right text-blue-600">
+                      <div className="flex-1 text-left text-blue-600">
                         {formatCurrency(
                           (
                             totals as Record<
@@ -647,6 +637,16 @@ export default function MandateCAPage() {
                               { current: number; previous: number }
                             >
                           )[`period_${index}`]?.previous || 0
+                        )}
+                      </div>
+                      <div className="flex-1 text-right font-bold text-blue-700">
+                        {formatCurrency(
+                          (
+                            totals as Record<
+                              string,
+                              { current: number; previous: number }
+                            >
+                          )[`period_${index}`]?.current || 0
                         )}
                       </div>
                     </div>
@@ -673,22 +673,6 @@ export default function MandateCAPage() {
                     className="text-center border-r px-1 py-2 whitespace-nowrap"
                   >
                     <div className="flex justify-between items-center space-x-1 text-[11px]">
-                      <div className="flex-1 text-left">
-                        {period.payrollData ? (
-                          <div className="space-y-1">
-                            <div className="font-bold text-green-700">
-                              {formatCurrency(period.payrollData.totalCost)}
-                            </div>
-                            {period.payrollData.employeeCount && (
-                              <div className="text-[10px] text-green-600">
-                                {period.payrollData.employeeCount} emp.
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          "-"
-                        )}
-                      </div>
                       <div className="flex-1 text-right text-green-600">
                         {(
                           payrollTotals as Record<
@@ -705,6 +689,22 @@ export default function MandateCAPage() {
                               )[`period_${index}`].previous
                             )
                           : "-"}
+                      </div>
+                      <div className="flex-1 text-left">
+                        {period.payrollData ? (
+                          <div className="space-y-1">
+                            <div className="font-bold text-green-700">
+                              {formatCurrency(period.payrollData.totalCost)}
+                            </div>
+                            {period.payrollData.employeeCount && (
+                              <div className="text-[10px] text-green-600">
+                                {period.payrollData.employeeCount} emp.
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          "-"
+                        )}
                       </div>
                     </div>
                   </TableCell>
@@ -800,11 +800,11 @@ export default function MandateCAPage() {
                           <div className="space-y-1">
                             <div className="text-gray-600">
                               <span className="font-medium">Gauche :</span>{" "}
-                              Évolution du CA
+                              Évolution de la masse salariale
                             </div>
                             <div className="text-gray-600">
                               <span className="font-medium">Droite :</span>{" "}
-                              Évolution de la masse salariale
+                              Évolution du CA
                             </div>
                           </div>
                           <div className="text-gray-500 text-[10px]">
@@ -822,22 +822,6 @@ export default function MandateCAPage() {
                     className="text-center border-r px-1 py-2 whitespace-nowrap"
                   >
                     <div className="flex justify-between items-center space-x-1 text-xs">
-                      <div className="flex-1 text-left font-bold">
-                        {period.yearOverYear.revenueGrowth !== null ? (
-                          <span
-                            className={
-                              period.yearOverYear.revenueGrowth >= 0
-                                ? "text-green-600"
-                                : "text-red-600"
-                            }
-                          >
-                            {period.yearOverYear.revenueGrowth >= 0 ? "+" : ""}
-                            {period.yearOverYear.revenueGrowth.toFixed(1)}%
-                          </span>
-                        ) : (
-                          "-"
-                        )}
-                      </div>
                       <div className="flex-1 text-right font-bold">
                         {period.yearOverYear.payrollGrowth !== null ? (
                           <span
@@ -849,6 +833,22 @@ export default function MandateCAPage() {
                           >
                             {period.yearOverYear.payrollGrowth >= 0 ? "+" : ""}
                             {period.yearOverYear.payrollGrowth.toFixed(1)}%
+                          </span>
+                        ) : (
+                          "-"
+                        )}
+                      </div>
+                      <div className="flex-1 text-left font-bold">
+                        {period.yearOverYear.revenueGrowth !== null ? (
+                          <span
+                            className={
+                              period.yearOverYear.revenueGrowth >= 0
+                                ? "text-green-600"
+                                : "text-red-600"
+                            }
+                          >
+                            {period.yearOverYear.revenueGrowth >= 0 ? "+" : ""}
+                            {period.yearOverYear.revenueGrowth.toFixed(1)}%
                           </span>
                         ) : (
                           "-"
@@ -884,11 +884,11 @@ export default function MandateCAPage() {
                           <div className="space-y-1">
                             <div className="text-gray-600">
                               <span className="font-medium">Gauche :</span>{" "}
-                              Cumul du CA
+                              Cumul de la masse salariale
                             </div>
                             <div className="text-gray-600">
                               <span className="font-medium">Droite :</span>{" "}
-                              Cumul de la masse salariale
+                              Cumul du CA
                             </div>
                           </div>
                           <div className="text-gray-500 text-[10px]">
@@ -906,14 +906,14 @@ export default function MandateCAPage() {
                     className="text-center border-r px-1 py-2 whitespace-nowrap"
                   >
                     <div className="flex justify-between items-center space-x-1 text-[11px]">
-                      <div className="flex-1 text-left font-bold text-gray-700">
-                        {period.cumulativeTotal
-                          ? formatCurrency(period.cumulativeTotal)
-                          : "-"}
-                      </div>
                       <div className="flex-1 text-right font-bold text-gray-600">
                         {period.cumulativePayroll
                           ? formatCurrency(period.cumulativePayroll)
+                          : "-"}
+                      </div>
+                      <div className="flex-1 text-left font-bold text-gray-700">
+                        {period.cumulativeTotal
+                          ? formatCurrency(period.cumulativeTotal)
                           : "-"}
                       </div>
                     </div>
