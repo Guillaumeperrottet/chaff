@@ -265,12 +265,29 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           period.yearOverYear.previousYearPayroll;
       }
 
+      // Calculer l'évolution des cumuls
+      const cumulativeRevenueGrowth =
+        cumulativePreviousYearRevenue > 0
+          ? ((cumulativeTotal - cumulativePreviousYearRevenue) /
+              cumulativePreviousYearRevenue) *
+            100
+          : null;
+
+      const cumulativePayrollGrowth =
+        cumulativePreviousYearPayroll > 0 && cumulativePayroll > 0
+          ? ((cumulativePayroll - cumulativePreviousYearPayroll) /
+              cumulativePreviousYearPayroll) *
+            100
+          : null;
+
       return {
         ...period,
         cumulativeTotal,
         cumulativePayroll,
         cumulativePreviousYearRevenue,
         cumulativePreviousYearPayroll,
+        cumulativeRevenueGrowth,
+        cumulativePayrollGrowth,
       };
     });
 

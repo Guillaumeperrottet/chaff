@@ -52,6 +52,8 @@ interface PeriodData {
   cumulativePayroll?: number;
   cumulativePreviousYearRevenue?: number;
   cumulativePreviousYearPayroll?: number;
+  cumulativeRevenueGrowth?: number | null;
+  cumulativePayrollGrowth?: number | null;
   payrollData?: PayrollData;
   payrollToRevenueRatio?: number;
   yearOverYear: {
@@ -910,6 +912,58 @@ export default function PrintableCAReport({
                             ? `${(period.cumulativeTotal / 1000).toFixed(0)}k`
                             : "-"}
                         </div>
+                      </div>
+                    </div>
+                  </TableCell>
+                ))}
+              </TableRow>
+
+              {/* Ligne évolution du cumul */}
+              <TableRow className="bg-emerald-50 font-bold print:bg-white">
+                <TableCell className="sticky left-0 bg-emerald-50 border-r text-center py-1 p-1 print:bg-white print:text-[5px] print:p-0">
+                  <span className="text-[10px] font-bold print:text-[4px] text-emerald-800">
+                    Évol. Cumul %
+                  </span>
+                </TableCell>
+                {caData.periods.map((period, index) => (
+                  <TableCell
+                    key={index}
+                    className="text-center border-r px-0.5 py-1 whitespace-nowrap print:text-[4px] print:p-0"
+                  >
+                    <div className="flex justify-between items-center space-x-0.5 text-[9px] print:text-[3px]">
+                      <div className="flex-1 text-left font-bold">
+                        {period.cumulativePayrollGrowth !== null &&
+                        period.cumulativePayrollGrowth !== undefined ? (
+                          <span
+                            className={
+                              period.cumulativePayrollGrowth >= 0
+                                ? "text-green-600"
+                                : "text-red-600"
+                            }
+                          >
+                            {period.cumulativePayrollGrowth >= 0 ? "+" : ""}
+                            {period.cumulativePayrollGrowth.toFixed(1)}%
+                          </span>
+                        ) : (
+                          "-"
+                        )}
+                      </div>
+                      <div className="flex-1 text-right font-bold">
+                        {period.cumulativeRevenueGrowth !== null &&
+                        period.cumulativeRevenueGrowth !== undefined ? (
+                          <span
+                            className={
+                              period.cumulativeRevenueGrowth >= 0
+                                ? "text-green-600"
+                                : "text-red-600"
+                            }
+                          >
+                            {period.cumulativeRevenueGrowth >= 0 ? "+" : ""}
+                            {period.cumulativeRevenueGrowth.toFixed(1)}%
+                          </span>
+                        ) : (
+                          "-"
+                        )}
                       </div>
                     </div>
                   </TableCell>

@@ -82,6 +82,8 @@ interface PeriodData {
   cumulativePayroll?: number;
   cumulativePreviousYearRevenue?: number;
   cumulativePreviousYearPayroll?: number;
+  cumulativeRevenueGrowth?: number | null;
+  cumulativePayrollGrowth?: number | null;
   payrollData?: PayrollData;
   payrollToRevenueRatio?: number;
   yearOverYear: {
@@ -713,16 +715,12 @@ export default function MandateCAPage() {
                           </div>
                           <div className="space-y-1">
                             <div className="text-gray-600">
-                              <span className="font-medium">
-                                Ligne supérieure :
-                              </span>{" "}
-                              Année précédente (MS | CA)
+                              <span className="font-medium">Gauche :</span>{" "}
+                              Cumul année précédente (MS | CA)
                             </div>
                             <div className="text-gray-600">
-                              <span className="font-medium">
-                                Ligne inférieure :
-                              </span>{" "}
-                              Année courante (MS | CA)
+                              <span className="font-medium">Droite :</span>{" "}
+                              Cumul année courante (MS | CA)
                             </div>
                           </div>
                           <div className="text-gray-500 text-[10px]">
@@ -742,14 +740,14 @@ export default function MandateCAPage() {
                     <div className="space-y-1 text-[11px]">
                       {/* Année précédente */}
                       <div className="flex justify-between items-center space-x-1 text-gray-500">
-                        <div className="flex-1 text-right">
+                        <div className="flex-1 text-left">
                           {period.cumulativePreviousYearPayroll
                             ? formatCurrency(
                                 period.cumulativePreviousYearPayroll
                               )
                             : "-"}
                         </div>
-                        <div className="flex-1 text-left">
+                        <div className="flex-1 text-right">
                           {period.cumulativePreviousYearRevenue
                             ? formatCurrency(
                                 period.cumulativePreviousYearRevenue
@@ -759,16 +757,104 @@ export default function MandateCAPage() {
                       </div>
                       {/* Année courante */}
                       <div className="flex justify-between items-center space-x-1">
-                        <div className="flex-1 text-right font-bold text-gray-700">
+                        <div className="flex-1 text-left font-bold text-gray-700">
                           {period.cumulativePayroll
                             ? formatCurrency(period.cumulativePayroll)
                             : "-"}
                         </div>
-                        <div className="flex-1 text-left font-bold text-gray-800">
+                        <div className="flex-1 text-right font-bold text-gray-800">
                           {period.cumulativeTotal
                             ? formatCurrency(period.cumulativeTotal)
                             : "-"}
                         </div>
+                      </div>
+                    </div>
+                  </TableCell>
+                ))}
+              </TableRow>
+
+              {/* Ligne évolution du cumul */}
+              <TableRow className="bg-emerald-50 font-medium">
+                <TableCell className="sticky left-0 bg-emerald-50 border-r text-center py-2 p-2">
+                  <div className="flex items-center justify-center gap-1">
+                    <span className="text-sm font-bold text-emerald-800">
+                      Évol. Cumul %
+                    </span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-3 w-3 text-emerald-600 cursor-help hover:text-emerald-700 transition-colors" />
+                      </TooltipTrigger>
+                      <TooltipContent
+                        side="right"
+                        className="max-w-xs bg-white border border-gray-200 shadow-lg p-3"
+                        sideOffset={8}
+                      >
+                        <div className="space-y-2 text-xs">
+                          <div className="font-semibold text-gray-900">
+                            Évolution des cumuls
+                          </div>
+                          <div className="text-gray-600">
+                            Compare les cumuls de l&apos;année courante avec les
+                            cumuls de l&apos;année précédente à la même période.
+                          </div>
+                          <div className="space-y-1">
+                            <div className="text-gray-600">
+                              <span className="font-medium">Gauche :</span>{" "}
+                              Évolution cumul MS
+                            </div>
+                            <div className="text-gray-600">
+                              <span className="font-medium">Droite :</span>{" "}
+                              Évolution cumul CA
+                            </div>
+                          </div>
+                          <div className="text-gray-500 text-[10px]">
+                            Formule : ((Cumul actuel - Cumul N-1) ÷ Cumul N-1) ×
+                            100
+                          </div>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                </TableCell>
+                {caData.periods.map((period, index) => (
+                  <TableCell
+                    key={index}
+                    className="text-center border-r px-1 py-2 whitespace-nowrap"
+                  >
+                    <div className="flex justify-between items-center space-x-1 text-xs">
+                      <div className="flex-1 text-right font-bold">
+                        {period.cumulativePayrollGrowth !== null &&
+                        period.cumulativePayrollGrowth !== undefined ? (
+                          <span
+                            className={
+                              period.cumulativePayrollGrowth >= 0
+                                ? "text-green-600"
+                                : "text-red-600"
+                            }
+                          >
+                            {period.cumulativePayrollGrowth >= 0 ? "+" : ""}
+                            {period.cumulativePayrollGrowth.toFixed(1)}%
+                          </span>
+                        ) : (
+                          "-"
+                        )}
+                      </div>
+                      <div className="flex-1 text-left font-bold">
+                        {period.cumulativeRevenueGrowth !== null &&
+                        period.cumulativeRevenueGrowth !== undefined ? (
+                          <span
+                            className={
+                              period.cumulativeRevenueGrowth >= 0
+                                ? "text-green-600"
+                                : "text-red-600"
+                            }
+                          >
+                            {period.cumulativeRevenueGrowth >= 0 ? "+" : ""}
+                            {period.cumulativeRevenueGrowth.toFixed(1)}%
+                          </span>
+                        ) : (
+                          "-"
+                        )}
                       </div>
                     </div>
                   </TableCell>
