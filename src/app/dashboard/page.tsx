@@ -27,16 +27,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/app/components/ui/dropdown-menu";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/app/components/ui/sheet";
 import {
   MoreHorizontal,
   Plus,
@@ -52,8 +44,6 @@ import {
   TrendingUp,
   TrendingDown,
   Info,
-  Filter,
-  Menu,
   Building2,
   MapPin,
 } from "lucide-react";
@@ -183,10 +173,6 @@ export default function DashboardPage() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
 
-  // NOUVEAUX états pour mobile seulement
-  const [isMobile, setIsMobile] = useState(false);
-  const [showMobileFilters, setShowMobileFilters] = useState(false);
-
   // ✅ FONCTION POUR RÉCUPÉRER LES TYPES D'ÉTABLISSEMENT
   const fetchEstablishmentTypes = async () => {
     try {
@@ -245,17 +231,6 @@ export default function DashboardPage() {
     // Types personnalisés
     return "outline";
   };
-
-  // Détecter mobile sans affecter desktop
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
 
   // ✅ MODIFIER LE useEffect POUR CHARGER AUSSI LES TYPES
   useEffect(() => {
@@ -586,95 +561,6 @@ export default function DashboardPage() {
       : "Aucune donnée";
   };
 
-  // NOUVEAU : Composant filtres mobile
-  const MobileFilters = () => (
-    <Sheet open={showMobileFilters} onOpenChange={setShowMobileFilters}>
-      <SheetContent side="right" className="w-[300px] sm:w-[400px]">
-        <SheetHeader>
-          <SheetTitle>Filtres</SheetTitle>
-          <SheetDescription>
-            Filtrez les données du tableau de bord
-          </SheetDescription>
-        </SheetHeader>
-
-        <div className="space-y-6 mt-6">
-          {/* Recherche */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Rechercher</label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <Input
-                placeholder="Nom de l'établissement..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-          </div>
-
-          {/* ✅ CATÉGORIE MODIFIÉE */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Catégorie</label>
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Toutes catégories" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Toutes catégories</SelectItem>
-                <SelectItem value="hebergement">Hébergement</SelectItem>
-                <SelectItem value="restauration">Restauration</SelectItem>
-                {/* ✅ AJOUTER CHAQUE TYPE PERSONNALISÉ INDIVIDUELLEMENT */}
-                {establishmentTypes
-                  .filter(
-                    (type) =>
-                      type.id !== "HEBERGEMENT" &&
-                      type.id !== "RESTAURATION" &&
-                      type.label !== "Hébergement" &&
-                      type.label !== "Restauration"
-                  )
-                  .map((type) => (
-                    <SelectItem key={type.id} value={type.id}>
-                      {type.label}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Statut */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Statut</label>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Tous statuts" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tous statuts</SelectItem>
-                <SelectItem value="active">Actif</SelectItem>
-                <SelectItem value="inactive">Inactif</SelectItem>
-                <SelectItem value="new">Nouveau</SelectItem>
-                <SelectItem value="warning">Attention</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Bouton reset */}
-          <Button
-            variant="outline"
-            onClick={() => {
-              setSearchTerm("");
-              setCategoryFilter("all");
-              setStatusFilter("all");
-            }}
-            className="w-full"
-          >
-            Réinitialiser
-          </Button>
-        </div>
-      </SheetContent>
-    </Sheet>
-  );
-
   // ✅ COMPOSANT POUR LES FILTRES DE CATÉGORIE
   const CategoryFilter = () => (
     <Select value={categoryFilter} onValueChange={setCategoryFilter}>
@@ -703,27 +589,20 @@ export default function DashboardPage() {
     </Select>
   );
 
-  // ✅ MODIFIER LE COMPOSANT CampusRow (VERSION DESKTOP COMPACTE)
+  // ✅ COMPOSANT CampusRow (VERSION DESKTOP)
   const CampusRow = ({
     campus,
   }: {
     campus: DashboardData & { payroll?: PayrollRatioData };
   }) => (
-    <TableRow
-      key={campus.id}
-      className={`hover:bg-muted/50 ${isMobile ? "h-16" : "h-12"}`}
-    >
-      <TableCell
-        className={`py-2 sticky left-0 bg-white z-10 border-r ${isMobile ? "pr-4" : ""}`}
-      >
+    <TableRow key={campus.id} className="hover:bg-muted/50 h-12">
+      <TableCell className="py-2">
         <div className="flex items-center space-x-1">
           <div>
-            <div className={`font-medium ${isMobile ? "text-sm" : "text-sm"}`}>
-              {campus.name}
-            </div>
+            <div className="font-medium text-sm">{campus.name}</div>
             <Badge
               variant={getTypeVariant(campus.category)}
-              className={`text-xs ${isMobile ? "h-5 px-2" : "h-4 px-1"}`}
+              className="text-xs h-4 px-1"
             >
               {getTypeIcon(campus.category)}
               <span className="text-xs">{getTypeLabel(campus.category)}</span>
@@ -732,14 +611,10 @@ export default function DashboardPage() {
         </div>
       </TableCell>
       <TableCell className="py-2">
-        <div className={`${isMobile ? "text-sm" : "text-xs"}`}>
-          {campus.lastEntry || "Jamais"}
-        </div>
+        <div className="text-xs">{campus.lastEntry || "Jamais"}</div>
       </TableCell>
       <TableCell className="py-2">
-        <div
-          className={`${isMobile ? "text-sm" : "text-xs"} font-medium text-blue-600`}
-        >
+        <div className="text-xs font-medium text-blue-600">
           {campus.performance}
         </div>
       </TableCell>
@@ -749,21 +624,17 @@ export default function DashboardPage() {
             className={`flex items-center justify-center gap-1 ${getRatioColor(campus.payroll.payrollToRevenueRatio)}`}
           >
             {getRatioIcon(campus.payroll.ratioTrend)}
-            <span className={`font-medium ${isMobile ? "text-sm" : "text-xs"}`}>
+            <span className="font-medium text-xs">
               {formatPercentage(campus.payroll.payrollToRevenueRatio)}
             </span>
           </div>
         ) : (
-          <div
-            className={`text-muted-foreground ${isMobile ? "text-sm" : "text-xs"}`}
-          >
-            -
-          </div>
+          <div className="text-muted-foreground text-xs">-</div>
         )}
       </TableCell>
       {dashboardData?.columnLabels.map((col) => (
         <TableCell key={col.key} className="text-center py-2">
-          <div className={`${isMobile ? "text-sm" : "text-xs"} font-medium`}>
+          <div className="text-xs font-medium">
             {campus.values[col.key] || "0.00"}
           </div>
         </TableCell>
@@ -771,13 +642,8 @@ export default function DashboardPage() {
       <TableCell className="py-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              className={`${isMobile ? "h-8 w-8" : "h-6 w-6"} p-0`}
-            >
-              <MoreHorizontal
-                className={`${isMobile ? "h-4 w-4" : "h-3 w-3"}`}
-              />
+            <Button variant="ghost" className="h-6 w-6 p-0">
+              <MoreHorizontal className="h-3 w-3" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -818,7 +684,7 @@ export default function DashboardPage() {
     </TableRow>
   );
 
-  // Composant pour rendre une ligne de sous-total (VERSION COMPACTE)
+  // Composant pour rendre une ligne de sous-total
   const SubtotalRow = ({
     label,
     totals,
@@ -837,19 +703,12 @@ export default function DashboardPage() {
       : "Aucune donnée";
 
     return (
-      <TableRow
-        className={`${bgColor} hover:${bgColor} border-t-2 ${isMobile ? "h-12" : "h-10"}`}
-      >
-        <TableCell
-          colSpan={2}
-          className={`font-semibold ${textColor} py-2 sticky left-0 bg-inherit z-10 border-r`}
-        >
-          <span className={`${isMobile ? "text-sm" : "text-sm"}`}>{label}</span>
+      <TableRow className={`${bgColor} hover:${bgColor} border-t-2 h-10`}>
+        <TableCell colSpan={2} className={`font-semibold ${textColor} py-2`}>
+          <span className="text-sm">{label}</span>
         </TableCell>
         <TableCell className={`font-semibold ${textColor} py-2`}>
-          <div className={`${isMobile ? "text-sm" : "text-xs"}`}>
-            {topPerformance}
-          </div>
+          <div className="text-xs">{topPerformance}</div>
         </TableCell>
         <TableCell></TableCell>
         {dashboardData?.columnLabels.map((col) => (
@@ -857,7 +716,7 @@ export default function DashboardPage() {
             key={col.key}
             className={`text-center font-semibold ${textColor} py-2`}
           >
-            <div className={`${isMobile ? "text-sm" : "text-sm"}`}>
+            <div className="text-sm">
               {formatCurrency(totals[col.key] || 0)}
             </div>
           </TableCell>
@@ -920,121 +779,63 @@ export default function DashboardPage() {
             </h1>
           </div>
 
-          {/* Actions - CONDITIONNELLES selon mobile/desktop */}
-          {isMobile ? (
-            /* Version MOBILE - Layout empilé */
-            <div className="flex flex-col gap-2 w-full max-w-xs">
+          {/* Actions */}
+          <div className="flex items-center gap-4">
+            <Button
+              onClick={() => router.push("/dashboard/dayvalues/create")}
+              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-200 px-6 py-2.5 text-base font-semibold"
+              size="lg"
+            >
+              <Plus className="mr-2 h-5 w-5" />
+              Ajouter un CA
+            </Button>
+
+            <div className="h-8 w-px bg-border"></div>
+
+            <div className="flex items-center gap-2">
               <Button
-                onClick={() => router.push("/dashboard/dayvalues/create")}
-                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg"
+                onClick={() => router.push("/dashboard/analytics")}
+                variant="outline"
+                className="border-slate-200 hover:bg-slate-50"
               >
-                <Plus className="mr-2 h-4 w-4" />
-                Ajouter un CA
+                <BarChart3 className="mr-2 h-4 w-4" />
+                Analytics
               </Button>
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="w-full">
-                    <Menu className="mr-2 h-4 w-4" />
-                    Plus d&apos;actions
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56">
-                  <DropdownMenuItem
-                    onClick={() => router.push("/dashboard/analytics")}
-                  >
-                    <BarChart3 className="mr-2 h-4 w-4" />
-                    Analytics
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => router.push("/dashboard/payroll")}
-                  >
-                    <Calculator className="mr-2 h-4 w-4" />
-                    Masse salariale
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem>
-                    <Upload className="mr-2 h-4 w-4" />
-                    Import
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <Download className="mr-2 h-4 w-4" />
-                    Exporter
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          ) : (
-            /* Version DESKTOP - EXACTEMENT comme votre code original */
-            <div className="flex items-center gap-4">
               <Button
-                onClick={() => router.push("/dashboard/dayvalues/create")}
-                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-200 px-6 py-2.5 text-base font-semibold"
-                size="lg"
+                onClick={() => router.push("/dashboard/payroll")}
+                variant="outline"
+                className="border-slate-200 hover:bg-slate-50"
               >
-                <Plus className="mr-2 h-5 w-5" />
-                Ajouter un CA
+                <Calculator className="mr-2 h-4 w-4" />
+                Masse salariale
               </Button>
 
-              <div className="h-8 w-px bg-border"></div>
+              <Button
+                onClick={() => router.push("/dashboard/import")}
+                variant="outline"
+                size="sm"
+                className="border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-colors"
+              >
+                <Upload className="mr-2 h-4 w-4" />
+                Import
+              </Button>
 
-              <div className="flex items-center gap-2">
-                <Button
-                  onClick={() => router.push("/dashboard/analytics")}
-                  variant="outline"
-                  className="border-slate-200 hover:bg-slate-50"
-                >
-                  <BarChart3 className="mr-2 h-4 w-4" />
-                  Analytics
-                </Button>
-
-                <Button
-                  onClick={() => router.push("/dashboard/payroll")}
-                  variant="outline"
-                  className="border-slate-200 hover:bg-slate-50"
-                >
-                  <Calculator className="mr-2 h-4 w-4" />
-                  Masse salariale
-                </Button>
-
-                <Button
-                  onClick={() => router.push("/dashboard/import")}
-                  variant="outline"
-                  size="sm"
-                  className="border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-colors"
-                >
-                  <Upload className="mr-2 h-4 w-4" />
-                  Import
-                </Button>
-
-                <Button
-                  onClick={handleExport}
-                  variant="outline"
-                  size="sm"
-                  className="border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-colors"
-                >
-                  <Download className="mr-2 h-4 w-4" />
-                  Exporter
-                </Button>
-              </div>
+              <Button
+                onClick={handleExport}
+                variant="outline"
+                size="sm"
+                className="border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-colors"
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Exporter
+              </Button>
             </div>
-          )}
+          </div>
         </div>
 
         {/* Table principale avec filtres intégrés dans le CardHeader */}
         <Card className="shadow-lg border-slate-200">
-          {/* Indicateur de zoom pour mobile */}
-          {isMobile && (
-            <div className="bg-blue-50 border-b border-blue-200 px-4 py-2">
-              <div className="flex items-center gap-2 text-blue-700 text-xs">
-                <Info className="h-3 w-3" />
-                <span>
-                  💡 Utilisez le pincement pour zoomer et dézoomer sur le
-                  tableau
-                </span>
-              </div>
-            </div>
-          )}
           <CardHeader className="bg-white border-b border-slate-200 py-2">
             <div className="relative flex items-center min-h-[60px]">
               {/* Titre parfaitement centré */}
@@ -1052,81 +853,48 @@ export default function DashboardPage() {
                 </CardDescription>
               </div>
 
-              {/* Filtres - CONDITIONNELS selon mobile/desktop */}
+              {/* Filtres */}
               <div className="absolute right-0 flex items-center gap-3">
-                {isMobile ? (
-                  /* Version MOBILE - Bouton filtres */
+                <div className="relative">
+                  <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                  <Input
+                    placeholder="Rechercher..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-8 h-8 w-40 text-xs border-slate-200 focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 bg-white/80 placeholder:text-slate-400"
+                  />
+                </div>
+
+                <CategoryFilter />
+
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-28 h-8 text-xs border-slate-200 focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 bg-white/80">
+                    <SelectValue placeholder="Statut" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tous statuts</SelectItem>
+                    <SelectItem value="active">Actif</SelectItem>
+                    <SelectItem value="inactive">Inactif</SelectItem>
+                    <SelectItem value="new">Nouveau</SelectItem>
+                    <SelectItem value="warning">Attention</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {(searchTerm ||
+                  categoryFilter !== "all" ||
+                  statusFilter !== "all") && (
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
-                    onClick={() => setShowMobileFilters(true)}
-                    className="flex items-center gap-2"
+                    onClick={() => {
+                      setSearchTerm("");
+                      setCategoryFilter("all");
+                      setStatusFilter("all");
+                    }}
+                    className="h-8 px-2 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100"
                   >
-                    <Filter className="h-4 w-4" />
-                    Filtres
-                    {(searchTerm ||
-                      categoryFilter !== "all" ||
-                      statusFilter !== "all") && (
-                      <Badge variant="secondary" className="text-xs ml-1">
-                        {
-                          [
-                            searchTerm,
-                            categoryFilter !== "all",
-                            statusFilter !== "all",
-                          ].filter(Boolean).length
-                        }
-                      </Badge>
-                    )}
+                    ✕
                   </Button>
-                ) : (
-                  /* Version DESKTOP - EXACTEMENT comme votre code original */
-                  <>
-                    <div className="relative">
-                      <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-                      <Input
-                        placeholder="Rechercher..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-8 h-8 w-40 text-xs border-slate-200 focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 bg-white/80 placeholder:text-slate-400"
-                      />
-                    </div>
-
-                    {/* ✅ UTILISER LE NOUVEAU COMPOSANT CategoryFilter */}
-                    <CategoryFilter />
-
-                    <Select
-                      value={statusFilter}
-                      onValueChange={setStatusFilter}
-                    >
-                      <SelectTrigger className="w-28 h-8 text-xs border-slate-200 focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 bg-white/80">
-                        <SelectValue placeholder="Statut" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Tous statuts</SelectItem>
-                        <SelectItem value="active">Actif</SelectItem>
-                        <SelectItem value="inactive">Inactif</SelectItem>
-                        <SelectItem value="new">Nouveau</SelectItem>
-                        <SelectItem value="warning">Attention</SelectItem>
-                      </SelectContent>
-                    </Select>
-
-                    {(searchTerm ||
-                      categoryFilter !== "all" ||
-                      statusFilter !== "all") && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setSearchTerm("");
-                          setCategoryFilter("all");
-                          setStatusFilter("all");
-                        }}
-                        className="h-8 px-2 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100"
-                      >
-                        ✕
-                      </Button>
-                    )}
-                  </>
                 )}
               </div>
             </div>
@@ -1147,45 +915,20 @@ export default function DashboardPage() {
               </div>
             ) : (
               /* Table normale quand il y a des données */
-              <div
-                className="overflow-x-auto"
-                style={{
-                  // Permettre le zoom natif sur mobile
-                  touchAction: "pan-x pan-y pinch-zoom",
-                  // Améliorer le défilement tactile
-                  WebkitOverflowScrolling: "touch",
-                  // Affichage optimisé sur mobile
-                  maxWidth: "100vw",
-                }}
-              >
-                <Table
-                  style={{
-                    // Largeur minimale pour permettre un zoom correct
-                    minWidth: isMobile ? "800px" : "auto",
-                  }}
-                >
+              <div className="overflow-x-auto">
+                <Table>
                   <TableHeader>
-                    <TableRow className="h-12">
-                      {" "}
-                      {/* Plus de hauteur sur mobile */}
-                      <TableHead
-                        className={`${isMobile ? "min-w-[160px]" : "min-w-[140px]"} py-2 text-xs sticky left-0 bg-white z-10 border-r`}
-                      >
+                    <TableRow className="h-10">
+                      <TableHead className="min-w-[140px] py-2 text-xs">
                         Campus
                       </TableHead>
-                      <TableHead
-                        className={`${isMobile ? "min-w-[120px]" : "min-w-[100px]"} py-2 text-xs`}
-                      >
+                      <TableHead className="min-w-[100px] py-2 text-xs">
                         Dernière saisie
                       </TableHead>
-                      <TableHead
-                        className={`${isMobile ? "min-w-[100px]" : "min-w-[80px]"} py-2 text-xs`}
-                      >
+                      <TableHead className="min-w-[80px] py-2 text-xs">
                         Top
                       </TableHead>
-                      <TableHead
-                        className={`text-center ${isMobile ? "min-w-[100px]" : "min-w-[80px]"} py-2 text-xs`}
-                      >
+                      <TableHead className="text-center min-w-[80px] py-2 text-xs">
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -1249,14 +992,12 @@ export default function DashboardPage() {
                       {dashboardData.columnLabels.map((col) => (
                         <TableHead
                           key={col.key}
-                          className={`text-center ${isMobile ? "min-w-[100px]" : "min-w-[80px]"} py-2 text-xs`}
+                          className="text-center min-w-[80px] py-2 text-xs"
                         >
                           <div className="font-medium">{col.label}</div>
                         </TableHead>
                       ))}
-                      <TableHead
-                        className={`${isMobile ? "w-[60px]" : "w-[40px]"} py-2`}
-                      ></TableHead>
+                      <TableHead className="w-[40px] py-2"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1341,9 +1082,6 @@ export default function DashboardPage() {
             )}
           </CardContent>
         </Card>
-
-        {/* Composant filtres mobile */}
-        <MobileFilters />
       </div>
     </TooltipProvider>
   );
