@@ -20,7 +20,7 @@ function getResend(): Resend {
     }
 
     resend = new Resend(apiKey);
-    console.log(`✅ Instance Resend créée`);
+    // console.log(`✅ Instance Resend créée`);
   }
   return resend;
 }
