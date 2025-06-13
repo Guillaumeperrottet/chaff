@@ -709,14 +709,21 @@ export default function DashboardPage() {
   }: {
     campus: DashboardData & { payroll?: PayrollRatioData };
   }) => (
-    <TableRow key={campus.id} className="hover:bg-muted/50 h-12">
-      <TableCell className="py-2">
+    <TableRow
+      key={campus.id}
+      className={`hover:bg-muted/50 ${isMobile ? "h-16" : "h-12"}`}
+    >
+      <TableCell
+        className={`py-2 sticky left-0 bg-white z-10 border-r ${isMobile ? "pr-4" : ""}`}
+      >
         <div className="flex items-center space-x-1">
           <div>
-            <div className="font-medium text-sm">{campus.name}</div>
+            <div className={`font-medium ${isMobile ? "text-sm" : "text-sm"}`}>
+              {campus.name}
+            </div>
             <Badge
               variant={getTypeVariant(campus.category)}
-              className="text-xs h-4 px-1"
+              className={`text-xs ${isMobile ? "h-5 px-2" : "h-4 px-1"}`}
             >
               {getTypeIcon(campus.category)}
               <span className="text-xs">{getTypeLabel(campus.category)}</span>
@@ -725,10 +732,14 @@ export default function DashboardPage() {
         </div>
       </TableCell>
       <TableCell className="py-2">
-        <div className="text-xs">{campus.lastEntry || "Jamais"}</div>
+        <div className={`${isMobile ? "text-sm" : "text-xs"}`}>
+          {campus.lastEntry || "Jamais"}
+        </div>
       </TableCell>
       <TableCell className="py-2">
-        <div className="text-xs font-medium text-blue-600">
+        <div
+          className={`${isMobile ? "text-sm" : "text-xs"} font-medium text-blue-600`}
+        >
           {campus.performance}
         </div>
       </TableCell>
@@ -738,17 +749,21 @@ export default function DashboardPage() {
             className={`flex items-center justify-center gap-1 ${getRatioColor(campus.payroll.payrollToRevenueRatio)}`}
           >
             {getRatioIcon(campus.payroll.ratioTrend)}
-            <span className="font-medium text-xs">
+            <span className={`font-medium ${isMobile ? "text-sm" : "text-xs"}`}>
               {formatPercentage(campus.payroll.payrollToRevenueRatio)}
             </span>
           </div>
         ) : (
-          <div className="text-muted-foreground text-xs">-</div>
+          <div
+            className={`text-muted-foreground ${isMobile ? "text-sm" : "text-xs"}`}
+          >
+            -
+          </div>
         )}
       </TableCell>
       {dashboardData?.columnLabels.map((col) => (
         <TableCell key={col.key} className="text-center py-2">
-          <div className="text-xs font-medium">
+          <div className={`${isMobile ? "text-sm" : "text-xs"} font-medium`}>
             {campus.values[col.key] || "0.00"}
           </div>
         </TableCell>
@@ -756,8 +771,13 @@ export default function DashboardPage() {
       <TableCell className="py-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-6 w-6 p-0">
-              <MoreHorizontal className="h-3 w-3" />
+            <Button
+              variant="ghost"
+              className={`${isMobile ? "h-8 w-8" : "h-6 w-6"} p-0`}
+            >
+              <MoreHorizontal
+                className={`${isMobile ? "h-4 w-4" : "h-3 w-3"}`}
+              />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -817,12 +837,19 @@ export default function DashboardPage() {
       : "Aucune donnée";
 
     return (
-      <TableRow className={`${bgColor} hover:${bgColor} border-t-2 h-10`}>
-        <TableCell colSpan={2} className={`font-semibold ${textColor} py-2`}>
-          <span className="text-sm">{label}</span>
+      <TableRow
+        className={`${bgColor} hover:${bgColor} border-t-2 ${isMobile ? "h-12" : "h-10"}`}
+      >
+        <TableCell
+          colSpan={2}
+          className={`font-semibold ${textColor} py-2 sticky left-0 bg-inherit z-10 border-r`}
+        >
+          <span className={`${isMobile ? "text-sm" : "text-sm"}`}>{label}</span>
         </TableCell>
         <TableCell className={`font-semibold ${textColor} py-2`}>
-          <div className="text-xs">{topPerformance}</div>
+          <div className={`${isMobile ? "text-sm" : "text-xs"}`}>
+            {topPerformance}
+          </div>
         </TableCell>
         <TableCell></TableCell>
         {dashboardData?.columnLabels.map((col) => (
@@ -830,7 +857,7 @@ export default function DashboardPage() {
             key={col.key}
             className={`text-center font-semibold ${textColor} py-2`}
           >
-            <div className="text-sm">
+            <div className={`${isMobile ? "text-sm" : "text-sm"}`}>
               {formatCurrency(totals[col.key] || 0)}
             </div>
           </TableCell>
@@ -996,6 +1023,18 @@ export default function DashboardPage() {
 
         {/* Table principale avec filtres intégrés dans le CardHeader */}
         <Card className="shadow-lg border-slate-200">
+          {/* Indicateur de zoom pour mobile */}
+          {isMobile && (
+            <div className="bg-blue-50 border-b border-blue-200 px-4 py-2">
+              <div className="flex items-center gap-2 text-blue-700 text-xs">
+                <Info className="h-3 w-3" />
+                <span>
+                  💡 Utilisez le pincement pour zoomer et dézoomer sur le
+                  tableau
+                </span>
+              </div>
+            </div>
+          )}
           <CardHeader className="bg-white border-b border-slate-200 py-2">
             <div className="relative flex items-center min-h-[60px]">
               {/* Titre parfaitement centré */}
@@ -1108,20 +1147,45 @@ export default function DashboardPage() {
               </div>
             ) : (
               /* Table normale quand il y a des données */
-              <div className="overflow-x-auto">
-                <Table>
+              <div
+                className="overflow-x-auto"
+                style={{
+                  // Permettre le zoom natif sur mobile
+                  touchAction: "pan-x pan-y pinch-zoom",
+                  // Améliorer le défilement tactile
+                  WebkitOverflowScrolling: "touch",
+                  // Affichage optimisé sur mobile
+                  maxWidth: "100vw",
+                }}
+              >
+                <Table
+                  style={{
+                    // Largeur minimale pour permettre un zoom correct
+                    minWidth: isMobile ? "800px" : "auto",
+                  }}
+                >
                   <TableHeader>
-                    <TableRow className="h-10">
-                      <TableHead className="min-w-[140px] py-2 text-xs">
+                    <TableRow className="h-12">
+                      {" "}
+                      {/* Plus de hauteur sur mobile */}
+                      <TableHead
+                        className={`${isMobile ? "min-w-[160px]" : "min-w-[140px]"} py-2 text-xs sticky left-0 bg-white z-10 border-r`}
+                      >
                         Campus
                       </TableHead>
-                      <TableHead className="min-w-[100px] py-2 text-xs">
+                      <TableHead
+                        className={`${isMobile ? "min-w-[120px]" : "min-w-[100px]"} py-2 text-xs`}
+                      >
                         Dernière saisie
                       </TableHead>
-                      <TableHead className="min-w-[80px] py-2 text-xs">
+                      <TableHead
+                        className={`${isMobile ? "min-w-[100px]" : "min-w-[80px]"} py-2 text-xs`}
+                      >
                         Top
                       </TableHead>
-                      <TableHead className="text-center min-w-[80px] py-2 text-xs">
+                      <TableHead
+                        className={`text-center ${isMobile ? "min-w-[100px]" : "min-w-[80px]"} py-2 text-xs`}
+                      >
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -1185,12 +1249,14 @@ export default function DashboardPage() {
                       {dashboardData.columnLabels.map((col) => (
                         <TableHead
                           key={col.key}
-                          className="text-center min-w-[80px] py-2 text-xs"
+                          className={`text-center ${isMobile ? "min-w-[100px]" : "min-w-[80px]"} py-2 text-xs`}
                         >
                           <div className="font-medium">{col.label}</div>
                         </TableHead>
                       ))}
-                      <TableHead className="w-[40px] py-2"></TableHead>
+                      <TableHead
+                        className={`${isMobile ? "w-[60px]" : "w-[40px]"} py-2`}
+                      ></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>

@@ -12,6 +12,12 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Chaff.ch - Analytics Business",
   description: "Plateforme d'analyse pour votre business",
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 5, // Permettre un zoom jusqu'à 500%
+    userScalable: true,
+  },
 };
 
 export default function RootLayout({
