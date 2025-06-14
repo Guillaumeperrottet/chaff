@@ -637,7 +637,7 @@ export default function DashboardPage() {
       {/* ✅ CHANGEMENT 1: Conteneur principal SANS width/padding contraints */}
       <div className="w-full">
         {/* Header avec titre et actions */}
-        <div className="flex items-center justify-between mb-6 px-4">
+        <div className="flex items-center justify-between mb-4 px-4">
           <div className="flex-1">
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
               Tableau de bord
@@ -799,11 +799,11 @@ export default function DashboardPage() {
 
         {/* Header avec filtres */}
         <Card className="shadow-lg border-slate-200">
-          <CardHeader className="bg-white border-b border-slate-200 py-4">
-            <div className="flex flex-col space-y-4 md:space-y-0">
+          <CardHeader className="bg-white border-b border-slate-200 py-3">
+            <div className="flex flex-col space-y-3 md:space-y-0">
               {/* Titre centré */}
               <div className="text-center">
-                <CardTitle className="text-xl font-bold text-slate-800 mb-2">
+                <CardTitle className="text-xl font-bold text-slate-800 mb-1">
                   Vue d&apos;ensemble du chiffre d&apos;affaires journalier
                 </CardTitle>
                 <CardDescription className="text-slate-600">
@@ -817,7 +817,7 @@ export default function DashboardPage() {
               </div>
 
               {/* Menu déroulant des filtres */}
-              <div className="flex justify-center pt-2">
+              <div className="flex justify-center pt-1">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
@@ -835,10 +835,10 @@ export default function DashboardPage() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-80 p-4" align="center">
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                       {/* Recherche */}
                       <div>
-                        <label className="text-sm font-medium text-slate-700 mb-2 block">
+                        <label className="text-sm font-medium text-slate-700 mb-1.5 block">
                           Recherche
                         </label>
                         <div className="relative">
@@ -855,14 +855,14 @@ export default function DashboardPage() {
                       {/* Filtres */}
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="text-sm font-medium text-slate-700 mb-2 block">
+                          <label className="text-sm font-medium text-slate-700 mb-1.5 block">
                             Catégorie
                           </label>
                           <CategoryFilter />
                         </div>
 
                         <div>
-                          <label className="text-sm font-medium text-slate-700 mb-2 block">
+                          <label className="text-sm font-medium text-slate-700 mb-1.5 block">
                             Statut
                           </label>
                           <Select
@@ -887,7 +887,7 @@ export default function DashboardPage() {
                       {(searchTerm ||
                         categoryFilter !== "all" ||
                         statusFilter !== "all") && (
-                        <div className="pt-2 border-t border-slate-100">
+                        <div className="pt-1.5 border-t border-slate-100">
                           <Button
                             variant="ghost"
                             size="sm"
@@ -918,218 +918,223 @@ export default function DashboardPage() {
             className="min-h-[500px]"
           />
         ) : (
-          <div className="overflow-x-auto -mx-4 px-4">
-            <Table className="w-full min-w-[1000px]">
-              <TableHeader>
-                <TableRow className="h-12">
-                  <TableHead className="w-[200px] py-3 text-sm font-semibold">
-                    Campus
-                  </TableHead>
-                  <TableHead className="w-[140px] py-3 text-sm font-semibold">
-                    Dernière saisie
-                  </TableHead>
-                  <TableHead className="w-[160px] py-3 text-sm font-semibold">
-                    Top
-                  </TableHead>
-                  {dashboardData.columnLabels.map((col) => (
-                    <TableHead
-                      key={col.key}
-                      className="text-center w-[120px] py-3 text-sm font-semibold"
-                    >
-                      {col.label}
+          <Card className="shadow-lg border-slate-200">
+            <div className="overflow-x-auto">
+              <Table className="w-full min-w-[1000px]">
+                <TableHeader>
+                  <TableRow className="h-12">
+                    <TableHead className="w-[200px] py-3 text-sm font-semibold">
+                      Campus
                     </TableHead>
-                  ))}
-                  <TableHead className="w-[60px] py-3"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {Object.entries(grouped).map(([groupKey, groupData]) => {
-                  const shouldShowGroup = (() => {
-                    if (categoryFilter === "all") return true;
-                    if (
-                      categoryFilter === "hebergement" &&
-                      groupKey === "hebergement"
-                    )
-                      return true;
-                    if (
-                      categoryFilter === "restauration" &&
-                      groupKey === "restauration"
-                    )
-                      return true;
-                    return categoryFilter === groupKey;
-                  })();
-
-                  if (!shouldShowGroup) return null;
-
-                  return (
-                    <React.Fragment key={groupKey}>
-                      {groupData.map((campus) => (
-                        <TableRow
-                          key={campus.id}
-                          className="hover:bg-muted/50 h-14"
-                        >
-                          <TableCell className="py-3">
-                            <div className="flex items-center space-x-2">
-                              <div>
-                                <div className="font-medium text-base">
-                                  {campus.name}
-                                </div>
-                                <Badge
-                                  variant={getTypeVariant()}
-                                  className="text-sm h-5 px-2 mt-1"
-                                >
-                                  {getTypeIcon(campus.category)}
-                                  <span className="ml-1">
-                                    {getTypeLabel(campus.category)}
-                                  </span>
-                                </Badge>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell className="py-3">
-                            <div className="text-sm">
-                              {campus.lastEntry || "Jamais"}
-                            </div>
-                          </TableCell>
-                          <TableCell className="py-3">
-                            <div className="text-sm font-medium text-blue-600">
-                              {campus.performance}
-                            </div>
-                          </TableCell>
-                          {dashboardData?.columnLabels.map((col) => (
-                            <TableCell
-                              key={col.key}
-                              className="text-center py-3"
-                            >
-                              <div className="text-sm font-medium">
-                                {campus.values[col.key] || "0.00"}
-                              </div>
-                            </TableCell>
-                          ))}
-                          <TableCell className="py-3">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                <DropdownMenuItem
-                                  onClick={() =>
-                                    router.push(
-                                      `/dashboard/mandates/${campus.id}`
-                                    )
-                                  }
-                                >
-                                  <Eye className="mr-2 h-4 w-4" />
-                                  Chiffre d&apos;affaires
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() =>
-                                    router.push(
-                                      `/dashboard/mandates/${campus.id}/payroll`
-                                    )
-                                  }
-                                >
-                                  <Calculator className="mr-2 h-4 w-4" />
-                                  Masse salariale
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() =>
-                                    router.push(
-                                      `/dashboard/employees?mandateId=${campus.id}`
-                                    )
-                                  }
-                                >
-                                  <Users className="mr-2 h-4 w-4" />
-                                  Employés
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() =>
-                                    router.push(
-                                      `/dashboard/mandates/${campus.id}/edit`
-                                    )
-                                  }
-                                >
-                                  <Edit className="mr-2 h-4 w-4" />
-                                  Modifier
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-
-                      {groupData.length > 0 && (
-                        <TableRow className="bg-slate-50 hover:bg-slate-50 border-t-2 h-12">
-                          <TableCell
-                            colSpan={2}
-                            className="font-semibold text-slate-700 py-3"
-                          >
-                            <span className="text-base">
-                              {(() => {
-                                if (groupKey === "hebergement")
-                                  return "Hébergement";
-                                if (groupKey === "restauration")
-                                  return "Restauration";
-                                return getTypeLabel(groupKey);
-                              })()}
-                            </span>
-                          </TableCell>
-                          <TableCell className="font-semibold text-slate-700 py-3">
-                            <div className="text-sm">
-                              {calculateGroupTop(groupData)}
-                            </div>
-                          </TableCell>
-                          {dashboardData?.columnLabels.map((col) => (
-                            <TableCell
-                              key={col.key}
-                              className="text-center font-semibold text-slate-700 py-3"
-                            >
-                              <div className="text-base">
-                                {formatCurrency(
-                                  groupTotals[groupKey][col.key] || 0
-                                )}
-                              </div>
-                            </TableCell>
-                          ))}
-                          <TableCell></TableCell>
-                        </TableRow>
-                      )}
-                    </React.Fragment>
-                  );
-                })}
-              </TableBody>
-
-              {categoryFilter === "all" && (
-                <TableFooter>
-                  <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-150 border-t-4 border-gray-300 h-14">
-                    <TableCell
-                      colSpan={2}
-                      className="font-bold text-gray-900 py-3"
-                    >
-                      <span className="text-base">Total général</span>
-                    </TableCell>
-                    <TableCell className="font-bold text-gray-900 py-3">
-                      <div className="text-sm">{calculateGrandTop()}</div>
-                    </TableCell>
+                    <TableHead className="w-[140px] py-3 text-sm font-semibold">
+                      Dernière saisie
+                    </TableHead>
+                    <TableHead className="w-[160px] py-3 text-sm font-semibold">
+                      Top
+                    </TableHead>
                     {dashboardData.columnLabels.map((col) => (
-                      <TableCell
+                      <TableHead
                         key={col.key}
-                        className="text-center font-bold text-gray-900 py-3"
+                        className="text-center w-[120px] py-3 text-sm font-semibold"
                       >
-                        <div className="text-base">
-                          {formatCurrency(grandTotals[col.key] || 0)}
-                        </div>
-                      </TableCell>
+                        {col.label}
+                      </TableHead>
                     ))}
-                    <TableCell></TableCell>
+                    <TableHead className="w-[60px] py-3"></TableHead>
                   </TableRow>
-                </TableFooter>
-              )}
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {Object.entries(grouped).map(([groupKey, groupData]) => {
+                    const shouldShowGroup = (() => {
+                      if (categoryFilter === "all") return true;
+                      if (
+                        categoryFilter === "hebergement" &&
+                        groupKey === "hebergement"
+                      )
+                        return true;
+                      if (
+                        categoryFilter === "restauration" &&
+                        groupKey === "restauration"
+                      )
+                        return true;
+                      return categoryFilter === groupKey;
+                    })();
+
+                    if (!shouldShowGroup) return null;
+
+                    return (
+                      <React.Fragment key={groupKey}>
+                        {groupData.map((campus) => (
+                          <TableRow
+                            key={campus.id}
+                            className="hover:bg-muted/50 h-14"
+                          >
+                            <TableCell className="py-3">
+                              <div className="flex items-center space-x-2">
+                                <div>
+                                  <div className="font-medium text-base">
+                                    {campus.name}
+                                  </div>
+                                  <Badge
+                                    variant={getTypeVariant()}
+                                    className="text-sm h-5 px-2 mt-1"
+                                  >
+                                    {getTypeIcon(campus.category)}
+                                    <span className="ml-1">
+                                      {getTypeLabel(campus.category)}
+                                    </span>
+                                  </Badge>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="py-3">
+                              <div className="text-sm">
+                                {campus.lastEntry || "Jamais"}
+                              </div>
+                            </TableCell>
+                            <TableCell className="py-3">
+                              <div className="text-sm font-medium text-blue-600">
+                                {campus.performance}
+                              </div>
+                            </TableCell>
+                            {dashboardData?.columnLabels.map((col) => (
+                              <TableCell
+                                key={col.key}
+                                className="text-center py-3"
+                              >
+                                <div className="text-sm font-medium">
+                                  {campus.values[col.key] || "0.00"}
+                                </div>
+                              </TableCell>
+                            ))}
+                            <TableCell className="py-3">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    className="h-8 w-8 p-0"
+                                  >
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      router.push(
+                                        `/dashboard/mandates/${campus.id}`
+                                      )
+                                    }
+                                  >
+                                    <Eye className="mr-2 h-4 w-4" />
+                                    Chiffre d&apos;affaires
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      router.push(
+                                        `/dashboard/mandates/${campus.id}/payroll`
+                                      )
+                                    }
+                                  >
+                                    <Calculator className="mr-2 h-4 w-4" />
+                                    Masse salariale
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      router.push(
+                                        `/dashboard/employees?mandateId=${campus.id}`
+                                      )
+                                    }
+                                  >
+                                    <Users className="mr-2 h-4 w-4" />
+                                    Employés
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      router.push(
+                                        `/dashboard/mandates/${campus.id}/edit`
+                                      )
+                                    }
+                                  >
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    Modifier
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+
+                        {groupData.length > 0 && (
+                          <TableRow className="bg-slate-50 hover:bg-slate-50 border-t-2 h-12">
+                            <TableCell
+                              colSpan={2}
+                              className="font-semibold text-slate-700 py-3"
+                            >
+                              <span className="text-base">
+                                {(() => {
+                                  if (groupKey === "hebergement")
+                                    return "Hébergement";
+                                  if (groupKey === "restauration")
+                                    return "Restauration";
+                                  return getTypeLabel(groupKey);
+                                })()}
+                              </span>
+                            </TableCell>
+                            <TableCell className="font-semibold text-slate-700 py-3">
+                              <div className="text-sm">
+                                {calculateGroupTop(groupData)}
+                              </div>
+                            </TableCell>
+                            {dashboardData?.columnLabels.map((col) => (
+                              <TableCell
+                                key={col.key}
+                                className="text-center font-semibold text-slate-700 py-3"
+                              >
+                                <div className="text-base">
+                                  {formatCurrency(
+                                    groupTotals[groupKey][col.key] || 0
+                                  )}
+                                </div>
+                              </TableCell>
+                            ))}
+                            <TableCell></TableCell>
+                          </TableRow>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
+                </TableBody>
+
+                {categoryFilter === "all" && (
+                  <TableFooter>
+                    <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-150 border-t-4 border-gray-300 h-14">
+                      <TableCell
+                        colSpan={2}
+                        className="font-bold text-gray-900 py-3"
+                      >
+                        <span className="text-base">Total général</span>
+                      </TableCell>
+                      <TableCell className="font-bold text-gray-900 py-3">
+                        <div className="text-sm">{calculateGrandTop()}</div>
+                      </TableCell>
+                      {dashboardData.columnLabels.map((col) => (
+                        <TableCell
+                          key={col.key}
+                          className="text-center font-bold text-gray-900 py-3"
+                        >
+                          <div className="text-base">
+                            {formatCurrency(grandTotals[col.key] || 0)}
+                          </div>
+                        </TableCell>
+                      ))}
+                      <TableCell></TableCell>
+                    </TableRow>
+                  </TableFooter>
+                )}
+              </Table>
+            </div>
+          </Card>
         )}
       </div>
     </TooltipProvider>
