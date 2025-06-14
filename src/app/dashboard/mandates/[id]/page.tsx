@@ -627,7 +627,7 @@ export default function MandateCAPage() {
                     value={selectedSemester}
                     onValueChange={setSelectedSemester}
                   >
-                    <SelectTrigger className="w-28 h-8">
+                    <SelectTrigger className="w-30 h-8">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
