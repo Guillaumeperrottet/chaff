@@ -663,7 +663,7 @@ export default function MandateCAPage() {
           <Table className="text-sm">
             <TableHeader>
               <TableRow>
-                <TableHead className="sticky left-0 bg-white border-r w-[60px] text-center text-sm p-2">
+                <TableHead className="border-r w-[60px] text-center text-sm p-2">
                   Jour
                 </TableHead>
                 {caData.periods.map((period, index) => (
@@ -690,7 +690,7 @@ export default function MandateCAPage() {
             <TableBody>
               {rows.map((row) => (
                 <TableRow key={row.day} className="h-8">
-                  <TableCell className="sticky left-0 bg-white border-r font-medium text-center py-1 text-sm p-2">
+                  <TableCell className="border-r font-medium text-center py-1 text-sm p-2">
                     {row.day.toString().padStart(2, "0")}
                   </TableCell>
                   {caData.periods.map((_, index) => (
@@ -723,7 +723,7 @@ export default function MandateCAPage() {
 
               {/* Ligne des totaux CA */}
               <TableRow className="bg-gray-100 font-medium">
-                <TableCell className="sticky left-0 bg-gray-100 border-r text-center py-2 p-2">
+                <TableCell className="bg-gray-100 border-r text-center py-2 p-2">
                   <span className="text-sm font-bold">Total CA</span>
                 </TableCell>
                 {caData.periods.map((_, index) => (
@@ -759,7 +759,7 @@ export default function MandateCAPage() {
 
               {/* Ligne évolution CA */}
               <TableRow className="bg-gray-100 font-medium">
-                <TableCell className="sticky left-0 bg-gray-100 border-r text-center py-2 p-2">
+                <TableCell className="bg-gray-100 border-r text-center py-2 p-2">
                   <span className="text-sm font-bold">Évol. CA %</span>
                 </TableCell>
                 {caData.periods.map((period, index) => (
@@ -782,7 +782,7 @@ export default function MandateCAPage() {
 
               {/* Ligne évolution du cumul */}
               <TableRow className="bg-gray-100 font-medium">
-                <TableCell className="sticky left-0 bg-gray-100 border-r text-center py-2 p-2">
+                <TableCell className="bg-gray-100 border-r text-center py-2 p-2">
                   <div className="flex items-center justify-center gap-1">
                     <span className="text-sm font-bold">Cumul</span>
                     <Tooltip>
@@ -847,7 +847,7 @@ export default function MandateCAPage() {
 
               {/* Ligne évolution du cumul */}
               <TableRow className="bg-gray-100 font-medium">
-                <TableCell className="sticky left-0 bg-gray-100 border-r text-center py-2 p-2">
+                <TableCell className="bg-gray-100 border-r text-center py-2 p-2">
                   <div className="flex items-center justify-center gap-1">
                     <span className="text-sm font-bold">Évol. Cumul %</span>
                   </div>
@@ -877,7 +877,7 @@ export default function MandateCAPage() {
 
               {/* Ligne séparatrice vide */}
               <TableRow className="h-4">
-                <TableCell className="sticky left-0 bg-white border-r"></TableCell>
+                <TableCell className="border-r"></TableCell>
                 {caData.periods.map((_, index) => (
                   <TableCell key={index} className="border-r"></TableCell>
                 ))}
