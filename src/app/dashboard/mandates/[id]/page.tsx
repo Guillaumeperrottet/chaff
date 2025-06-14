@@ -52,6 +52,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import PrintableCAReport from "@/app/components/ca/PrintableCAReport";
+import PremiumBurgerButton from "@/app/components/ui/BurgerButton";
+import { motion, AnimatePresence } from "framer-motion";
 
 // Types pour les données CA
 interface DayCAData {
@@ -155,6 +157,7 @@ export default function MandateCAPage() {
     const currentMonth = new Date().getMonth() + 1; // 1-12
     return currentMonth <= 6 ? "1" : "2";
   });
+  const [isBurgerMenuOpen, setIsBurgerMenuOpen] = useState(false);
 
   // Charger les données CA depuis l'API (maintenant pour 6 mois par semestre)
   useEffect(() => {
@@ -207,6 +210,20 @@ export default function MandateCAPage() {
     };
     loadAvailableMandates();
   }, []);
+
+  // Fermer le menu burger avec la touche Échap
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsBurgerMenuOpen(false);
+      }
+    };
+
+    if (isBurgerMenuOpen) {
+      document.addEventListener("keydown", handleEscape);
+      return () => document.removeEventListener("keydown", handleEscape);
+    }
+  }, [isBurgerMenuOpen]);
 
   const handleRefresh = () => {
     const loadCAData = async () => {
@@ -422,25 +439,25 @@ export default function MandateCAPage() {
       <div className="space-y-6">
         {/* Header moderne avec card élégante */}
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl shadow-sm">
-          <div className="flex items-center justify-between p-6">
-            <div className="flex items-center space-x-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 md:p-6 gap-4">
+            <div className="flex items-center space-x-4 flex-1 min-w-0">
               {/* Avatar avec gradient */}
-              <div className="relative">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg">
+              <div className="relative flex-shrink-0">
+                <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-base md:text-lg shadow-lg">
                   {caData.mandate.name.charAt(0).toUpperCase()}
                 </div>
-                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
+                <div className="absolute -bottom-1 -right-1 w-3 h-3 md:w-4 md:h-4 bg-green-500 rounded-full border-2 border-white"></div>
               </div>
 
               {/* Infos du mandat */}
-              <div>
+              <div className="flex-1 min-w-0">
                 {/* Nom du mandat avec menu déroulant discret */}
                 <div className="flex items-center gap-2">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button className="flex items-center gap-1 text-2xl font-bold text-gray-900 hover:text-blue-600 transition-colors duration-200 group">
-                        {caData.mandate.name}
-                        <ChevronDown className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-blue-500" />
+                      <button className="flex items-center gap-1 text-xl md:text-2xl font-bold text-gray-900 hover:text-blue-600 transition-colors duration-200 group truncate">
+                        <span className="truncate">{caData.mandate.name}</span>
+                        <ChevronDown className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-blue-500 flex-shrink-0" />
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start" className="w-64">
@@ -495,8 +512,8 @@ export default function MandateCAPage() {
               </div>
             </div>
 
-            {/* Boutons d'action */}
-            <div className="flex items-center space-x-3">
+            {/* Boutons d'action - Desktop */}
+            <div className="hidden md:flex items-center space-x-3">
               <Button onClick={handleRefresh} variant="outline" size="sm">
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Actualiser
@@ -510,44 +527,115 @@ export default function MandateCAPage() {
                 Imprimer
               </Button>
             </div>
+
+            {/* Menu Burger - Mobile uniquement */}
+            <div className="md:hidden relative">
+              <PremiumBurgerButton
+                isOpen={isBurgerMenuOpen}
+                onClick={() => setIsBurgerMenuOpen(!isBurgerMenuOpen)}
+                variant="subtle"
+              />
+
+              {/* Menu dropdown mobile */}
+              <AnimatePresence>
+                {isBurgerMenuOpen && (
+                  <>
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="fixed inset-0 z-40"
+                      onClick={() => setIsBurgerMenuOpen(false)}
+                    />
+
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 top-10 w-48 bg-white rounded-md shadow-lg border border-slate-200 z-50 overflow-hidden"
+                    >
+                      <div className="py-2">
+                        <button
+                          onClick={() => {
+                            handleRefresh();
+                            setIsBurgerMenuOpen(false);
+                          }}
+                          className="w-full flex items-center px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                        >
+                          <RefreshCw className="mr-3 h-4 w-4 text-slate-500" />
+                          Actualiser
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            handleExport();
+                            setIsBurgerMenuOpen(false);
+                          }}
+                          className="w-full flex items-center px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                        >
+                          <FileSpreadsheet className="mr-3 h-4 w-4 text-slate-500" />
+                          Exporter
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            handlePrint();
+                            setIsBurgerMenuOpen(false);
+                          }}
+                          className="w-full flex items-center px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                        >
+                          <Download className="mr-3 h-4 w-4 text-slate-500" />
+                          Imprimer
+                        </button>
+                      </div>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
 
           {/* Sélecteurs d'année et semestre intégrés */}
-          <div className="px-6 py-3 bg-gray-50 border-b">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <CalendarIcon className="h-4 w-4 text-gray-500" />
-                <span className="text-sm font-medium text-gray-700">
-                  Période :
-                </span>
+          <div className="px-4 md:px-6 py-3 bg-gray-50 border-b">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
+                <div className="flex items-center space-x-2">
+                  <CalendarIcon className="h-4 w-4 text-gray-500" />
+                  <span className="text-sm font-medium text-gray-700">
+                    Période :
+                  </span>
+                </div>
 
-                {/* Sélecteur d'année */}
-                <Select value={selectedYear} onValueChange={setSelectedYear}>
-                  <SelectTrigger className="w-28 h-8">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[2022, 2023, 2024, 2025].map((year) => (
-                      <SelectItem key={year} value={year.toString()}>
-                        {year}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex items-center space-x-2">
+                  {/* Sélecteur d'année */}
+                  <Select value={selectedYear} onValueChange={setSelectedYear}>
+                    <SelectTrigger className="w-20 h-8">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[2022, 2023, 2024, 2025].map((year) => (
+                        <SelectItem key={year} value={year.toString()}>
+                          {year}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
 
-                {/* Sélecteur de semestre */}
-                <Select
-                  value={selectedSemester}
-                  onValueChange={setSelectedSemester}
-                >
-                  <SelectTrigger className="w-32 h-8">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">1er semestre</SelectItem>
-                    <SelectItem value="2">2ème semestre</SelectItem>
-                  </SelectContent>
-                </Select>
+                  {/* Sélecteur de semestre */}
+                  <Select
+                    value={selectedSemester}
+                    onValueChange={setSelectedSemester}
+                  >
+                    <SelectTrigger className="w-28 h-8">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">1er semestre</SelectItem>
+                      <SelectItem value="2">2ème semestre</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
                 <span className="text-xs text-muted-foreground">
                   {selectedSemester === "1"
