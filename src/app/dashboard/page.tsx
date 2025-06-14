@@ -54,6 +54,8 @@ import {
 } from "@/app/components/ui/select";
 import { TooltipProvider } from "@/app/components/ui/tooltip";
 import { toast } from "sonner";
+import PremiumBurgerButton from "@/app/components/ui/BurgerButton";
+import { motion, AnimatePresence } from "framer-motion";
 
 // ✅ INTERFACES MISES À JOUR
 interface EstablishmentType {
@@ -163,6 +165,7 @@ export default function DashboardPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [isBurgerMenuOpen, setIsBurgerMenuOpen] = useState(false);
 
   // ✅ FONCTION POUR RÉCUPÉRER LES TYPES D'ÉTABLISSEMENT
   const fetchEstablishmentTypes = async () => {
@@ -229,6 +232,20 @@ export default function DashboardPage() {
 
     loadAllData();
   }, []);
+
+  // Fermer le menu burger avec la touche Échap
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsBurgerMenuOpen(false);
+      }
+    };
+
+    if (isBurgerMenuOpen) {
+      document.addEventListener("keydown", handleEscape);
+      return () => document.removeEventListener("keydown", handleEscape);
+    }
+  }, [isBurgerMenuOpen]);
 
   const fetchDashboardData = async () => {
     try {
@@ -616,17 +633,18 @@ export default function DashboardPage() {
 
   return (
     <TooltipProvider>
-      <div className="space-y-6">
+      {/* ✅ CHANGEMENT 1: Conteneur principal SANS width/padding contraints */}
+      <div className="w-full">
         {/* Header avec titre et actions */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">
+        <div className="flex items-center justify-between mb-6 px-4">
+          <div className="flex-1">
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
               Tableau de bord
             </h1>
           </div>
 
-          {/* Actions */}
-          <div className="flex items-center gap-4">
+          {/* Actions - Desktop */}
+          <div className="hidden md:flex items-center gap-4">
             <Button
               onClick={() => router.push("/dashboard/dayvalues/create")}
               className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-200 px-6 py-2.5 text-base font-semibold"
@@ -678,14 +696,112 @@ export default function DashboardPage() {
               </Button>
             </div>
           </div>
+
+          {/* Menu Burger - Mobile uniquement */}
+          <div className="md:hidden relative">
+            <PremiumBurgerButton
+              isOpen={isBurgerMenuOpen}
+              onClick={() => setIsBurgerMenuOpen(!isBurgerMenuOpen)}
+              variant="subtle"
+            />
+
+            {/* Menu dropdown mobile */}
+            <AnimatePresence>
+              {isBurgerMenuOpen && (
+                <>
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-40"
+                    onClick={() => setIsBurgerMenuOpen(false)}
+                  />
+
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 top-10 w-64 bg-white rounded-md shadow-lg border border-slate-200 z-50 overflow-hidden"
+                  >
+                    <div className="py-2">
+                      {/* Action principale */}
+                      <div className="px-3 pb-2 border-b border-slate-100">
+                        <Button
+                          onClick={() => {
+                            router.push("/dashboard/dayvalues/create");
+                            setIsBurgerMenuOpen(false);
+                          }}
+                          className="w-full justify-start bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-sm h-8"
+                          size="sm"
+                        >
+                          <Plus className="mr-2 h-4 w-4" />
+                          Ajouter un CA
+                        </Button>
+                      </div>
+
+                      {/* Autres actions */}
+                      <div className="py-1">
+                        <button
+                          onClick={() => {
+                            router.push("/dashboard/analytics");
+                            setIsBurgerMenuOpen(false);
+                          }}
+                          className="w-full flex items-center px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                        >
+                          <BarChart3 className="mr-3 h-4 w-4 text-slate-500" />
+                          Analytics
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            router.push("/dashboard/payroll");
+                            setIsBurgerMenuOpen(false);
+                          }}
+                          className="w-full flex items-center px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                        >
+                          <Calculator className="mr-3 h-4 w-4 text-slate-500" />
+                          Masse salariale
+                        </button>
+
+                        <div className="h-px bg-slate-100 my-1 mx-3"></div>
+
+                        <button
+                          onClick={() => {
+                            router.push("/dashboard/import");
+                            setIsBurgerMenuOpen(false);
+                          }}
+                          className="w-full flex items-center px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                        >
+                          <Upload className="mr-3 h-4 w-4 text-slate-500" />
+                          Import
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            handleExport();
+                            setIsBurgerMenuOpen(false);
+                          }}
+                          className="w-full flex items-center px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                        >
+                          <Download className="mr-3 h-4 w-4 text-slate-500" />
+                          Exporter
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
 
         {/* Header avec filtres */}
         <Card className="shadow-lg border-slate-200">
-          <CardHeader className="bg-white border-b border-slate-200 py-2">
-            <div className="relative flex items-center min-h-[60px]">
-              {/* Titre parfaitement centré */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+          <CardHeader className="bg-white border-b border-slate-200 py-4">
+            <div className="flex flex-col space-y-4 md:space-y-0">
+              {/* Titre centré */}
+              <div className="text-center">
                 <CardTitle className="text-xl font-bold text-slate-800 mb-2">
                   Vue d&apos;ensemble du chiffre d&apos;affaires journalier
                 </CardTitle>
@@ -700,54 +816,58 @@ export default function DashboardPage() {
               </div>
 
               {/* Filtres */}
-              <div className="absolute right-0 flex items-center gap-3">
-                <div className="relative">
-                  <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-                  <Input
-                    placeholder="Rechercher..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-8 h-8 w-40 text-xs border-slate-200 focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 bg-white/80 placeholder:text-slate-400"
-                  />
+              <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
+                <div className="w-full sm:w-auto order-1 sm:order-none">
+                  <div className="relative">
+                    <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                    <Input
+                      placeholder="Rechercher..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-8 h-8 w-full sm:w-40 text-xs border-slate-200 focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 bg-white/80 placeholder:text-slate-400"
+                    />
+                  </div>
                 </div>
 
-                <CategoryFilter />
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                  <CategoryFilter />
 
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-28 h-8 text-xs border-slate-200 focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 bg-white/80">
-                    <SelectValue placeholder="Statut" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Tous statuts</SelectItem>
-                    <SelectItem value="active">Actif</SelectItem>
-                    <SelectItem value="inactive">Inactif</SelectItem>
-                    <SelectItem value="new">Nouveau</SelectItem>
-                    <SelectItem value="warning">Attention</SelectItem>
-                  </SelectContent>
-                </Select>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-28 h-8 text-xs border-slate-200 focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 bg-white/80">
+                      <SelectValue placeholder="Statut" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tous statuts</SelectItem>
+                      <SelectItem value="active">Actif</SelectItem>
+                      <SelectItem value="inactive">Inactif</SelectItem>
+                      <SelectItem value="new">Nouveau</SelectItem>
+                      <SelectItem value="warning">Attention</SelectItem>
+                    </SelectContent>
+                  </Select>
 
-                {(searchTerm ||
-                  categoryFilter !== "all" ||
-                  statusFilter !== "all") && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setSearchTerm("");
-                      setCategoryFilter("all");
-                      setStatusFilter("all");
-                    }}
-                    className="h-8 px-2 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100"
-                  >
-                    ✕
-                  </Button>
-                )}
+                  {(searchTerm ||
+                    categoryFilter !== "all" ||
+                    statusFilter !== "all") && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setSearchTerm("");
+                        setCategoryFilter("all");
+                        setStatusFilter("all");
+                      }}
+                      className="h-8 px-2 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+                    >
+                      ✕
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           </CardHeader>
         </Card>
 
-        {/* Table pure - AUCUN div conteneur */}
+        {/* Table avec scroll horizontal sur mobile */}
         {mergedData.length === 0 ? (
           <EmptyState
             type="mandates"
@@ -755,213 +875,218 @@ export default function DashboardPage() {
             className="min-h-[500px]"
           />
         ) : (
-          <Table className="w-full min-w-[1200px]">
-            <TableHeader>
-              <TableRow className="h-12">
-                <TableHead className="w-[200px] py-3 text-sm font-semibold">
-                  Campus
-                </TableHead>
-                <TableHead className="w-[140px] py-3 text-sm font-semibold">
-                  Dernière saisie
-                </TableHead>
-                <TableHead className="w-[160px] py-3 text-sm font-semibold">
-                  Top
-                </TableHead>
-                {dashboardData.columnLabels.map((col) => (
-                  <TableHead
-                    key={col.key}
-                    className="text-center w-[120px] py-3 text-sm font-semibold"
-                  >
-                    {col.label}
+          <div className="overflow-x-auto -mx-4 px-4">
+            <Table className="w-full min-w-[1000px]">
+              <TableHeader>
+                <TableRow className="h-12">
+                  <TableHead className="w-[200px] py-3 text-sm font-semibold">
+                    Campus
                   </TableHead>
-                ))}
-                <TableHead className="w-[60px] py-3"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {Object.entries(grouped).map(([groupKey, groupData]) => {
-                const shouldShowGroup = (() => {
-                  if (categoryFilter === "all") return true;
-                  if (
-                    categoryFilter === "hebergement" &&
-                    groupKey === "hebergement"
-                  )
-                    return true;
-                  if (
-                    categoryFilter === "restauration" &&
-                    groupKey === "restauration"
-                  )
-                    return true;
-                  return categoryFilter === groupKey;
-                })();
-
-                if (!shouldShowGroup) return null;
-
-                return (
-                  <React.Fragment key={groupKey}>
-                    {groupData.map((campus) => (
-                      <TableRow
-                        key={campus.id}
-                        className="hover:bg-muted/50 h-14"
-                      >
-                        <TableCell className="py-3">
-                          <div className="flex items-center space-x-2">
-                            <div>
-                              <div className="font-medium text-base">
-                                {campus.name}
-                              </div>
-                              <Badge
-                                variant={getTypeVariant()}
-                                className="text-sm h-5 px-2 mt-1"
-                              >
-                                {getTypeIcon(campus.category)}
-                                <span className="ml-1">
-                                  {getTypeLabel(campus.category)}
-                                </span>
-                              </Badge>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-3">
-                          <div className="text-sm">
-                            {campus.lastEntry || "Jamais"}
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-3">
-                          <div className="text-sm font-medium text-blue-600">
-                            {campus.performance}
-                          </div>
-                        </TableCell>
-                        {dashboardData?.columnLabels.map((col) => (
-                          <TableCell key={col.key} className="text-center py-3">
-                            <div className="text-sm font-medium">
-                              {campus.values[col.key] || "0.00"}
-                            </div>
-                          </TableCell>
-                        ))}
-                        <TableCell className="py-3">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  router.push(
-                                    `/dashboard/mandates/${campus.id}`
-                                  )
-                                }
-                              >
-                                <Eye className="mr-2 h-4 w-4" />
-                                Chiffre d&apos;affaires
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  router.push(
-                                    `/dashboard/mandates/${campus.id}/payroll`
-                                  )
-                                }
-                              >
-                                <Calculator className="mr-2 h-4 w-4" />
-                                Masse salariale
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  router.push(
-                                    `/dashboard/employees?mandateId=${campus.id}`
-                                  )
-                                }
-                              >
-                                <Users className="mr-2 h-4 w-4" />
-                                Employés
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  router.push(
-                                    `/dashboard/mandates/${campus.id}/edit`
-                                  )
-                                }
-                              >
-                                <Edit className="mr-2 h-4 w-4" />
-                                Modifier
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-
-                    {groupData.length > 0 && (
-                      <TableRow className="bg-slate-50 hover:bg-slate-50 border-t-2 h-12">
-                        <TableCell
-                          colSpan={2}
-                          className="font-semibold text-slate-700 py-3"
-                        >
-                          <span className="text-base">
-                            {(() => {
-                              if (groupKey === "hebergement")
-                                return "Hébergement";
-                              if (groupKey === "restauration")
-                                return "Restauration";
-                              return getTypeLabel(groupKey);
-                            })()}
-                          </span>
-                        </TableCell>
-                        <TableCell className="font-semibold text-slate-700 py-3">
-                          <div className="text-sm">
-                            {calculateGroupTop(groupData)}
-                          </div>
-                        </TableCell>
-                        {dashboardData?.columnLabels.map((col) => (
-                          <TableCell
-                            key={col.key}
-                            className="text-center font-semibold text-slate-700 py-3"
-                          >
-                            <div className="text-base">
-                              {formatCurrency(
-                                groupTotals[groupKey][col.key] || 0
-                              )}
-                            </div>
-                          </TableCell>
-                        ))}
-                        <TableCell></TableCell>
-                      </TableRow>
-                    )}
-                  </React.Fragment>
-                );
-              })}
-            </TableBody>
-
-            {categoryFilter === "all" && (
-              <TableFooter>
-                <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-150 border-t-4 border-gray-300 h-14">
-                  <TableCell
-                    colSpan={2}
-                    className="font-bold text-gray-900 py-3"
-                  >
-                    <span className="text-base">Total général</span>
-                  </TableCell>
-                  <TableCell className="font-bold text-gray-900 py-3">
-                    <div className="text-sm">{calculateGrandTop()}</div>
-                  </TableCell>
+                  <TableHead className="w-[140px] py-3 text-sm font-semibold">
+                    Dernière saisie
+                  </TableHead>
+                  <TableHead className="w-[160px] py-3 text-sm font-semibold">
+                    Top
+                  </TableHead>
                   {dashboardData.columnLabels.map((col) => (
-                    <TableCell
+                    <TableHead
                       key={col.key}
-                      className="text-center font-bold text-gray-900 py-3"
+                      className="text-center w-[120px] py-3 text-sm font-semibold"
                     >
-                      <div className="text-base">
-                        {formatCurrency(grandTotals[col.key] || 0)}
-                      </div>
-                    </TableCell>
+                      {col.label}
+                    </TableHead>
                   ))}
-                  <TableCell></TableCell>
+                  <TableHead className="w-[60px] py-3"></TableHead>
                 </TableRow>
-              </TableFooter>
-            )}
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {Object.entries(grouped).map(([groupKey, groupData]) => {
+                  const shouldShowGroup = (() => {
+                    if (categoryFilter === "all") return true;
+                    if (
+                      categoryFilter === "hebergement" &&
+                      groupKey === "hebergement"
+                    )
+                      return true;
+                    if (
+                      categoryFilter === "restauration" &&
+                      groupKey === "restauration"
+                    )
+                      return true;
+                    return categoryFilter === groupKey;
+                  })();
+
+                  if (!shouldShowGroup) return null;
+
+                  return (
+                    <React.Fragment key={groupKey}>
+                      {groupData.map((campus) => (
+                        <TableRow
+                          key={campus.id}
+                          className="hover:bg-muted/50 h-14"
+                        >
+                          <TableCell className="py-3">
+                            <div className="flex items-center space-x-2">
+                              <div>
+                                <div className="font-medium text-base">
+                                  {campus.name}
+                                </div>
+                                <Badge
+                                  variant={getTypeVariant()}
+                                  className="text-sm h-5 px-2 mt-1"
+                                >
+                                  {getTypeIcon(campus.category)}
+                                  <span className="ml-1">
+                                    {getTypeLabel(campus.category)}
+                                  </span>
+                                </Badge>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-3">
+                            <div className="text-sm">
+                              {campus.lastEntry || "Jamais"}
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-3">
+                            <div className="text-sm font-medium text-blue-600">
+                              {campus.performance}
+                            </div>
+                          </TableCell>
+                          {dashboardData?.columnLabels.map((col) => (
+                            <TableCell
+                              key={col.key}
+                              className="text-center py-3"
+                            >
+                              <div className="text-sm font-medium">
+                                {campus.values[col.key] || "0.00"}
+                              </div>
+                            </TableCell>
+                          ))}
+                          <TableCell className="py-3">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    router.push(
+                                      `/dashboard/mandates/${campus.id}`
+                                    )
+                                  }
+                                >
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  Chiffre d&apos;affaires
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    router.push(
+                                      `/dashboard/mandates/${campus.id}/payroll`
+                                    )
+                                  }
+                                >
+                                  <Calculator className="mr-2 h-4 w-4" />
+                                  Masse salariale
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    router.push(
+                                      `/dashboard/employees?mandateId=${campus.id}`
+                                    )
+                                  }
+                                >
+                                  <Users className="mr-2 h-4 w-4" />
+                                  Employés
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    router.push(
+                                      `/dashboard/mandates/${campus.id}/edit`
+                                    )
+                                  }
+                                >
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  Modifier
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+
+                      {groupData.length > 0 && (
+                        <TableRow className="bg-slate-50 hover:bg-slate-50 border-t-2 h-12">
+                          <TableCell
+                            colSpan={2}
+                            className="font-semibold text-slate-700 py-3"
+                          >
+                            <span className="text-base">
+                              {(() => {
+                                if (groupKey === "hebergement")
+                                  return "Hébergement";
+                                if (groupKey === "restauration")
+                                  return "Restauration";
+                                return getTypeLabel(groupKey);
+                              })()}
+                            </span>
+                          </TableCell>
+                          <TableCell className="font-semibold text-slate-700 py-3">
+                            <div className="text-sm">
+                              {calculateGroupTop(groupData)}
+                            </div>
+                          </TableCell>
+                          {dashboardData?.columnLabels.map((col) => (
+                            <TableCell
+                              key={col.key}
+                              className="text-center font-semibold text-slate-700 py-3"
+                            >
+                              <div className="text-base">
+                                {formatCurrency(
+                                  groupTotals[groupKey][col.key] || 0
+                                )}
+                              </div>
+                            </TableCell>
+                          ))}
+                          <TableCell></TableCell>
+                        </TableRow>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </TableBody>
+
+              {categoryFilter === "all" && (
+                <TableFooter>
+                  <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-150 border-t-4 border-gray-300 h-14">
+                    <TableCell
+                      colSpan={2}
+                      className="font-bold text-gray-900 py-3"
+                    >
+                      <span className="text-base">Total général</span>
+                    </TableCell>
+                    <TableCell className="font-bold text-gray-900 py-3">
+                      <div className="text-sm">{calculateGrandTop()}</div>
+                    </TableCell>
+                    {dashboardData.columnLabels.map((col) => (
+                      <TableCell
+                        key={col.key}
+                        className="text-center font-bold text-gray-900 py-3"
+                      >
+                        <div className="text-base">
+                          {formatCurrency(grandTotals[col.key] || 0)}
+                        </div>
+                      </TableCell>
+                    ))}
+                    <TableCell></TableCell>
+                  </TableRow>
+                </TableFooter>
+              )}
+            </Table>
+          </div>
         )}
       </div>
     </TooltipProvider>
