@@ -5,11 +5,14 @@ import { prisma } from "@/lib/prisma";
 export async function POST(req: NextRequest) {
   try {
     const user = await getUser();
+    console.log("User:", user?.id, user?.organizationId);
+
     if (!user?.id) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
 
     const { mandateId, dateKey, value } = await req.json();
+    console.log("Paramètres reçus:", { mandateId, dateKey, value });
 
     if (!mandateId || !dateKey || value === undefined) {
       return NextResponse.json(
@@ -26,6 +29,8 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    console.log("Mandat trouvé:", mandate?.id, mandate?.name);
+
     if (!mandate) {
       return NextResponse.json(
         { error: "Mandat non trouvé ou accès non autorisé" },
@@ -34,17 +39,20 @@ export async function POST(req: NextRequest) {
     }
 
     // Parse la dateKey pour extraire la date
-    // Format attendu: "day_2024_12_16" ou similaire
-    const dateMatch = dateKey.match(/day_(\d{4})_(\d{2})_(\d{2})/);
+    // Format attendu: "YYYY-MM-DD" (ex: "2024-12-16")
+    const dateMatch = dateKey.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    console.log("DateMatch:", dateMatch);
+
     if (!dateMatch) {
       return NextResponse.json(
-        { error: "Format de date invalide" },
+        { error: `Format de date invalide: ${dateKey}` },
         { status: 400 }
       );
     }
 
     const [, year, month, day] = dateMatch;
     const entryDate = new Date(`${year}-${month}-${day}`);
+    console.log("Date calculée:", entryDate);
 
     // Vérifier si une entrée existe déjà pour cette date et ce mandat
     const existingEntry = await prisma.dayValue.findUnique({

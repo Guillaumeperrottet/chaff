@@ -422,6 +422,8 @@ export default function DashboardPage() {
         return;
       }
 
+      console.log("Sauvegarde:", { mandateId, dateKey, numericValue });
+
       // Appel API pour sauvegarder
       const response = await fetch("/api/dashboard/update-value", {
         method: "POST",
@@ -436,7 +438,9 @@ export default function DashboardPage() {
       });
 
       if (!response.ok) {
-        throw new Error("Erreur lors de la sauvegarde");
+        const errorData = await response.json();
+        console.error("Erreur API:", errorData);
+        throw new Error(errorData.error || "Erreur lors de la sauvegarde");
       }
 
       // Recharger les données pour refléter les changements
@@ -1138,13 +1142,26 @@ export default function DashboardPage() {
                                   formatDisplay={(value) => {
                                     const num = parseFloat(value);
                                     if (isNaN(num)) return "0";
-                                    // Préserver le format original : si c'est un entier, ne pas afficher de décimales
-                                    return num % 1 === 0
-                                      ? num.toString()
-                                      : num.toLocaleString("fr-CH", {
-                                          minimumFractionDigits: 0,
-                                          maximumFractionDigits: 2,
-                                        });
+
+                                    // Préserver exactement le format original des décimales
+                                    // Si c'est un entier (pas de décimales dans la valeur originale), l'afficher sans décimales
+                                    if (
+                                      num % 1 === 0 &&
+                                      !value.includes(".") &&
+                                      !value.includes(",")
+                                    ) {
+                                      return num.toString();
+                                    }
+
+                                    // Sinon, préserver les décimales exactement comme dans la valeur originale
+                                    // Convertir la virgule en point si nécessaire puis reformater
+                                    const normalizedValue = value.replace(
+                                      ",",
+                                      "."
+                                    );
+                                    return parseFloat(
+                                      normalizedValue
+                                    ).toString();
                                   }}
                                 />
                               </TableCell>
