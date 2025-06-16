@@ -11,7 +11,6 @@ import {
   CardTitle,
 } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
-import { Badge } from "@/app/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -40,8 +39,6 @@ import {
   Calculator,
   BarChart3,
   Users,
-  Building2,
-  MapPin,
   ChevronDown,
 } from "lucide-react";
 import EmptyState from "@/app/components/EmptyState";
@@ -291,32 +288,6 @@ export default function DashboardPage() {
     // Types personnalisés
     const customType = establishmentTypes.find((type) => type.id === groupId);
     return customType?.label || groupId; // Fallback vers l'ID si pas trouvé
-  };
-
-  // ✅ FONCTION POUR OBTENIR L'ICÔNE D'UN TYPE
-  const getTypeIcon = (groupId: string) => {
-    if (groupId === "HEBERGEMENT" || groupId === "Hébergement") {
-      return <Building2 className="mr-1 h-3 w-3" />;
-    }
-    if (groupId === "RESTAURATION" || groupId === "Restauration") {
-      return <MapPin className="mr-1 h-3 w-3" />;
-    }
-
-    // Pour les types personnalisés, essayer de récupérer l'icône
-    const customType = establishmentTypes.find((type) => type.id === groupId);
-    if (customType) {
-      // Vous pouvez implémenter une logique pour mapper les icônes ici
-      // Pour l'instant, on utilise l'icône par défaut
-      return <Building2 className="mr-1 h-3 w-3" />;
-    }
-
-    return <Building2 className="mr-1 h-3 w-3" />; // Icône par défaut
-  };
-
-  // ✅ FONCTION POUR OBTENIR LA COULEUR D'UN TYPE
-  const getTypeVariant = (): "default" | "secondary" | "outline" => {
-    // Tous les types utilisent maintenant la même couleur que la Restauration
-    return "secondary";
   };
 
   // ✅ MODIFIER LE useEffect POUR CHARGER AUSSI LES TYPES
@@ -694,7 +665,9 @@ export default function DashboardPage() {
     if (!dashboardData) return {};
     const totals: Record<string, number> = {};
 
-    dashboardData.columnLabels.forEach((col) => {
+    // Utiliser seulement les colonnes visibles
+    const visibleColumns = getVisibleColumns();
+    visibleColumns.forEach((col) => {
       const dailyCATotal = groupData.reduce((sum, item) => {
         const valueStr = item.values[col.key] || "0,00";
         // Nettoyer la valeur : supprimer apostrophes et espaces, puis remplacer virgules par points
@@ -714,10 +687,11 @@ export default function DashboardPage() {
   ): string => {
     if (groupData.length === 0 || !dashboardData) return "Aucune donnée";
 
-    // Calculer le sous-total du groupe pour chaque jour
+    // Utiliser seulement les colonnes visibles pour calculer le top
+    const visibleColumns = getVisibleColumns();
     const dailyGroupTotals: Record<string, number> = {};
 
-    dashboardData.columnLabels.forEach((col) => {
+    visibleColumns.forEach((col) => {
       const dailyTotal = groupData.reduce((sum, campus) => {
         const valueStr = campus.values[col.key] || "0,00";
         // Nettoyer la valeur : supprimer apostrophes et espaces, puis remplacer virgules par points
@@ -737,8 +711,7 @@ export default function DashboardPage() {
         maxValue = total;
         // Trouver le label correspondant à cette clé
         const dateLabel =
-          dashboardData.columnLabels.find((col) => col.key === dateKey)
-            ?.label || dateKey;
+          visibleColumns.find((col) => col.key === dateKey)?.label || dateKey;
         bestDate = dateLabel;
       }
     });
@@ -754,7 +727,9 @@ export default function DashboardPage() {
     const mergedData = getMergedData();
     const totals: Record<string, number> = {};
 
-    dashboardData.columnLabels.forEach((col) => {
+    // Utiliser seulement les colonnes visibles
+    const visibleColumns = getVisibleColumns();
+    visibleColumns.forEach((col) => {
       totals[col.key] = mergedData.reduce((sum, item) => {
         const valueStr = item.values[col.key] || "0,00";
         // Nettoyer la valeur : supprimer apostrophes et espaces, puis remplacer virgules par points
@@ -773,10 +748,11 @@ export default function DashboardPage() {
     const mergedData = getMergedData();
     if (mergedData.length === 0) return "Aucune donnée";
 
-    // Calculer le total général pour chaque jour
+    // Utiliser seulement les colonnes visibles pour calculer le grand total
+    const visibleColumns = getVisibleColumns();
     const dailyGrandTotals: Record<string, number> = {};
 
-    dashboardData.columnLabels.forEach((col) => {
+    visibleColumns.forEach((col) => {
       const dailyTotal = mergedData.reduce((sum, campus) => {
         const valueStr = campus.values[col.key] || "0,00";
         // Nettoyer la valeur : supprimer apostrophes et espaces, puis remplacer virgules par points
@@ -796,8 +772,7 @@ export default function DashboardPage() {
         maxValue = total;
         // Trouver le label correspondant à cette clé
         const dateLabel =
-          dashboardData.columnLabels.find((col) => col.key === dateKey)
-            ?.label || dateKey;
+          visibleColumns.find((col) => col.key === dateKey)?.label || dateKey;
         bestDate = dateLabel;
       }
     });
@@ -805,6 +780,26 @@ export default function DashboardPage() {
     return maxValue > 0
       ? `${formatCurrency(maxValue)} / ${bestDate}`
       : "Aucune donnée";
+  };
+
+  // ✅ FONCTION POUR FILTRER LES COLONNES AVEC DONNÉES
+  const getVisibleColumns = () => {
+    if (!dashboardData) return [];
+
+    const mergedData = getMergedData();
+
+    return dashboardData.columnLabels.filter((col) => {
+      // Calculer le total pour cette colonne
+      const columnTotal = mergedData.reduce((sum, item) => {
+        const valueStr = item.values[col.key] || "0,00";
+        const cleanedValue = valueStr.replace(/['\s]/g, "").replace(",", ".");
+        const value = parseFloat(cleanedValue);
+        return sum + (isNaN(value) ? 0 : value);
+      }, 0);
+
+      // Afficher la colonne seulement si elle a des données (total > 0)
+      return columnTotal > 0;
+    });
   };
 
   // ✅ COMPOSANT POUR LES FILTRES DE CATÉGORIE
@@ -868,6 +863,7 @@ export default function DashboardPage() {
   const grouped = groupedData();
   const grandTotals = calculateGrandTotal();
   const mergedData = getMergedData();
+  const visibleColumns = getVisibleColumns();
 
   // ✅ NOUVEAU: Calculer les totaux pour chaque groupe dynamiquement
   const groupTotals: Record<string, Record<string, number>> = {};
@@ -1177,7 +1173,7 @@ export default function DashboardPage() {
                     <TableHead className="w-[160px] py-3 text-sm font-semibold">
                       Top
                     </TableHead>
-                    {dashboardData.columnLabels.map((col) => (
+                    {visibleColumns.map((col) => (
                       <TableHead
                         key={col.key}
                         className="text-center w-[120px] py-3 text-sm font-semibold"
@@ -1220,15 +1216,6 @@ export default function DashboardPage() {
                                   <div className="font-medium text-base">
                                     {campus.name}
                                   </div>
-                                  <Badge
-                                    variant={getTypeVariant()}
-                                    className="text-sm h-5 px-2 mt-1"
-                                  >
-                                    {getTypeIcon(campus.category)}
-                                    <span className="ml-1">
-                                      {getTypeLabel(campus.category)}
-                                    </span>
-                                  </Badge>
                                 </div>
                               </div>
                             </TableCell>
@@ -1242,7 +1229,7 @@ export default function DashboardPage() {
                                 {campus.performance}
                               </div>
                             </TableCell>
-                            {dashboardData?.columnLabels.map((col) => (
+                            {visibleColumns.map((col) => (
                               <TableCell
                                 key={col.key}
                                 className="text-center py-3"
@@ -1361,7 +1348,7 @@ export default function DashboardPage() {
                                 {calculateGroupTop(groupData)}
                               </div>
                             </TableCell>
-                            {dashboardData?.columnLabels.map((col) => (
+                            {visibleColumns.map((col) => (
                               <TableCell
                                 key={col.key}
                                 className="text-center font-semibold text-slate-700 py-3"
@@ -1393,7 +1380,7 @@ export default function DashboardPage() {
                       <TableCell className="font-bold text-gray-900 py-3">
                         <div className="text-sm">{calculateGrandTop()}</div>
                       </TableCell>
-                      {dashboardData.columnLabels.map((col) => (
+                      {visibleColumns.map((col) => (
                         <TableCell
                           key={col.key}
                           className="text-center font-bold text-gray-900 py-3"
