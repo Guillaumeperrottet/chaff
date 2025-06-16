@@ -757,6 +757,39 @@ export default function MandateCAPage() {
                 ))}
               </TableRow>
 
+              {/* Ligne total jour (moyenne journalière) */}
+              <TableRow className="bg-gray-100 font-medium">
+                <TableCell className="bg-gray-100 border-r text-center py-2 p-2">
+                  <span className="text-sm font-bold">Total jour</span>
+                </TableCell>
+                {caData.periods.map((period, index) => (
+                  <TableCell
+                    key={index}
+                    className="text-center border-r px-1 py-2 whitespace-nowrap"
+                  >
+                    <div className="flex justify-between items-center space-x-1 text-sm">
+                      {/* Année précédente - moyenne journalière */}
+                      <div className="flex-1 text-left text-muted-foreground">
+                        {period.yearOverYear.previousYearRevenue > 0
+                          ? formatCurrency(
+                              period.yearOverYear.previousYearRevenue /
+                                (period.previousYearDailyValues?.filter(
+                                  (dv) => dv.value > 0
+                                ).length || 1)
+                            )
+                          : "-"}
+                      </div>
+                      {/* Année courante - moyenne journalière */}
+                      <div className="flex-1 text-right font-bold">
+                        {period.daysWithData > 0
+                          ? formatCurrency(period.averageDaily)
+                          : "-"}
+                      </div>
+                    </div>
+                  </TableCell>
+                ))}
+              </TableRow>
+
               {/* Ligne évolution CA */}
               <TableRow className="bg-gray-100 font-medium">
                 <TableCell className="bg-gray-100 border-r text-center py-2 p-2">

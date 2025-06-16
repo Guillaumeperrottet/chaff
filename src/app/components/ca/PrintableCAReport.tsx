@@ -318,6 +318,29 @@ export default function PrintableCAReport({
           </tr>
 
           <tr style={{ backgroundColor: "#f5f5f5", fontWeight: "bold" }}>
+            <td>TOTAL JOUR</td>
+            {caData.periods.map((period, index) => (
+              <td key={index}>
+                <div>
+                  {period.daysWithData > 0
+                    ? formatCurrency(period.averageDaily)
+                    : "-"}
+                </div>
+                <div>
+                  {period.yearOverYear.previousYearRevenue > 0
+                    ? formatCurrency(
+                        period.yearOverYear.previousYearRevenue /
+                          (period.previousYearDailyValues?.filter(
+                            (dv) => dv.value > 0
+                          ).length || 1)
+                      )
+                    : "-"}
+                </div>
+              </td>
+            ))}
+          </tr>
+
+          <tr style={{ backgroundColor: "#f5f5f5", fontWeight: "bold" }}>
             <td>MASSE SAL.</td>
             {caData.periods.map((_, index) => (
               <td key={index}>
