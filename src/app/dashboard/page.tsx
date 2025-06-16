@@ -172,7 +172,11 @@ const EditableCell: React.FC<EditableCellProps> = ({
   };
 
   const handleSave = async () => {
-    if (editValue === value) {
+    // Comparer les valeurs nettoyées au lieu des valeurs brutes
+    const currentRawValue = getRawValue(value);
+    const editedRawValue = getRawValue(editValue);
+
+    if (editedRawValue === currentRawValue) {
       setIsEditing(false);
       return;
     }
@@ -183,7 +187,7 @@ const EditableCell: React.FC<EditableCellProps> = ({
       setIsEditing(false);
     } catch (error) {
       console.error("Erreur lors de la sauvegarde:", error);
-      setEditValue(value); // Reset à la valeur originale
+      setEditValue(currentRawValue); // Reset à la valeur originale nettoyée
     } finally {
       setIsSaving(false);
     }
@@ -193,7 +197,8 @@ const EditableCell: React.FC<EditableCellProps> = ({
     if (e.key === "Enter") {
       handleSave();
     } else if (e.key === "Escape") {
-      setEditValue(value);
+      const currentRawValue = getRawValue(value);
+      setEditValue(currentRawValue);
       setIsEditing(false);
     }
   };
@@ -230,7 +235,8 @@ const EditableCell: React.FC<EditableCellProps> = ({
     <div
       className="text-sm font-medium cursor-pointer hover:bg-blue-50 hover:text-blue-700 rounded px-1 py-1 transition-colors group"
       onClick={() => {
-        const rawValue = getRawValue(value); // Utiliser la valeur brute pour l'édition
+        // Toujours utiliser la valeur originale (brute) pour l'édition
+        const rawValue = getRawValue(value);
         setEditValue(rawValue);
         setIsEditing(true);
       }}
@@ -425,9 +431,23 @@ export default function DashboardPage() {
     newValue: string
   ) => {
     try {
+      console.log("🔄 handleSaveValue appelée avec:", {
+        mandateId,
+        dateKey,
+        newValue,
+        type: typeof newValue,
+      });
+
       // Nettoyer et valider la valeur - supprimer apostrophes et remplacer virgules par points
       const cleanedValue = newValue.replace(/['\s]/g, "").replace(",", ".");
       const numericValue = parseFloat(cleanedValue);
+
+      console.log("🧹 Après nettoyage:", {
+        originalValue: newValue,
+        cleanedValue,
+        numericValue,
+        isNaN: isNaN(numericValue),
+      });
 
       if (isNaN(numericValue) || numericValue < 0) {
         toast.error("Veuillez entrer une valeur numérique valide");
