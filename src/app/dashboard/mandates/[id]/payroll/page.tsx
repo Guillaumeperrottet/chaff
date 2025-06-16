@@ -122,7 +122,7 @@ export default function MandatePayrollPage() {
   const [formData, setFormData] = useState({
     month: "",
     grossAmount: "",
-    socialCharges: "",
+    socialChargesRate: "",
     employeeCount: "",
     notes: "",
   });
@@ -169,9 +169,11 @@ export default function MandatePayrollPage() {
         year: parseInt(selectedYear),
         month: parseInt(formData.month),
         grossAmount: parseFloat(formData.grossAmount),
-        socialCharges: formData.socialCharges
-          ? parseFloat(formData.socialCharges)
-          : undefined,
+        socialCharges: formData.socialChargesRate
+          ? (parseFloat(formData.grossAmount) *
+              parseFloat(formData.socialChargesRate)) /
+            100
+          : (parseFloat(formData.grossAmount) * 22) / 100,
         employeeCount: formData.employeeCount
           ? parseInt(formData.employeeCount)
           : undefined,
@@ -214,10 +216,20 @@ export default function MandatePayrollPage() {
     if (!summary.manualEntry) return;
 
     setEditingEntry(summary.manualEntry);
+    // Calculer le taux de charges sociales à partir du montant
+    const socialChargesRate =
+      summary.manualEntry.socialCharges && summary.manualEntry.grossAmount
+        ? (
+            (summary.manualEntry.socialCharges /
+              summary.manualEntry.grossAmount) *
+            100
+          ).toString()
+        : "";
+
     setFormData({
       month: summary.month.toString(),
       grossAmount: summary.manualEntry.grossAmount.toString(),
-      socialCharges: summary.manualEntry.socialCharges.toString(),
+      socialChargesRate: socialChargesRate,
       employeeCount: summary.manualEntry.employeeCount?.toString() || "",
       notes: summary.manualEntry.notes || "",
     });
@@ -286,7 +298,7 @@ export default function MandatePayrollPage() {
     setFormData({
       month: "",
       grossAmount: "",
-      socialCharges: "",
+      socialChargesRate: "",
       employeeCount: "",
       notes: "",
     });
@@ -770,23 +782,26 @@ export default function MandatePayrollPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="socialCharges">Charges sociales (CHF)</Label>
+              <Label htmlFor="socialChargesRate">
+                Taux de charges sociales (%)
+              </Label>
               <Input
-                id="socialCharges"
+                id="socialChargesRate"
                 type="number"
-                step="0.01"
+                step="0.1"
                 min="0"
-                value={formData.socialCharges}
+                max="100"
+                value={formData.socialChargesRate}
                 onChange={(e) =>
                   setFormData((prev) => ({
                     ...prev,
-                    socialCharges: e.target.value,
+                    socialChargesRate: e.target.value,
                   }))
                 }
-                placeholder="Calculé automatiquement à 22%"
+                placeholder="22"
               />
               <p className="text-xs text-muted-foreground">
-                Laissez vide pour calcul automatique (22% du brut)
+                Laissez vide pour utiliser 22% par défaut
               </p>
             </div>
 
@@ -818,12 +833,14 @@ export default function MandatePayrollPage() {
                   </div>
                   <div>
                     <span className="text-muted-foreground">
-                      Charges sociales :
+                      Charges sociales ({formData.socialChargesRate || "22"}%) :
                     </span>
                     <span className="float-right font-medium">
                       {formatCurrency(
-                        parseFloat(formData.socialCharges) ||
-                          (parseFloat(formData.grossAmount) || 0) * 0.22
+                        formData.socialChargesRate
+                          ? (parseFloat(formData.grossAmount) || 0) *
+                              (parseFloat(formData.socialChargesRate) / 100)
+                          : (parseFloat(formData.grossAmount) || 0) * 0.22
                       )}
                     </span>
                   </div>
@@ -832,8 +849,10 @@ export default function MandatePayrollPage() {
                     <span className="float-right font-bold text-primary">
                       {formatCurrency(
                         (parseFloat(formData.grossAmount) || 0) +
-                          (parseFloat(formData.socialCharges) ||
-                            (parseFloat(formData.grossAmount) || 0) * 0.22)
+                          (formData.socialChargesRate
+                            ? (parseFloat(formData.grossAmount) || 0) *
+                              (parseFloat(formData.socialChargesRate) / 100)
+                            : (parseFloat(formData.grossAmount) || 0) * 0.22)
                       )}
                     </span>
                   </div>

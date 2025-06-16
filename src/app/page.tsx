@@ -1,4 +1,3 @@
-// src/app/page.tsx - Page d'accueil Chaff.ch avec design bleu
 "use client";
 
 import { useEffect } from "react";
