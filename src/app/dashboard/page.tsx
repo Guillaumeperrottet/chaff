@@ -165,6 +165,12 @@ const EditableCell: React.FC<EditableCellProps> = ({
   const [editValue, setEditValue] = useState(value);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Fonction pour convertir la valeur formatée en valeur brute pour l'édition
+  const getRawValue = (formattedValue: string): string => {
+    // Enlever apostrophes et remplacer virgules par points
+    return formattedValue.replace(/['\s]/g, "").replace(",", ".");
+  };
+
   const handleSave = async () => {
     if (editValue === value) {
       setIsEditing(false);
@@ -223,7 +229,10 @@ const EditableCell: React.FC<EditableCellProps> = ({
   return (
     <div
       className="text-sm font-medium cursor-pointer hover:bg-blue-50 hover:text-blue-700 rounded px-1 py-1 transition-colors group"
-      onClick={() => setIsEditing(true)}
+      onClick={() => {
+        setEditValue(getRawValue(value)); // Utiliser la valeur brute pour l'édition
+        setIsEditing(true);
+      }}
       title="Cliquer pour modifier"
     >
       {displayValue}
@@ -415,14 +424,22 @@ export default function DashboardPage() {
     newValue: string
   ) => {
     try {
-      // Validation de la valeur
-      const numericValue = parseFloat(newValue.replace(",", "."));
+      // Nettoyer et valider la valeur - supprimer apostrophes et remplacer virgules par points
+      const cleanedValue = newValue.replace(/['\s]/g, "").replace(",", ".");
+      const numericValue = parseFloat(cleanedValue);
+
       if (isNaN(numericValue) || numericValue < 0) {
         toast.error("Veuillez entrer une valeur numérique valide");
         return;
       }
 
-      console.log("Sauvegarde:", { mandateId, dateKey, numericValue });
+      console.log("Sauvegarde:", {
+        mandateId,
+        dateKey,
+        originalValue: newValue,
+        cleanedValue,
+        numericValue,
+      });
 
       // Appel API pour sauvegarder
       const response = await fetch("/api/dashboard/update-value", {
@@ -1140,12 +1157,11 @@ export default function DashboardPage() {
                                     );
                                   }}
                                   formatDisplay={(value) => {
-                                    // D'abord normaliser la valeur en remplaçant les virgules par des points
-                                    const normalizedValue = value.replace(
-                                      ",",
-                                      "."
-                                    );
-                                    const num = parseFloat(normalizedValue);
+                                    // D'abord nettoyer complètement la valeur (supprimer apostrophes et espaces, puis remplacer virgules par points)
+                                    const cleanedValue = value
+                                      .replace(/['\s]/g, "")
+                                      .replace(",", ".");
+                                    const num = parseFloat(cleanedValue);
 
                                     if (isNaN(num)) return "0";
 
