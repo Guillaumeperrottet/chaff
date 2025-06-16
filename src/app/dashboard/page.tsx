@@ -1140,28 +1140,28 @@ export default function DashboardPage() {
                                     );
                                   }}
                                   formatDisplay={(value) => {
-                                    const num = parseFloat(value);
-                                    if (isNaN(num)) return "0";
-
-                                    // Préserver exactement le format original des décimales
-                                    // Si c'est un entier (pas de décimales dans la valeur originale), l'afficher sans décimales
-                                    if (
-                                      num % 1 === 0 &&
-                                      !value.includes(".") &&
-                                      !value.includes(",")
-                                    ) {
-                                      return num.toString();
-                                    }
-
-                                    // Sinon, préserver les décimales exactement comme dans la valeur originale
-                                    // Convertir la virgule en point si nécessaire puis reformater
+                                    // D'abord normaliser la valeur en remplaçant les virgules par des points
                                     const normalizedValue = value.replace(
                                       ",",
                                       "."
                                     );
-                                    return parseFloat(
-                                      normalizedValue
-                                    ).toString();
+                                    const num = parseFloat(normalizedValue);
+
+                                    if (isNaN(num)) return "0";
+
+                                    // Formater avec l'apostrophe suisse pour les milliers et la virgule pour les décimales
+                                    if (num >= 1000) {
+                                      // Pour les milliers, utiliser l'apostrophe suisse
+                                      const parts = num.toFixed(2).split(".");
+                                      const integerPart = parts[0].replace(
+                                        /\B(?=(\d{3})+(?!\d))/g,
+                                        "'"
+                                      );
+                                      return `${integerPart},${parts[1]}`;
+                                    } else {
+                                      // Pour les montants < 1000, format normal avec virgule
+                                      return num.toFixed(2).replace(".", ",");
+                                    }
                                   }}
                                 />
                               </TableCell>
