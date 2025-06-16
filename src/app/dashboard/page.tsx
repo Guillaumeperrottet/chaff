@@ -149,6 +149,89 @@ interface PayrollRatiosResponse {
   };
 }
 
+// ✅ NOUVEAU: Composant pour l'édition inline des cellules
+interface EditableCellProps {
+  value: string;
+  onSave: (newValue: string) => Promise<void>;
+  formatDisplay?: (value: string) => string;
+}
+
+const EditableCell: React.FC<EditableCellProps> = ({
+  value,
+  onSave,
+  formatDisplay,
+}) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState(value);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (editValue === value) {
+      setIsEditing(false);
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await onSave(editValue);
+      setIsEditing(false);
+    } catch (error) {
+      console.error("Erreur lors de la sauvegarde:", error);
+      setEditValue(value); // Reset à la valeur originale
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleSave();
+    } else if (e.key === "Escape") {
+      setEditValue(value);
+      setIsEditing(false);
+    }
+  };
+
+  const handleBlur = () => {
+    handleSave();
+  };
+
+  if (isEditing) {
+    return (
+      <div className="relative">
+        <Input
+          value={editValue}
+          onChange={(e) => setEditValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onBlur={handleBlur}
+          className="h-8 text-sm text-center border-blue-500 focus:ring-2 focus:ring-blue-500"
+          placeholder="0.00"
+          autoFocus
+          disabled={isSaving}
+        />
+        {isSaving && (
+          <div className="absolute inset-0 flex items-center justify-center bg-white/80">
+            <Loader2 className="h-3 w-3 animate-spin" />
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  const displayValue = formatDisplay ? formatDisplay(value) : value;
+
+  return (
+    <div
+      className="text-sm font-medium cursor-pointer hover:bg-blue-50 hover:text-blue-700 rounded px-1 py-1 transition-colors group"
+      onClick={() => setIsEditing(true)}
+      title="Cliquer pour modifier"
+    >
+      {displayValue}
+      <span className="ml-1 opacity-0 group-hover:opacity-50 text-xs">✏️</span>
+    </div>
+  );
+};
+
 export default function DashboardPage() {
   const router = useRouter();
   const [dashboardData, setDashboardData] = useState<DashboardResponse | null>(
@@ -323,6 +406,47 @@ export default function DashboardPage() {
         payroll: payrollData,
       };
     });
+  };
+
+  // ✅ NOUVEAU: Fonction pour sauvegarder une valeur modifiée
+  const handleSaveValue = async (
+    mandateId: string,
+    dateKey: string,
+    newValue: string
+  ) => {
+    try {
+      // Validation de la valeur
+      const numericValue = parseFloat(newValue.replace(",", "."));
+      if (isNaN(numericValue) || numericValue < 0) {
+        toast.error("Veuillez entrer une valeur numérique valide");
+        return;
+      }
+
+      // Appel API pour sauvegarder
+      const response = await fetch("/api/dashboard/update-value", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          mandateId,
+          dateKey,
+          value: numericValue,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Erreur lors de la sauvegarde");
+      }
+
+      // Recharger les données pour refléter les changements
+      await fetchDashboardData();
+      toast.success("Valeur mise à jour avec succès");
+    } catch (error) {
+      console.error("Erreur lors de la sauvegarde:", error);
+      toast.error("Erreur lors de la sauvegarde");
+      throw error; // Re-throw pour que le composant puisse gérer l'erreur
+    }
   };
 
   // Fonctions utilitaires inchangées
@@ -1002,9 +1126,19 @@ export default function DashboardPage() {
                                 key={col.key}
                                 className="text-center py-3"
                               >
-                                <div className="text-sm font-medium">
-                                  {campus.values[col.key] || "0.00"}
-                                </div>
+                                <EditableCell
+                                  value={campus.values[col.key] || "0.00"}
+                                  onSave={async (newValue) => {
+                                    await handleSaveValue(
+                                      campus.id,
+                                      col.key,
+                                      newValue
+                                    );
+                                  }}
+                                  formatDisplay={(value) =>
+                                    parseFloat(value).toFixed(2)
+                                  }
+                                />
                               </TableCell>
                             ))}
                             <TableCell className="py-3">
