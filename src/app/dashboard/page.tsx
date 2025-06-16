@@ -156,6 +156,13 @@ interface EditableCellProps {
   formatDisplay?: (value: string) => string;
 }
 
+// ✅ AMÉLIORATION: Fonction pour valider en temps réel pendant la saisie
+const validateAndFormatInput = (input: string): string => {
+  // Autoriser uniquement les chiffres, points, virgules, apostrophes et espaces
+  return input.replace(/[^\d.,'\s]/g, "");
+};
+
+// ✅ VERSION COMPLÈTE DU COMPOSANT EditableCell AMÉLIORÉ
 const EditableCell: React.FC<EditableCellProps> = ({
   value,
   onSave,
@@ -165,29 +172,24 @@ const EditableCell: React.FC<EditableCellProps> = ({
   const [editValue, setEditValue] = useState(value);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Fonction pour convertir la valeur formatée en valeur brute pour l'édition
+  // Fonction pour obtenir la valeur brute pour l'édition
   const getRawValue = (formattedValue: string): string => {
-    // Enlever apostrophes et espaces, puis remplacer virgules par points
+    // Pour l'édition, on garde la valeur telle qu'elle est affichée
+    // L'utilisateur peut saisir dans n'importe quel format
     return formattedValue.replace(/['\s]/g, "").replace(",", ".");
   };
 
   const handleSave = async () => {
-    // Comparer les valeurs nettoyées au lieu des valeurs brutes
-    const currentRawValue = getRawValue(value);
-    const editedRawValue = getRawValue(editValue);
-
-    if (editedRawValue === currentRawValue) {
-      setIsEditing(false);
-      return;
-    }
-
+    // Pas besoin de comparer, on sauvegarde toujours
+    // La logique de nettoyage se fait dans handleSaveValue
     setIsSaving(true);
     try {
       await onSave(editValue);
       setIsEditing(false);
     } catch (error) {
       console.error("Erreur lors de la sauvegarde:", error);
-      setEditValue(currentRawValue); // Reset à la valeur originale nettoyée
+      // En cas d'erreur, on remet la valeur originale
+      setEditValue(getRawValue(value));
     } finally {
       setIsSaving(false);
     }
@@ -197,14 +199,9 @@ const EditableCell: React.FC<EditableCellProps> = ({
     if (e.key === "Enter") {
       handleSave();
     } else if (e.key === "Escape") {
-      const currentRawValue = getRawValue(value);
-      setEditValue(currentRawValue);
+      setEditValue(getRawValue(value));
       setIsEditing(false);
     }
-  };
-
-  const handleBlur = () => {
-    handleSave();
   };
 
   if (isEditing) {
@@ -212,9 +209,12 @@ const EditableCell: React.FC<EditableCellProps> = ({
       <div className="relative">
         <Input
           value={editValue}
-          onChange={(e) => setEditValue(e.target.value)}
+          onChange={(e) => {
+            const validatedValue = validateAndFormatInput(e.target.value);
+            setEditValue(validatedValue);
+          }}
           onKeyDown={handleKeyDown}
-          onBlur={handleBlur}
+          onBlur={handleSave}
           className="h-8 text-sm text-center border-blue-500 focus:ring-2 focus:ring-blue-500"
           placeholder="0.00"
           autoFocus
@@ -235,7 +235,7 @@ const EditableCell: React.FC<EditableCellProps> = ({
     <div
       className="text-sm font-medium cursor-pointer hover:bg-blue-50 hover:text-blue-700 rounded px-1 py-1 transition-colors group"
       onClick={() => {
-        // Toujours utiliser la valeur originale (brute) pour l'édition
+        // Pour l'édition, on utilise la valeur affichée mais nettoyée
         const rawValue = getRawValue(value);
         setEditValue(rawValue);
         setIsEditing(true);
@@ -424,7 +424,92 @@ export default function DashboardPage() {
     });
   };
 
-  // ✅ NOUVEAU: Fonction pour sauvegarder une valeur modifiée
+  // ✅ FONCTION DE NETTOYAGE AMÉLIORÉE
+  const cleanNumericValue = (value: string): number => {
+    console.log("🔍 Valeur d'entrée:", value);
+
+    // Étape 1: Supprimer tous les espaces
+    let cleaned = value.replace(/\s/g, "");
+    console.log("Après suppression espaces:", cleaned);
+
+    // Étape 2: Gérer les différents formats de séparateurs
+    // Format suisse: 3'110,79 ou 3'110.79
+    // Format international: 3,110.79 ou 3.110,79
+    // Format simple: 3110.79 ou 3110,79
+
+    // Détecter le format en comptant les séparateurs
+    const apostropheCount = (cleaned.match(/'/g) || []).length;
+    const commaCount = (cleaned.match(/,/g) || []).length;
+    const dotCount = (cleaned.match(/\./g) || []).length;
+
+    console.log("Séparateurs détectés:", {
+      apostropheCount,
+      commaCount,
+      dotCount,
+    });
+
+    // Cas 1: Format suisse avec apostrophe (3'110,79 ou 3'110.79)
+    if (apostropheCount > 0) {
+      console.log("Format suisse détecté");
+      // Supprimer les apostrophes (séparateurs de milliers)
+      cleaned = cleaned.replace(/'/g, "");
+      console.log("Après suppression apostrophes:", cleaned);
+
+      // Si il y a une virgule, c'est le séparateur décimal
+      if (commaCount === 1) {
+        cleaned = cleaned.replace(",", ".");
+      }
+    }
+    // Cas 2: Format avec virgule comme séparateur décimal (3110,79)
+    else if (commaCount === 1 && dotCount === 0) {
+      console.log("Format avec virgule décimale détecté");
+      cleaned = cleaned.replace(",", ".");
+    }
+    // Cas 3: Format international avec virgule comme séparateur de milliers (3,110.79)
+    else if (commaCount > 0 && dotCount === 1) {
+      console.log("Format international détecté");
+      // La dernière virgule ou point est le séparateur décimal
+      const lastCommaIndex = cleaned.lastIndexOf(",");
+      const lastDotIndex = cleaned.lastIndexOf(".");
+
+      if (lastDotIndex > lastCommaIndex) {
+        // Le point est le séparateur décimal, supprimer toutes les virgules
+        cleaned = cleaned.replace(/,/g, "");
+      } else {
+        // La virgule est le séparateur décimal, supprimer tous les points et remplacer la dernière virgule par un point
+        cleaned = cleaned.replace(/\./g, "");
+        const parts = cleaned.split(",");
+        if (parts.length === 2) {
+          cleaned = parts[0] + "." + parts[1];
+        }
+      }
+    }
+    // Cas 4: Plusieurs points (format comme 3.110.79 où le dernier point est décimal)
+    else if (dotCount > 1) {
+      console.log("Format avec multiples points détecté");
+      const parts = cleaned.split(".");
+      if (parts.length > 1) {
+        const lastPart = parts[parts.length - 1];
+        // Si la dernière partie fait 2 chiffres ou moins, c'est probablement décimal
+        if (lastPart.length <= 2) {
+          const integerParts = parts.slice(0, -1).join("");
+          cleaned = integerParts + "." + lastPart;
+        } else {
+          // Sinon, tous les points sont des séparateurs de milliers
+          cleaned = cleaned.replace(/\./g, "");
+        }
+      }
+    }
+
+    console.log("Valeur finale nettoyée:", cleaned);
+
+    const numericValue = parseFloat(cleaned);
+    console.log("Valeur numérique:", numericValue);
+
+    return numericValue;
+  };
+
+  // ✅ NOUVELLE VERSION DE handleSaveValue
   const handleSaveValue = async (
     mandateId: string,
     dateKey: string,
@@ -438,29 +523,15 @@ export default function DashboardPage() {
         type: typeof newValue,
       });
 
-      // Nettoyer et valider la valeur - supprimer apostrophes et remplacer virgules par points
-      const cleanedValue = newValue.replace(/['\s]/g, "").replace(",", ".");
-      const numericValue = parseFloat(cleanedValue);
-
-      console.log("🧹 Après nettoyage:", {
-        originalValue: newValue,
-        cleanedValue,
-        numericValue,
-        isNaN: isNaN(numericValue),
-      });
+      // Utiliser la nouvelle fonction de nettoyage
+      const numericValue = cleanNumericValue(newValue);
 
       if (isNaN(numericValue) || numericValue < 0) {
         toast.error("Veuillez entrer une valeur numérique valide");
         return;
       }
 
-      console.log("Sauvegarde:", {
-        mandateId,
-        dateKey,
-        originalValue: newValue,
-        cleanedValue,
-        numericValue,
-      });
+      console.log("✅ Valeur à sauvegarder:", numericValue);
 
       // Appel API pour sauvegarder
       const response = await fetch("/api/dashboard/update-value", {
@@ -487,7 +558,7 @@ export default function DashboardPage() {
     } catch (error) {
       console.error("Erreur lors de la sauvegarde:", error);
       toast.error("Erreur lors de la sauvegarde");
-      throw error; // Re-throw pour que le composant puisse gérer l'erreur
+      throw error;
     }
   };
 
