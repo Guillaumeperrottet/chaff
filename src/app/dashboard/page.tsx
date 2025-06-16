@@ -1135,9 +1135,17 @@ export default function DashboardPage() {
                                       newValue
                                     );
                                   }}
-                                  formatDisplay={(value) =>
-                                    parseFloat(value).toFixed(2)
-                                  }
+                                  formatDisplay={(value) => {
+                                    const num = parseFloat(value);
+                                    if (isNaN(num)) return "0";
+                                    // Préserver le format original : si c'est un entier, ne pas afficher de décimales
+                                    return num % 1 === 0
+                                      ? num.toString()
+                                      : num.toLocaleString("fr-CH", {
+                                          minimumFractionDigits: 0,
+                                          maximumFractionDigits: 2,
+                                        });
+                                  }}
                                 />
                               </TableCell>
                             ))}
