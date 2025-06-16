@@ -605,7 +605,9 @@ export default function DashboardPage() {
     dashboardData.columnLabels.forEach((col) => {
       const dailyCATotal = groupData.reduce((sum, item) => {
         const valueStr = item.values[col.key] || "0,00";
-        const value = parseFloat(valueStr.replace(",", "."));
+        // Nettoyer la valeur : supprimer apostrophes et espaces, puis remplacer virgules par points
+        const cleanedValue = valueStr.replace(/['\s]/g, "").replace(",", ".");
+        const value = parseFloat(cleanedValue);
         return sum + (isNaN(value) ? 0 : value);
       }, 0);
       totals[col.key] = dailyCATotal;
@@ -626,7 +628,9 @@ export default function DashboardPage() {
     dashboardData.columnLabels.forEach((col) => {
       const dailyTotal = groupData.reduce((sum, campus) => {
         const valueStr = campus.values[col.key] || "0,00";
-        const value = parseFloat(valueStr.replace(",", "."));
+        // Nettoyer la valeur : supprimer apostrophes et espaces, puis remplacer virgules par points
+        const cleanedValue = valueStr.replace(/['\s]/g, "").replace(",", ".");
+        const value = parseFloat(cleanedValue);
         return sum + (isNaN(value) ? 0 : value);
       }, 0);
       dailyGroupTotals[col.key] = dailyTotal;
@@ -661,7 +665,9 @@ export default function DashboardPage() {
     dashboardData.columnLabels.forEach((col) => {
       totals[col.key] = mergedData.reduce((sum, item) => {
         const valueStr = item.values[col.key] || "0,00";
-        const value = parseFloat(valueStr.replace(",", "."));
+        // Nettoyer la valeur : supprimer apostrophes et espaces, puis remplacer virgules par points
+        const cleanedValue = valueStr.replace(/['\s]/g, "").replace(",", ".");
+        const value = parseFloat(cleanedValue);
         return sum + (isNaN(value) ? 0 : value);
       }, 0);
     });
@@ -681,7 +687,9 @@ export default function DashboardPage() {
     dashboardData.columnLabels.forEach((col) => {
       const dailyTotal = mergedData.reduce((sum, campus) => {
         const valueStr = campus.values[col.key] || "0,00";
-        const value = parseFloat(valueStr.replace(",", "."));
+        // Nettoyer la valeur : supprimer apostrophes et espaces, puis remplacer virgules par points
+        const cleanedValue = valueStr.replace(/['\s]/g, "").replace(",", ".");
+        const value = parseFloat(cleanedValue);
         return sum + (isNaN(value) ? 0 : value);
       }, 0);
       dailyGrandTotals[col.key] = dailyTotal;
