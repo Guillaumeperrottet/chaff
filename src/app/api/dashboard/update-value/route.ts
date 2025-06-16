@@ -54,6 +54,19 @@ export async function POST(req: NextRequest) {
     const entryDate = new Date(`${year}-${month}-${day}`);
     console.log("Date calculée:", entryDate);
 
+    // ✅ NOUVEAU: Validation de l'année courante
+    const currentYear = new Date().getFullYear();
+    const entryYear = parseInt(year);
+
+    if (entryYear !== currentYear) {
+      return NextResponse.json(
+        {
+          error: `Vous ne pouvez modifier que les valeurs de l'année courante (${currentYear}). Année demandée: ${entryYear}`,
+        },
+        { status: 400 }
+      );
+    }
+
     // Vérifier si une entrée existe déjà pour cette date et ce mandat
     const existingEntry = await prisma.dayValue.findUnique({
       where: {

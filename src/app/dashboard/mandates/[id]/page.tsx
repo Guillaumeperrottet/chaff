@@ -54,6 +54,7 @@ import { toast } from "sonner";
 import PrintableCAReport from "@/app/components/ca/PrintableCAReport";
 import PremiumBurgerButton from "@/app/components/ui/BurgerButton";
 import { motion, AnimatePresence } from "framer-motion";
+import { Input } from "@/app/components/ui/input";
 
 // Types pour les données CA
 interface DayCAData {
@@ -139,6 +140,183 @@ interface CAResponse {
   };
 }
 
+// ✅ NOUVEAU: Composant pour l'édition inline des cellules
+interface EditableCellProps {
+  value: string;
+  onSave: (newValue: string) => Promise<void>;
+  formatDisplay?: (value: string) => string;
+  isCurrentYear: boolean;
+}
+
+// ✅ Validation et formatage de l'input en temps réel
+const validateAndFormatInput = (input: string): string => {
+  // Autoriser uniquement les chiffres, points, virgules, apostrophes et espaces
+  return input.replace(/[^\d.,'\s]/g, "");
+};
+
+// ✅ Fonction de nettoyage numérique améliorée (même que dashboard principal)
+const cleanNumericValue = (value: string): number => {
+  console.log("🔍 Valeur d'entrée:", value);
+
+  // Étape 1: Supprimer tous les espaces
+  let cleaned = value.replace(/\s/g, "");
+  console.log("Après suppression espaces:", cleaned);
+
+  // Étape 2: Gérer les différents formats de séparateurs
+  const apostropheCount = (cleaned.match(/'/g) || []).length;
+  const commaCount = (cleaned.match(/,/g) || []).length;
+  const dotCount = (cleaned.match(/\./g) || []).length;
+
+  console.log("Séparateurs détectés:", {
+    apostropheCount,
+    commaCount,
+    dotCount,
+  });
+
+  // Cas 1: Format suisse avec apostrophe (3'110,79 ou 3'110.79)
+  if (apostropheCount > 0) {
+    console.log("Format suisse détecté");
+    cleaned = cleaned.replace(/'/g, "");
+    console.log("Après suppression apostrophes:", cleaned);
+
+    if (commaCount === 1) {
+      cleaned = cleaned.replace(",", ".");
+    }
+  }
+  // Cas 2: Format avec virgule comme séparateur décimal (3110,79)
+  else if (commaCount === 1 && dotCount === 0) {
+    console.log("Format avec virgule décimale détecté");
+    cleaned = cleaned.replace(",", ".");
+  }
+  // Cas 3: Format international avec virgule comme séparateur de milliers (3,110.79)
+  else if (commaCount > 0 && dotCount === 1) {
+    console.log("Format international détecté");
+    const lastCommaIndex = cleaned.lastIndexOf(",");
+    const lastDotIndex = cleaned.lastIndexOf(".");
+
+    if (lastDotIndex > lastCommaIndex) {
+      cleaned = cleaned.replace(/,/g, "");
+    } else {
+      const parts = cleaned.split(",");
+      const integerPart = parts.slice(0, -1).join("");
+      const decimalPart = parts[parts.length - 1];
+      cleaned = integerPart + "." + decimalPart;
+    }
+  }
+  // Cas 4: Plusieurs points (format comme 3.110.79 où le dernier point est décimal)
+  else if (dotCount > 1) {
+    console.log("Format avec multiples points détecté");
+    const parts = cleaned.split(".");
+    if (parts.length > 1) {
+      const lastPart = parts[parts.length - 1];
+      if (lastPart.length <= 2) {
+        const integerParts = parts.slice(0, -1).join("");
+        cleaned = integerParts + "." + lastPart;
+      } else {
+        cleaned = cleaned.replace(/\./g, "");
+      }
+    }
+  }
+
+  console.log("Valeur finale nettoyée:", cleaned);
+
+  const numericValue = parseFloat(cleaned);
+  console.log("Valeur numérique:", numericValue);
+
+  return numericValue;
+};
+
+// ✅ COMPOSANT EditableCell ADAPTÉ POUR LES MANDATS
+const EditableCell: React.FC<EditableCellProps> = ({
+  value,
+  onSave,
+  formatDisplay,
+  isCurrentYear,
+}) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState(value);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Fonction pour obtenir la valeur brute pour l'édition
+  const getRawValue = (formattedValue: string): string => {
+    return formattedValue.replace(/['\s]/g, "").replace(",", ".");
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await onSave(editValue);
+      setIsEditing(false);
+    } catch (error) {
+      console.error("Erreur lors de la sauvegarde:", error);
+      setEditValue(getRawValue(value));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleSave();
+    } else if (e.key === "Escape") {
+      setEditValue(getRawValue(value));
+      setIsEditing(false);
+    }
+  };
+
+  // Ne permettre l'édition que pour l'année courante
+  if (!isCurrentYear) {
+    const displayValue = formatDisplay ? formatDisplay(value) : value;
+    return (
+      <div className="text-sm font-medium text-muted-foreground">
+        {displayValue}
+      </div>
+    );
+  }
+
+  if (isEditing) {
+    return (
+      <div className="relative">
+        <Input
+          value={editValue}
+          onChange={(e) => {
+            const validatedValue = validateAndFormatInput(e.target.value);
+            setEditValue(validatedValue);
+          }}
+          onKeyDown={handleKeyDown}
+          onBlur={handleSave}
+          className="h-8 text-sm text-center border-blue-500 focus:ring-2 focus:ring-blue-500"
+          placeholder="0.00"
+          autoFocus
+          disabled={isSaving}
+        />
+        {isSaving && (
+          <div className="absolute inset-0 flex items-center justify-center bg-white/80">
+            <Loader2 className="h-3 w-3 animate-spin" />
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  const displayValue = formatDisplay ? formatDisplay(value) : value;
+
+  return (
+    <div
+      className="text-sm font-medium cursor-pointer hover:bg-blue-50 hover:text-blue-700 rounded px-1 py-1 transition-colors group"
+      onClick={() => {
+        const rawValue = getRawValue(value);
+        setEditValue(rawValue);
+        setIsEditing(true);
+      }}
+      title="Cliquer pour modifier (année courante uniquement)"
+    >
+      {displayValue}
+      <span className="ml-1 opacity-0 group-hover:opacity-50 text-xs">✏️</span>
+    </div>
+  );
+};
+
 export default function MandateCAPage() {
   const params = useParams();
   const router = useRouter();
@@ -189,6 +367,92 @@ export default function MandateCAPage() {
 
     loadCAData();
   }, [mandateId, selectedYear, selectedSemester]);
+
+  // ✅ NOUVELLE FONCTION POUR SAUVEGARDER LES VALEURS
+  const handleSaveValue = async (
+    day: number,
+    periodIndex: number,
+    newValue: string
+  ) => {
+    try {
+      console.log("🔄 handleSaveValue appelée avec:", {
+        day,
+        periodIndex,
+        newValue,
+        selectedYear,
+      });
+
+      // Vérifier que c'est l'année courante
+      const currentYear = new Date().getFullYear();
+      if (parseInt(selectedYear) !== currentYear) {
+        toast.error(
+          "Vous ne pouvez modifier que les valeurs de l'année courante"
+        );
+        return;
+      }
+
+      // Utiliser la fonction de nettoyage
+      const numericValue = cleanNumericValue(newValue);
+
+      if (isNaN(numericValue) || numericValue < 0) {
+        toast.error("Veuillez entrer une valeur numérique valide");
+        return;
+      }
+
+      console.log("✅ Valeur à sauvegarder:", numericValue);
+
+      // Construire la date à partir du jour et de la période
+      const period = caData?.periods[periodIndex];
+      if (!period) {
+        toast.error("Période non trouvée");
+        return;
+      }
+
+      // Construire la date YYYY-MM-DD
+      const dateString = `${period.year}-${period.month.toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`;
+
+      console.log("Date construite:", dateString);
+
+      // Appel API pour sauvegarder (utiliser l'API existante de dashboard/update-value)
+      const response = await fetch("/api/dashboard/update-value", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          mandateId,
+          dateKey: dateString,
+          value: numericValue,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Erreur API:", errorData);
+        throw new Error(errorData.error || "Erreur lors de la sauvegarde");
+      }
+
+      // Recharger les données pour refléter les changements
+      // Recharger les données CA
+      const startMonth = selectedSemester === "1" ? 1 : 7;
+      const endMonth = selectedSemester === "1" ? 6 : 12;
+      const refreshResponse = await fetch(
+        `/api/mandats/${mandateId}/ca?year=${selectedYear}&startMonth=${startMonth}&endMonth=${endMonth}&period=6months`
+      );
+
+      if (refreshResponse.ok) {
+        const refreshedData = await refreshResponse.json();
+        setCAData(refreshedData);
+      }
+
+      toast.success("Valeur mise à jour avec succès");
+    } catch (error) {
+      console.error("Erreur lors de la sauvegarde:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Erreur lors de la sauvegarde"
+      );
+    }
+  };
 
   // Charger la liste des mandats disponibles
   useEffect(() => {
@@ -707,13 +971,28 @@ export default function MandateCAPage() {
                               )
                             : "-"}
                         </div>
-                        {/* Année courante */}
+                        {/* Année courante - EDITABLE */}
                         <div className="flex-1 text-right font-medium">
-                          {row.values[`period_${index}`]?.current > 0
-                            ? formatCurrency(
-                                row.values[`period_${index}`].current
-                              )
-                            : "-"}
+                          <EditableCell
+                            value={
+                              row.values[
+                                `period_${index}`
+                              ]?.current?.toString() || "0"
+                            }
+                            onSave={async (newValue) => {
+                              await handleSaveValue(row.day, index, newValue);
+                            }}
+                            formatDisplay={(value) => {
+                              const num = parseFloat(value);
+                              return isNaN(num) || num === 0
+                                ? "-"
+                                : formatCurrency(num);
+                            }}
+                            isCurrentYear={
+                              parseInt(selectedYear) ===
+                              new Date().getFullYear()
+                            }
+                          />
                         </div>
                       </div>
                     </TableCell>
