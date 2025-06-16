@@ -167,7 +167,7 @@ const EditableCell: React.FC<EditableCellProps> = ({
 
   // Fonction pour convertir la valeur formatée en valeur brute pour l'édition
   const getRawValue = (formattedValue: string): string => {
-    // Enlever apostrophes et remplacer virgules par points
+    // Enlever apostrophes et espaces, puis remplacer virgules par points
     return formattedValue.replace(/['\s]/g, "").replace(",", ".");
   };
 
@@ -230,7 +230,8 @@ const EditableCell: React.FC<EditableCellProps> = ({
     <div
       className="text-sm font-medium cursor-pointer hover:bg-blue-50 hover:text-blue-700 rounded px-1 py-1 transition-colors group"
       onClick={() => {
-        setEditValue(getRawValue(value)); // Utiliser la valeur brute pour l'édition
+        const rawValue = getRawValue(value); // Utiliser la valeur brute pour l'édition
+        setEditValue(rawValue);
         setIsEditing(true);
       }}
       title="Cliquer pour modifier"
