@@ -368,7 +368,7 @@ export default function MandateCAPage() {
     loadCAData();
   }, [mandateId, selectedYear, selectedSemester]);
 
-  // ✅ NOUVELLE FONCTION POUR SAUVEGARDER LES VALEURS
+  // ✅ NOUVELLE FONCTION POUR SAUVEGARDER LES VALEURS AVEC POSSIBILITÉ D'ANNULATION
   const handleSaveValue = async (
     day: number,
     periodIndex: number,
@@ -413,6 +413,11 @@ export default function MandateCAPage() {
 
       console.log("Date construite:", dateString);
 
+      // Sauvegarder l'ancienne valeur pour l'annulation
+      const oldValue =
+        period.dailyValues.find((dv) => new Date(dv.date).getDate() === day)
+          ?.value || 0;
+
       // Appel API pour sauvegarder (utiliser l'API existante de dashboard/update-value)
       const response = await fetch("/api/dashboard/update-value", {
         method: "POST",
@@ -433,7 +438,6 @@ export default function MandateCAPage() {
       }
 
       // Recharger les données pour refléter les changements
-      // Recharger les données CA
       const startMonth = selectedSemester === "1" ? 1 : 7;
       const endMonth = selectedSemester === "1" ? 6 : 12;
       const refreshResponse = await fetch(
@@ -445,7 +449,66 @@ export default function MandateCAPage() {
         setCAData(refreshedData);
       }
 
-      toast.success("Valeur mise à jour avec succès");
+      // Toast avec possibilité d'annulation pendant 8 secondes
+      const toastId = toast.success(
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex-1">
+            <div className="font-medium">Valeur mise à jour</div>
+            <div className="text-sm text-muted-foreground">
+              {formatCurrency(oldValue)} → {formatCurrency(numericValue)}
+            </div>
+          </div>
+          <button
+            onClick={async () => {
+              try {
+                // Annuler la modification en restaurant l'ancienne valeur
+                const undoResponse = await fetch(
+                  "/api/dashboard/update-value",
+                  {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      mandateId,
+                      dateKey: dateString,
+                      value: oldValue,
+                    }),
+                  }
+                );
+
+                if (undoResponse.ok) {
+                  // Recharger les données
+                  const refreshResponse = await fetch(
+                    `/api/mandats/${mandateId}/ca?year=${selectedYear}&startMonth=${startMonth}&endMonth=${endMonth}&period=6months`
+                  );
+
+                  if (refreshResponse.ok) {
+                    const refreshedData = await refreshResponse.json();
+                    setCAData(refreshedData);
+                  }
+
+                  // Fermer le toast actuel et afficher un nouveau message
+                  toast.dismiss(toastId);
+                  toast.info("Modification annulée");
+                } else {
+                  toast.error("Erreur lors de l'annulation");
+                }
+              } catch (error) {
+                console.error("Erreur lors de l'annulation:", error);
+                toast.error("Erreur lors de l'annulation");
+              }
+            }}
+            className="px-3 py-1 text-xs bg-white text-gray-700 border border-gray-200 rounded hover:bg-gray-50 transition-colors"
+          >
+            Annuler
+          </button>
+        </div>,
+        {
+          duration: 8000, // 8 secondes
+          id: `update-${dateString}-${Date.now()}`,
+        }
+      );
     } catch (error) {
       console.error("Erreur lors de la sauvegarde:", error);
       toast.error(
