@@ -164,7 +164,7 @@ export async function GET(request: NextRequest) {
     console.log("📊 Types traités:", Object.keys(typeGroups));
     console.log("📊 Nombre de mandats:", mandates.length);
 
-    // Créer des données de test simples
+    // Créer des données par mois avec des valeurs journalières réalistes
     const testData: PeriodData[] = [];
 
     for (let month = startMonth; month <= endMonth; month++) {
@@ -173,27 +173,99 @@ export async function GET(request: NextRequest) {
         year: "numeric",
       });
 
-      // Données de test
-      const totalValue = Math.random() * 100000 + 50000;
-      const previousYearValue = Math.random() * 80000 + 40000;
+      // Calculer le nombre de jours dans le mois
+      const daysInMonth = new Date(year, month, 0).getDate();
+      const previousYearDaysInMonth = new Date(year - 1, month, 0).getDate();
+
+      // Générer des valeurs journalières pour l'année courante
+      const dailyValues: DayCAData[] = [];
+      const previousYearDailyValues: DayCAData[] = [];
+
+      let monthlyTotal = 0;
+      let previousYearMonthlyTotal = 0;
+
+      // Générer les valeurs jour par jour
+      for (let day = 1; day <= daysInMonth; day++) {
+        // Valeur courante (avec variation réaliste)
+        const baseValue = Math.random() * 5000 + 1000; // Entre 1000 et 6000
+        const dayValue = Math.round(baseValue);
+        monthlyTotal += dayValue;
+
+        const dayDate = new Date(year, month - 1, day);
+        dailyValues.push({
+          date: dayDate.toISOString().split("T")[0],
+          value: dayValue,
+          formattedDate: dayDate.toLocaleDateString("fr-FR", {
+            day: "2-digit",
+            month: "short",
+          }),
+        });
+      }
+
+      // Générer les valeurs pour l'année précédente
+      for (let day = 1; day <= previousYearDaysInMonth; day++) {
+        const baseValue = Math.random() * 4000 + 800; // Légèrement moins que l'année courante
+        const dayValue = Math.round(baseValue);
+        previousYearMonthlyTotal += dayValue;
+
+        const dayDate = new Date(year - 1, month - 1, day);
+        previousYearDailyValues.push({
+          date: dayDate.toISOString().split("T")[0],
+          value: dayValue,
+          formattedDate: dayDate.toLocaleDateString("fr-FR", {
+            day: "2-digit",
+            month: "short",
+          }),
+        });
+      }
+
+      const daysWithData = dailyValues.filter((dv) => dv.value > 0).length;
+      const averageDaily = daysWithData > 0 ? monthlyTotal / daysWithData : 0;
 
       testData.push({
         year,
         month,
         label: monthLabel,
-        totalValue,
-        dailyValues: [],
-        previousYearDailyValues: [],
-        averageDaily: totalValue / 30,
-        daysWithData: 30,
+        totalValue: monthlyTotal,
+        dailyValues,
+        previousYearDailyValues,
+        averageDaily,
+        daysWithData,
+        cumulativeTotal: 0, // Sera calculé après
+        cumulativePreviousYearRevenue: 0, // Sera calculé après
+        cumulativeRevenueGrowth: null, // Sera calculé après
         yearOverYear: {
-          previousYearRevenue: previousYearValue,
+          previousYearRevenue: previousYearMonthlyTotal,
           revenueGrowth:
-            ((totalValue - previousYearValue) / previousYearValue) * 100,
+            previousYearMonthlyTotal > 0
+              ? ((monthlyTotal - previousYearMonthlyTotal) /
+                  previousYearMonthlyTotal) *
+                100
+              : null,
           payrollGrowth: null,
         },
       });
     }
+
+    // Calculer les cumuls après avoir créé toutes les périodes
+    let cumulativeTotal = 0;
+    let cumulativePreviousYearRevenue = 0;
+
+    testData.forEach((period) => {
+      cumulativeTotal += period.totalValue;
+      cumulativePreviousYearRevenue += period.yearOverYear.previousYearRevenue;
+
+      period.cumulativeTotal = cumulativeTotal;
+      period.cumulativePreviousYearRevenue = cumulativePreviousYearRevenue;
+
+      // Calculer la croissance cumulative
+      if (cumulativePreviousYearRevenue > 0) {
+        period.cumulativeRevenueGrowth =
+          ((cumulativeTotal - cumulativePreviousYearRevenue) /
+            cumulativePreviousYearRevenue) *
+          100;
+      }
+    });
 
     // Calculer les breakdown par types
     const typesBreakdown: TypeBreakdown[] = Object.entries(typeGroups).map(

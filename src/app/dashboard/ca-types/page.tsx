@@ -703,7 +703,7 @@ export default function TypesCAPage() {
                   <span>Année précédente</span>
                 </div>
                 <div className="flex items-center space-x-1">
-                  <div className="h-2 w-2 bg-purple-500 rounded-full"></div>
+                  <div className="h-2 w-2 bg-blue-500 rounded-full"></div>
                   <span>Année courante</span>
                 </div>
               </div>
