@@ -154,12 +154,21 @@ export default function GlobalCAPage() {
       try {
         setLoading(true);
 
-        // Calculer les mois pour le semestre sélectionné
-        const startMonth = selectedSemester === "1" ? 1 : 7;
-        const endMonth = selectedSemester === "1" ? 6 : 12;
+        // Calculer les mois selon la sélection
+        let startMonth, endMonth, period;
+
+        if (selectedSemester === "annee") {
+          startMonth = 1;
+          endMonth = 12;
+          period = "12months";
+        } else {
+          startMonth = selectedSemester === "1" ? 1 : 7;
+          endMonth = selectedSemester === "1" ? 6 : 12;
+          period = "6months";
+        }
 
         const response = await fetch(
-          `/api/mandats/ca-global?year=${selectedYear}&startMonth=${startMonth}&endMonth=${endMonth}&period=6months`
+          `/api/mandats/ca-global?year=${selectedYear}&startMonth=${startMonth}&endMonth=${endMonth}&period=${period}`
         );
 
         if (!response.ok) {
@@ -198,11 +207,14 @@ export default function GlobalCAPage() {
       try {
         setLoading(true);
 
-        const startMonth = selectedSemester === "1" ? 1 : 7;
-        const endMonth = selectedSemester === "1" ? 6 : 12;
+        const startMonth =
+          selectedSemester === "1" ? 1 : selectedSemester === "2" ? 7 : 1;
+        const endMonth =
+          selectedSemester === "1" ? 6 : selectedSemester === "2" ? 12 : 12;
+        const period = selectedSemester === "annee" ? "12months" : "6months";
 
         const response = await fetch(
-          `/api/mandats/ca-global?year=${selectedYear}&startMonth=${startMonth}&endMonth=${endMonth}&period=6months`
+          `/api/mandats/ca-global?year=${selectedYear}&startMonth=${startMonth}&endMonth=${endMonth}&period=${period}`
         );
         if (!response.ok) throw new Error("Erreur lors du chargement");
         const data = await response.json();
@@ -226,12 +238,14 @@ export default function GlobalCAPage() {
     try {
       toast.loading("Génération de l'export global...");
 
-      const startMonth = selectedSemester === "1" ? 1 : 7;
-      const endMonth = selectedSemester === "1" ? 6 : 12;
+      const startMonth =
+        selectedSemester === "1" ? 1 : selectedSemester === "2" ? 7 : 1;
+      const endMonth =
+        selectedSemester === "1" ? 6 : selectedSemester === "2" ? 12 : 12;
+      const period = selectedSemester === "annee" ? "12months" : "6months";
 
-      // Note: Il faudra créer cette route API spécifique pour l'export global
       const response = await fetch(
-        `/api/export/ca-global?year=${selectedYear}&startMonth=${startMonth}&endMonth=${endMonth}&period=6months`
+        `/api/export/ca-global?year=${selectedYear}&startMonth=${startMonth}&endMonth=${endMonth}&period=${period}`
       );
 
       if (!response.ok) throw new Error("Erreur lors de l'export");
@@ -241,7 +255,12 @@ export default function GlobalCAPage() {
       const a = document.createElement("a");
       a.style.display = "none";
       a.href = url;
-      const semesterName = selectedSemester === "1" ? "S1" : "S2";
+      const semesterName =
+        selectedSemester === "1"
+          ? "S1"
+          : selectedSemester === "2"
+            ? "S2"
+            : "ANNEE";
       a.download = `ca_global_${selectedYear}_${semesterName}.csv`;
       document.body.appendChild(a);
       a.click();
@@ -470,13 +489,21 @@ export default function GlobalCAPage() {
                 <div className="flex items-center space-x-2 text-sm text-gray-600">
                   <span>
                     Vue consolidée • {caData.organization.totalMandates} mandats
-                    • {selectedSemester === "1" ? "1er" : "2ème"} semestre
+                    •{" "}
+                    {selectedSemester === "1"
+                      ? "1er"
+                      : selectedSemester === "2"
+                        ? "2ème"
+                        : "Année"}{" "}
+                    {selectedSemester === "annee" ? "complète" : "semestre"}
                   </span>
                   <span className="text-emerald-600">•</span>
                   <span>
                     {selectedSemester === "1"
                       ? "Janvier - Juin"
-                      : "Juillet - Décembre"}{" "}
+                      : selectedSemester === "2"
+                        ? "Juillet - Décembre"
+                        : "Janvier - Décembre"}{" "}
                     {selectedYear}
                   </span>
                 </div>
@@ -604,6 +631,7 @@ export default function GlobalCAPage() {
                     <SelectContent>
                       <SelectItem value="1">1er semestre</SelectItem>
                       <SelectItem value="2">2ème semestre</SelectItem>
+                      <SelectItem value="annee">Année</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -611,7 +639,9 @@ export default function GlobalCAPage() {
                 <span className="text-xs text-muted-foreground">
                   {selectedSemester === "1"
                     ? "Janvier - Juin"
-                    : "Juillet - Décembre"}
+                    : selectedSemester === "2"
+                      ? "Juillet - Décembre"
+                      : "Janvier - Décembre"}
                 </span>
               </div>
 
@@ -1039,7 +1069,11 @@ export default function GlobalCAPage() {
             Données générées le{" "}
             {new Date(caData.meta.generatedAt).toLocaleString("fr-CH")} |
             Comparaisons avec {parseInt(selectedYear) - 1} |
-            {selectedSemester === "1" ? "1er semestre" : "2ème semestre"}{" "}
+            {selectedSemester === "1"
+              ? "1er semestre"
+              : selectedSemester === "2"
+                ? "2ème semestre"
+                : "Année complète"}{" "}
             {selectedYear} | Vue consolidée de tous les mandats actifs
           </p>
         </div>
