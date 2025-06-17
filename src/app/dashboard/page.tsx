@@ -40,7 +40,6 @@ import {
   BarChart3,
   Users,
   ChevronDown,
-  Building2,
 } from "lucide-react";
 import EmptyState from "@/app/components/EmptyState";
 import { Input } from "@/app/components/ui/input";
@@ -1007,15 +1006,6 @@ export default function DashboardPage() {
               </Button>
 
               <Button
-                onClick={() => router.push("/dashboard/ca-global")}
-                variant="outline"
-                className="border-emerald-200 hover:bg-emerald-50 text-emerald-700 hover:text-emerald-800"
-              >
-                <Building2 className="mr-2 h-4 w-4" />
-                CA Global
-              </Button>
-
-              <Button
                 onClick={() => router.push("/dashboard/import")}
                 variant="outline"
                 size="sm"
@@ -1102,17 +1092,6 @@ export default function DashboardPage() {
                         >
                           <Calculator className="mr-3 h-4 w-4 text-slate-500" />
                           Masse salariale
-                        </button>
-
-                        <button
-                          onClick={() => {
-                            router.push("/dashboard/ca-global");
-                            setIsBurgerMenuOpen(false);
-                          }}
-                          className="w-full flex items-center px-3 py-2 text-sm text-emerald-700 hover:bg-emerald-50 transition-colors"
-                        >
-                          <Building2 className="mr-3 h-4 w-4 text-emerald-500" />
-                          CA Global
                         </button>
 
                         <div className="h-px bg-slate-100 my-1 mx-3"></div>
@@ -1469,7 +1448,39 @@ export default function DashboardPage() {
                                 </div>
                               </TableCell>
                             ))}
-                            <TableCell></TableCell>
+                            <TableCell className="py-3">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    className="h-8 w-8 p-0"
+                                  >
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuLabel>
+                                    Actions du type
+                                  </DropdownMenuLabel>
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      router.push("/dashboard/ca-global")
+                                    }
+                                  >
+                                    <Eye className="mr-2 h-4 w-4" />
+                                    Voir CA Global
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      router.push("/dashboard/ca-types")
+                                    }
+                                  >
+                                    <BarChart3 className="mr-2 h-4 w-4" />
+                                    Voir CA Types
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
                           </TableRow>
                         )}
                       </React.Fragment>
