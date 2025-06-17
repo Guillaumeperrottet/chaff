@@ -43,37 +43,44 @@ export async function GET(request: NextRequest) {
     const startMonth = parseInt(searchParams.get("startMonth") || "1");
     const endMonth = parseInt(searchParams.get("endMonth") || "12");
     const period = searchParams.get("period") || "6months";
+    const selectedType = searchParams.get("type"); // Nouveau paramètre pour le type sélectionné
 
     console.log("🔍 Export CA Types - Paramètres:", {
       year,
       startMonth,
       endMonth,
       period,
+      selectedType,
     });
 
     // Simulation des types d'établissement avec mandats
-    const typeGroups = {
-      Hébergement: [
+    const allTypeGroups = {
+      HEBERGEMENT: [
         { id: "HTL001", name: "Hôtel des Alpes" },
         { id: "HTL002", name: "Auberge du Lac" },
         { id: "HTL003", name: "Resort Montagne" },
       ],
-      Restauration: [
+      RESTAURATION: [
         { id: "RST001", name: "Restaurant Le Gourmet" },
         { id: "RST002", name: "Brasserie Central" },
         { id: "RST003", name: "Café de la Gare" },
         { id: "RST004", name: "Pizza Corner" },
       ],
-      Commerce: [
+      COMMERCE: [
         { id: "COM001", name: "Boutique Mode" },
         { id: "COM002", name: "Librairie du Centre" },
       ],
-      Services: [
+      SERVICES: [
         { id: "SRV001", name: "Cabinet Conseil" },
         { id: "SRV002", name: "Agence Immobilière" },
         { id: "SRV003", name: "Salon de Coiffure" },
       ],
     };
+
+    // Filtrer par type si spécifié
+    const typeGroups = selectedType 
+      ? { [selectedType]: allTypeGroups[selectedType as keyof typeof allTypeGroups] || [] }
+      : allTypeGroups;
 
     // Fonction pour formater les montants en CHF
     const formatCurrency = (amount: number): string => {
@@ -127,13 +134,31 @@ export async function GET(request: NextRequest) {
     // Générer le CSV
     const csvLines: string[] = [];
 
+    // Fonction pour obtenir le label du type
+    const getTypeLabel = (typeId: string): string => {
+      const labels: Record<string, string> = {
+        'HEBERGEMENT': 'Hébergement',
+        'RESTAURATION': 'Restauration',
+        'COMMERCE': 'Commerce',
+        'SERVICES': 'Services'
+      };
+      return labels[typeId] || typeId;
+    };
+
     // En-tête du fichier
-    csvLines.push(`"EXPORT CA PAR TYPES - Organisation Test"`);
+    const exportTitle = selectedType 
+      ? `"EXPORT CA ${getTypeLabel(selectedType).toUpperCase()} - Organisation Test"`
+      : `"EXPORT CA PAR TYPES - Organisation Test"`;
+    
+    csvLines.push(exportTitle);
     csvLines.push(
       `"Période: ${period === "6months" ? "Semestrielle" : "Annuelle"}"`
     );
     csvLines.push(`"Année: ${year}"`);
     csvLines.push(`"Mois: ${startMonth} à ${endMonth}"`);
+    if (selectedType) {
+      csvLines.push(`"Type analysé: ${getTypeLabel(selectedType)}"`);
+    }
     csvLines.push(`"Généré le: ${new Date().toLocaleString("fr-CH")}"`);
     csvLines.push("");
 

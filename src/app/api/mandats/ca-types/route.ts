@@ -113,20 +113,33 @@ export async function GET(request: NextRequest) {
     const startMonth = parseInt(searchParams.get("startMonth") || "1");
     const endMonth = parseInt(searchParams.get("endMonth") || "12");
     const period = searchParams.get("period") || "6months";
+    const selectedType = searchParams.get("type"); // Nouveau paramètre pour le type sélectionné
 
     console.log("🔍 CA Types - Paramètres reçus:", {
       year,
       startMonth,
       endMonth,
       period,
+      selectedType,
     });
 
-    // Récupérer tous les mandats actifs
+    // Récupérer tous les mandats actifs (filtrer par type si spécifié)
+    const mandateFilter: {
+      organizationId: string;
+      active: boolean;
+      group?: string;
+    } = {
+      organizationId: userWithOrg.Organization.id,
+      active: true,
+    };
+
+    // Si un type spécifique est demandé, filtrer sur ce type
+    if (selectedType) {
+      mandateFilter.group = selectedType;
+    }
+
     const mandates = await prisma.mandate.findMany({
-      where: {
-        organizationId: userWithOrg.Organization.id,
-        active: true,
-      },
+      where: mandateFilter,
       select: {
         id: true,
         name: true,
@@ -134,19 +147,22 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // Grouper les mandats par type
-    const typeGroups = mandates.reduce(
-      (groups, mandate) => {
-        if (!groups[mandate.group]) {
-          groups[mandate.group] = [];
-        }
-        groups[mandate.group].push(mandate);
-        return groups;
-      },
-      {} as Record<string, typeof mandates>
-    );
+    // Si on filtre par type spécifique, utiliser seulement ce type
+    const typeGroups = selectedType 
+      ? { [selectedType]: mandates }
+      : mandates.reduce(
+          (groups, mandate) => {
+            if (!groups[mandate.group]) {
+              groups[mandate.group] = [];
+            }
+            groups[mandate.group].push(mandate);
+            return groups;
+          },
+          {} as Record<string, typeof mandates>
+        );
 
-    console.log("📊 Types trouvés:", Object.keys(typeGroups));
+    console.log("📊 Types traités:", Object.keys(typeGroups));
+    console.log("📊 Nombre de mandats:", mandates.length);
 
     // Créer des données de test simples
     const testData: PeriodData[] = [];

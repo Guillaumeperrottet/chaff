@@ -139,6 +139,10 @@ interface TypesCAResponse {
 export default function TypesCAPage() {
   const router = useRouter();
   const [caData, setCaData] = useState<TypesCAResponse | null>(null);
+  const [availableTypes, setAvailableTypes] = useState<
+    Array<{ id: string; name: string; label: string }>
+  >([]);
+  const [selectedType, setSelectedType] = useState("HEBERGEMENT"); // Type par défaut
   const [loading, setLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState(
     new Date().getFullYear().toString()
@@ -150,7 +154,26 @@ export default function TypesCAPage() {
   });
   const [isBurgerMenuOpen, setIsBurgerMenuOpen] = useState(false);
 
-  // Charger les données CA par types depuis l'API
+  // Charger les types disponibles
+  useEffect(() => {
+    const loadAvailableTypes = async () => {
+      try {
+        // Types par défaut + types personnalisés
+        const defaultTypes = [
+          { id: "HEBERGEMENT", name: "HEBERGEMENT", label: "Hébergement" },
+          { id: "RESTAURATION", name: "RESTAURATION", label: "Restauration" },
+        ];
+        
+        // TODO: Ajouter la logique pour charger les types personnalisés depuis l'API
+        setAvailableTypes(defaultTypes);
+      } catch (error) {
+        console.error("Erreur lors du chargement des types:", error);
+      }
+    };
+    loadAvailableTypes();
+  }, []);
+
+  // Charger les données CA par type depuis l'API
   useEffect(() => {
     const loadTypesCAData = async () => {
       try {
@@ -161,11 +184,11 @@ export default function TypesCAPage() {
         const endMonth = selectedSemester === "1" ? 6 : 12;
 
         const response = await fetch(
-          `/api/mandats/ca-types?year=${selectedYear}&startMonth=${startMonth}&endMonth=${endMonth}&period=6months`
+          `/api/mandats/ca-types?year=${selectedYear}&startMonth=${startMonth}&endMonth=${endMonth}&period=6months&type=${selectedType}`
         );
 
         if (!response.ok) {
-          throw new Error("Erreur lors du chargement des données CA par types");
+          throw new Error("Erreur lors du chargement des données CA par type");
         }
 
         const data = await response.json();
@@ -179,7 +202,7 @@ export default function TypesCAPage() {
     };
 
     loadTypesCAData();
-  }, [selectedYear, selectedSemester]);
+  }, [selectedYear, selectedSemester, selectedType]);
 
   // Fermer le menu burger avec la touche Échap
   useEffect(() => {
@@ -204,7 +227,7 @@ export default function TypesCAPage() {
         const endMonth = selectedSemester === "1" ? 6 : 12;
 
         const response = await fetch(
-          `/api/mandats/ca-types?year=${selectedYear}&startMonth=${startMonth}&endMonth=${endMonth}&period=6months`
+          `/api/mandats/ca-types?year=${selectedYear}&startMonth=${startMonth}&endMonth=${endMonth}&period=6months&type=${selectedType}`
         );
         if (!response.ok) throw new Error("Erreur lors du chargement");
         const data = await response.json();
@@ -224,15 +247,26 @@ export default function TypesCAPage() {
     window.print();
   };
 
+  // Fonction pour naviguer vers un autre type
+  const handleTypeChange = (newTypeId: string) => {
+    setSelectedType(newTypeId);
+  };
+
+  // Fonction pour obtenir le label d'un type
+  const getTypeLabel = (typeId: string): string => {
+    const type = availableTypes.find(t => t.id === typeId);
+    return type?.label || typeId;
+  };
+
   const handleExport = async () => {
     try {
-      toast.loading("Génération de l'export par types...");
+      toast.loading("Génération de l'export par type...");
 
       const startMonth = selectedSemester === "1" ? 1 : 7;
       const endMonth = selectedSemester === "1" ? 6 : 12;
 
       const response = await fetch(
-        `/api/export/ca-types?year=${selectedYear}&startMonth=${startMonth}&endMonth=${endMonth}&period=6months`
+        `/api/export/ca-types?year=${selectedYear}&startMonth=${startMonth}&endMonth=${endMonth}&period=6months&type=${selectedType}`
       );
 
       if (!response.ok) throw new Error("Erreur lors de l'export");
@@ -243,7 +277,8 @@ export default function TypesCAPage() {
       a.style.display = "none";
       a.href = url;
       const semesterName = selectedSemester === "1" ? "S1" : "S2";
-      a.download = `ca_types_${selectedYear}_${semesterName}.csv`;
+      const typeLabel = getTypeLabel(selectedType);
+      a.download = `ca_${typeLabel.toLowerCase()}_${selectedYear}_${semesterName}.csv`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -412,26 +447,65 @@ export default function TypesCAPage() {
             <div className="flex items-center space-x-4 flex-1 min-w-0">
               {/* Avatar avec gradient */}
               <div className="relative flex-shrink-0">
-                <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-base md:text-lg shadow-lg">
-                  <BarChart3 className="h-6 w-6 md:h-7 md:w-7" />
+                <div className={`w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br ${
+                  selectedType === "HEBERGEMENT" 
+                    ? "from-blue-500 to-blue-600" 
+                    : "from-orange-500 to-orange-600"
+                } rounded-xl flex items-center justify-center text-white font-bold text-base md:text-lg shadow-lg`}>
+                  {getTypeIcon(selectedType)}
                 </div>
                 <div className="absolute -bottom-1 -right-1 w-3 h-3 md:w-4 md:h-4 bg-green-500 rounded-full border-2 border-white"></div>
               </div>
 
               {/* Infos par types */}
               <div className="flex-1 min-w-0">
-                {/* Nom avec menu déroulant discret */}
+                {/* Nom avec menu déroulant discret pour sélection de type */}
                 <div className="flex items-center gap-2">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button className="flex items-center gap-1 text-xl md:text-2xl font-bold text-gray-900 hover:text-purple-600 transition-colors duration-200 group truncate">
                         <span className="truncate">
-                          CA par Types - {caData.organization.name}
+                          {getTypeLabel(selectedType)} - {caData.organization.name}
                         </span>
-                        <ChevronDown className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-purple-500 flex-shrink-0" />
+                        <ChevronDown className="h-4 w-4 opacity-70 group-hover:opacity-100 transition-opacity duration-200 text-purple-500 flex-shrink-0" />
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start" className="w-64">
+                      {/* Sélection des types disponibles */}
+                      {availableTypes.map((type) => (
+                        <DropdownMenuItem
+                          key={type.id}
+                          onClick={() => handleTypeChange(type.id)}
+                          className={`cursor-pointer ${
+                            selectedType === type.id ? "bg-purple-50" : ""
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`w-8 h-8 bg-gradient-to-br ${
+                              type.id === "HEBERGEMENT" 
+                                ? "from-blue-500 to-blue-600" 
+                                : "from-orange-500 to-orange-600"
+                            } rounded-lg flex items-center justify-center text-white font-bold text-sm`}>
+                              {getTypeIcon(type.id)}
+                            </div>
+                            <div>
+                              <div className="font-medium flex items-center gap-2">
+                                {type.label}
+                                {selectedType === type.id && (
+                                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                                )}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                Analyse quotidienne {type.label.toLowerCase()}
+                              </div>
+                            </div>
+                          </div>
+                        </DropdownMenuItem>
+                      ))}
+                      
+                      <div className="border-t my-1"></div>
+                      
+                      {/* Navigation vers autres vues */}
                       <DropdownMenuItem
                         onClick={() => router.push("/dashboard/ca-global")}
                         className="cursor-pointer"
@@ -453,7 +527,7 @@ export default function TypesCAPage() {
                         className="cursor-pointer"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
+                          <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
                             <BarChart3 className="h-4 w-4" />
                           </div>
                           <div>
@@ -471,8 +545,7 @@ export default function TypesCAPage() {
                 </div>
                 <div className="flex items-center space-x-2 text-sm text-gray-600">
                   <span>
-                    Vue par types • {caData.organization.totalTypes} types •{" "}
-                    {selectedSemester === "1" ? "1er" : "2ème"} semestre
+                    Analyse quotidienne {getTypeLabel(selectedType).toLowerCase()} • {selectedSemester === "1" ? "1er" : "2ème"} semestre
                   </span>
                   <span className="text-purple-600">•</span>
                   <span>
