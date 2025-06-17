@@ -1150,27 +1150,42 @@ export default function MandateCAPage() {
                 ))}
               </TableRow>
 
-              {/* Ligne évolution CA */}
+              {/* Ligne évolution CA basée sur moyenne journalière */}
               <TableRow className="bg-gray-100 font-medium">
                 <TableCell className="bg-gray-100 border-r text-center py-2 p-2">
                   <span className="text-sm font-bold">Évol. CA %</span>
                 </TableCell>
-                {caData.periods.map((period, index) => (
-                  <TableCell
-                    key={index}
-                    className="text-center border-r px-1 py-2 whitespace-nowrap"
-                  >
-                    <div className="flex justify-center items-center text-sm">
-                      {period.yearOverYear.revenueGrowth !== null
-                        ? formatPercentage(
-                            period.yearOverYear.revenueGrowth,
-                            true,
-                            2
-                          )
-                        : "-"}
-                    </div>
-                  </TableCell>
-                ))}
+                {caData.periods.map((period, index) => {
+                  // Calculer l'évolution basée sur les moyennes journalières
+                  const currentAverage = period.averageDaily;
+                  const previousAverage =
+                    period.yearOverYear.previousYearRevenue > 0 &&
+                    period.previousYearDailyValues
+                      ? period.yearOverYear.previousYearRevenue /
+                        period.previousYearDailyValues.filter(
+                          (dv) => dv.value > 0
+                        ).length
+                      : 0;
+
+                  const averageGrowth =
+                    previousAverage > 0
+                      ? ((currentAverage - previousAverage) / previousAverage) *
+                        100
+                      : null;
+
+                  return (
+                    <TableCell
+                      key={index}
+                      className="text-center border-r px-1 py-2 whitespace-nowrap"
+                    >
+                      <div className="flex justify-center items-center text-sm">
+                        {averageGrowth !== null
+                          ? formatPercentage(averageGrowth, true, 2)
+                          : "-"}
+                      </div>
+                    </TableCell>
+                  );
+                })}
               </TableRow>
 
               {/* Ligne évolution du cumul */}
