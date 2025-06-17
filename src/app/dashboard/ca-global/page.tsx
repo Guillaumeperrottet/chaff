@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/app/components/ui/button";
 import {
   Card,
@@ -30,6 +31,12 @@ import {
   TooltipTrigger,
 } from "@/app/components/ui/tooltip";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/app/components/ui/dropdown-menu";
+import {
   Building2,
   DollarSign,
   TrendingUp,
@@ -42,6 +49,7 @@ import {
   Download,
   CalendarIcon,
   Info,
+  ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -127,6 +135,7 @@ interface GlobalCAResponse {
 }
 
 export default function GlobalCAPage() {
+  const router = useRouter();
   const [caData, setCaData] = useState<GlobalCAResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState(
@@ -404,10 +413,59 @@ export default function GlobalCAPage() {
 
               {/* Infos globales */}
               <div className="flex-1 min-w-0">
+                {/* Nom avec menu déroulant discret pour navigation */}
                 <div className="flex items-center gap-2">
-                  <h1 className="text-xl md:text-2xl font-bold text-gray-900 truncate">
-                    CA Global - {caData.organization.name}
-                  </h1>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="flex items-center gap-1 text-xl md:text-2xl font-bold text-gray-900 hover:text-emerald-600 transition-colors duration-200 group truncate">
+                        <span className="truncate">
+                          CA Global - {caData.organization.name}
+                        </span>
+                        <ChevronDown className="h-4 w-4 opacity-70 group-hover:opacity-100 transition-opacity duration-200 text-emerald-500 flex-shrink-0" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-64">
+                      {/* Navigation vers CA Types */}
+                      <DropdownMenuItem
+                        onClick={() => router.push("/dashboard/ca-types")}
+                        className="cursor-pointer"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
+                            <BarChart3 className="h-4 w-4" />
+                          </div>
+                          <div>
+                            <div className="font-medium">CA par Types</div>
+                            <div className="text-xs text-muted-foreground">
+                              Analyse par types d&apos;établissements
+                            </div>
+                          </div>
+                        </div>
+                      </DropdownMenuItem>
+
+                      <div className="border-t my-1"></div>
+
+                      {/* Navigation vers autres vues */}
+                      <DropdownMenuItem
+                        onClick={() => router.push("/dashboard")}
+                        className="cursor-pointer"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
+                            <BarChart3 className="h-4 w-4" />
+                          </div>
+                          <div>
+                            <div className="font-medium">
+                              Dashboard Principal
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              Vue d&apos;ensemble des mandats
+                            </div>
+                          </div>
+                        </div>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
                 <div className="flex items-center space-x-2 text-sm text-gray-600">
                   <span>
