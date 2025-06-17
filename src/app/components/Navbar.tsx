@@ -28,7 +28,7 @@ import {
 import { useSession } from "@/lib/auth-client";
 import { authClient } from "@/lib/auth-client";
 import { toast } from "sonner";
-import { ThemeToggle } from "@/app/components/theme-provider";
+import CustomThemeToggle from "@/app/components/ui/custom-theme-toggle";
 
 // Interface pour les éléments du breadcrumb
 interface BreadcrumbItem {
@@ -281,7 +281,7 @@ function ChaffNavbar() {
           {/* Actions à droite */}
           <div className="flex items-center space-x-3">
             {/* Toggle thème */}
-            <ThemeToggle />
+            <CustomThemeToggle />
 
             {/* Menu utilisateur */}
             <DropdownMenu
