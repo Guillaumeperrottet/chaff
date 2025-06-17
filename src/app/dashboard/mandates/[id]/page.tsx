@@ -145,7 +145,7 @@ interface EditableCellProps {
   value: string;
   onSave: (newValue: string) => Promise<void>;
   formatDisplay?: (value: string) => string;
-  isCurrentYear: boolean;
+  isEditable: boolean; // Renommé pour plus de clarté
 }
 
 // ✅ Validation et formatage de l'input en temps réel
@@ -231,7 +231,7 @@ const EditableCell: React.FC<EditableCellProps> = ({
   value,
   onSave,
   formatDisplay,
-  isCurrentYear,
+  isEditable,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(value);
@@ -264,8 +264,8 @@ const EditableCell: React.FC<EditableCellProps> = ({
     }
   };
 
-  // Ne permettre l'édition que pour l'année courante
-  if (!isCurrentYear) {
+  // Ne permettre l'édition que si explicitement autorisée
+  if (!isEditable) {
     const displayValue = formatDisplay ? formatDisplay(value) : value;
     return (
       <div className="text-sm font-medium text-muted-foreground">
@@ -382,14 +382,13 @@ export default function MandateCAPage() {
         selectedYear,
       });
 
-      // Vérifier que c'est l'année courante
-      const currentYear = new Date().getFullYear();
-      if (parseInt(selectedYear) !== currentYear) {
-        toast.error(
-          "Vous ne pouvez modifier que les valeurs de l'année courante"
-        );
-        return;
-      }
+      // NOUVELLE LOGIQUE D'ÉDITION :
+      // Les données sont éditables quand elles correspondent à l'année sélectionnée
+      // (pas forcément l'année système courante)
+      console.log(
+        "✅ Édition autorisée pour l'année sélectionnée:",
+        selectedYear
+      );
 
       // Utiliser la fonction de nettoyage
       const numericValue = cleanNumericValue(newValue);
@@ -1069,10 +1068,7 @@ export default function MandateCAPage() {
                                 ? "-"
                                 : formatCurrency(num);
                             }}
-                            isCurrentYear={
-                              parseInt(selectedYear) ===
-                              new Date().getFullYear()
-                            }
+                            isEditable={true} // Toujours éditable dans la vue correspondante
                           />
                         </div>
                       </div>
