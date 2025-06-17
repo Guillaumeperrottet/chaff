@@ -39,7 +39,6 @@ import {
   Calculator,
   BarChart3,
   Users,
-  Building2,
   ChevronDown,
 } from "lucide-react";
 import EmptyState from "@/app/components/EmptyState";
@@ -989,15 +988,6 @@ export default function DashboardPage() {
 
             <div className="flex items-center gap-2">
               <Button
-                onClick={() => router.push("/dashboard/ca-global")}
-                variant="outline"
-                className="border-emerald-200 hover:bg-emerald-50 text-emerald-700 hover:text-emerald-800"
-              >
-                <Building2 className="mr-2 h-4 w-4" />
-                CA Global
-              </Button>
-
-              <Button
                 onClick={() => router.push("/dashboard/analytics")}
                 variant="outline"
                 className="border-slate-200 hover:bg-slate-50"
@@ -1082,17 +1072,6 @@ export default function DashboardPage() {
 
                       {/* Autres actions */}
                       <div className="py-1">
-                        <button
-                          onClick={() => {
-                            router.push("/dashboard/ca-global");
-                            setIsBurgerMenuOpen(false);
-                          }}
-                          className="w-full flex items-center px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
-                        >
-                          <Building2 className="mr-3 h-4 w-4 text-emerald-600" />
-                          CA Global
-                        </button>
-
                         <button
                           onClick={() => {
                             router.push("/dashboard/analytics");
@@ -1499,7 +1478,25 @@ export default function DashboardPage() {
                           </div>
                         </TableCell>
                       ))}
-                      <TableCell></TableCell>
+                      <TableCell className="py-3">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() =>
+                                router.push("/dashboard/ca-global")
+                              }
+                            >
+                              <Eye className="mr-2 h-4 w-4" />
+                              Voir CA Global
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
                     </TableRow>
                   </TableFooter>
                 )}
