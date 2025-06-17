@@ -163,7 +163,7 @@ export default function TypesCAPage() {
           { id: "HEBERGEMENT", name: "HEBERGEMENT", label: "Hébergement" },
           { id: "RESTAURATION", name: "RESTAURATION", label: "Restauration" },
         ];
-        
+
         // TODO: Ajouter la logique pour charger les types personnalisés depuis l'API
         setAvailableTypes(defaultTypes);
       } catch (error) {
@@ -254,7 +254,7 @@ export default function TypesCAPage() {
 
   // Fonction pour obtenir le label d'un type
   const getTypeLabel = (typeId: string): string => {
-    const type = availableTypes.find(t => t.id === typeId);
+    const type = availableTypes.find((t) => t.id === typeId);
     return type?.label || typeId;
   };
 
@@ -447,11 +447,13 @@ export default function TypesCAPage() {
             <div className="flex items-center space-x-4 flex-1 min-w-0">
               {/* Avatar avec gradient */}
               <div className="relative flex-shrink-0">
-                <div className={`w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br ${
-                  selectedType === "HEBERGEMENT" 
-                    ? "from-blue-500 to-blue-600" 
-                    : "from-orange-500 to-orange-600"
-                } rounded-xl flex items-center justify-center text-white font-bold text-base md:text-lg shadow-lg`}>
+                <div
+                  className={`w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br ${
+                    selectedType === "HEBERGEMENT"
+                      ? "from-blue-500 to-blue-600"
+                      : "from-orange-500 to-orange-600"
+                  } rounded-xl flex items-center justify-center text-white font-bold text-base md:text-lg shadow-lg`}
+                >
                   {getTypeIcon(selectedType)}
                 </div>
                 <div className="absolute -bottom-1 -right-1 w-3 h-3 md:w-4 md:h-4 bg-green-500 rounded-full border-2 border-white"></div>
@@ -465,7 +467,8 @@ export default function TypesCAPage() {
                     <DropdownMenuTrigger asChild>
                       <button className="flex items-center gap-1 text-xl md:text-2xl font-bold text-gray-900 hover:text-purple-600 transition-colors duration-200 group truncate">
                         <span className="truncate">
-                          {getTypeLabel(selectedType)} - {caData.organization.name}
+                          {getTypeLabel(selectedType)} -{" "}
+                          {caData.organization.name}
                         </span>
                         <ChevronDown className="h-4 w-4 opacity-70 group-hover:opacity-100 transition-opacity duration-200 text-purple-500 flex-shrink-0" />
                       </button>
@@ -481,11 +484,13 @@ export default function TypesCAPage() {
                           }`}
                         >
                           <div className="flex items-center gap-3">
-                            <div className={`w-8 h-8 bg-gradient-to-br ${
-                              type.id === "HEBERGEMENT" 
-                                ? "from-blue-500 to-blue-600" 
-                                : "from-orange-500 to-orange-600"
-                            } rounded-lg flex items-center justify-center text-white font-bold text-sm`}>
+                            <div
+                              className={`w-8 h-8 bg-gradient-to-br ${
+                                type.id === "HEBERGEMENT"
+                                  ? "from-blue-500 to-blue-600"
+                                  : "from-orange-500 to-orange-600"
+                              } rounded-lg flex items-center justify-center text-white font-bold text-sm`}
+                            >
                               {getTypeIcon(type.id)}
                             </div>
                             <div>
@@ -502,9 +507,9 @@ export default function TypesCAPage() {
                           </div>
                         </DropdownMenuItem>
                       ))}
-                      
+
                       <div className="border-t my-1"></div>
-                      
+
                       {/* Navigation vers autres vues */}
                       <DropdownMenuItem
                         onClick={() => router.push("/dashboard/ca-global")}
@@ -545,7 +550,9 @@ export default function TypesCAPage() {
                 </div>
                 <div className="flex items-center space-x-2 text-sm text-gray-600">
                   <span>
-                    Analyse quotidienne {getTypeLabel(selectedType).toLowerCase()} • {selectedSemester === "1" ? "1er" : "2ème"} semestre
+                    Analyse quotidienne{" "}
+                    {getTypeLabel(selectedType).toLowerCase()} •{" "}
+                    {selectedSemester === "1" ? "1er" : "2ème"} semestre
                   </span>
                   <span className="text-purple-600">•</span>
                   <span>

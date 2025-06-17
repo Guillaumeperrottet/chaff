@@ -148,7 +148,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Si on filtre par type spécifique, utiliser seulement ce type
-    const typeGroups = selectedType 
+    const typeGroups = selectedType
       ? { [selectedType]: mandates }
       : mandates.reduce(
           (groups, mandate) => {

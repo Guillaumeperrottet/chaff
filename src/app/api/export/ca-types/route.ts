@@ -78,8 +78,11 @@ export async function GET(request: NextRequest) {
     };
 
     // Filtrer par type si spécifié
-    const typeGroups = selectedType 
-      ? { [selectedType]: allTypeGroups[selectedType as keyof typeof allTypeGroups] || [] }
+    const typeGroups = selectedType
+      ? {
+          [selectedType]:
+            allTypeGroups[selectedType as keyof typeof allTypeGroups] || [],
+        }
       : allTypeGroups;
 
     // Fonction pour formater les montants en CHF
@@ -137,19 +140,19 @@ export async function GET(request: NextRequest) {
     // Fonction pour obtenir le label du type
     const getTypeLabel = (typeId: string): string => {
       const labels: Record<string, string> = {
-        'HEBERGEMENT': 'Hébergement',
-        'RESTAURATION': 'Restauration',
-        'COMMERCE': 'Commerce',
-        'SERVICES': 'Services'
+        HEBERGEMENT: "Hébergement",
+        RESTAURATION: "Restauration",
+        COMMERCE: "Commerce",
+        SERVICES: "Services",
       };
       return labels[typeId] || typeId;
     };
 
     // En-tête du fichier
-    const exportTitle = selectedType 
+    const exportTitle = selectedType
       ? `"EXPORT CA ${getTypeLabel(selectedType).toUpperCase()} - Organisation Test"`
       : `"EXPORT CA PAR TYPES - Organisation Test"`;
-    
+
     csvLines.push(exportTitle);
     csvLines.push(
       `"Période: ${period === "6months" ? "Semestrielle" : "Annuelle"}"`
