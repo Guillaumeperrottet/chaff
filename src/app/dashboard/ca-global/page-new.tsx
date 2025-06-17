@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/app/components/ui/button";
 import {
   Card,
@@ -30,6 +31,7 @@ import {
   TooltipTrigger,
 } from "@/app/components/ui/tooltip";
 import {
+  ArrowLeft,
   Building2,
   DollarSign,
   TrendingUp,
@@ -127,6 +129,8 @@ interface GlobalCAResponse {
 }
 
 export default function GlobalCAPage() {
+  const router = useRouter();
+
   const [caData, setCaData] = useState<GlobalCAResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState(
@@ -761,8 +765,8 @@ export default function GlobalCAPage() {
                           </div>
                           <div className="text-gray-600">
                             Somme progressive des valeurs consolidées depuis le
-                            début de la période sélectionnée pour l&apos;année
-                            courante et l&apos;année précédente.
+                            début de la période sélectionnée pour l'année
+                            courante et l'année précédente.
                           </div>
                           <div className="space-y-1">
                             <div className="text-gray-600">
