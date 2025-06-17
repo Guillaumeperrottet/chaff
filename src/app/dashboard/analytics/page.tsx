@@ -36,8 +36,25 @@ import {
   Loader2,
   Download,
   RefreshCw,
+  DollarSign,
+  AlertTriangle,
+  Target,
+  PieChart,
+  Activity,
+  Settings,
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/app/components/ui/dialog";
+import { Separator } from "@/app/components/ui/separator";
+import Switch from "@/app/components/ui/switch";
+import { Label } from "@/app/components/ui/label";
 
 interface AnalyticsData {
   overview: {
@@ -45,10 +62,13 @@ interface AnalyticsData {
     totalMandates: number;
     totalValues: number;
     averageDaily: number;
+    totalPayroll?: number;
+    averagePayrollRatio?: number;
     growth: {
       revenue: number;
       mandates: number;
       values: number;
+      payroll?: number;
     };
   };
   timeSeriesData: Array<{
@@ -57,6 +77,8 @@ interface AnalyticsData {
     hebergementRevenue: number;
     restaurationRevenue: number;
     valueCount: number;
+    payrollCost?: number;
+    payrollRatio?: number;
   }>;
   mandatePerformance: Array<{
     id: string;
@@ -67,6 +89,9 @@ interface AnalyticsData {
     averageDaily: number;
     lastEntry: string | null;
     growthPercentage: number;
+    payrollCost?: number;
+    payrollRatio?: number;
+    profitability?: "high" | "medium" | "low" | "critical";
   }>;
   groupAnalysis: {
     hebergement: {
@@ -74,12 +99,16 @@ interface AnalyticsData {
       mandateCount: number;
       averagePerMandate: number;
       topMandate: { name: string; revenue: number } | null;
+      payrollCost?: number;
+      averagePayrollRatio?: number;
     };
     restauration: {
       totalRevenue: number;
       mandateCount: number;
       averagePerMandate: number;
       topMandate: { name: string; revenue: number } | null;
+      payrollCost?: number;
+      averagePayrollRatio?: number;
     };
   };
   periodicAnalysis: {
@@ -87,12 +116,35 @@ interface AnalyticsData {
       dayName: string;
       averageRevenue: number;
       totalValues: number;
+      averagePayrollRatio?: number;
     }>;
     monthly: Array<{
       month: string;
       totalRevenue: number;
       totalValues: number;
       averageDaily: number;
+      payrollCost?: number;
+      payrollRatio?: number;
+    }>;
+  };
+  profitabilityAnalysis?: {
+    topProfitable: Array<{
+      id: string;
+      name: string;
+      payrollRatio: number;
+      revenue: number;
+    }>;
+    atRisk: Array<{
+      id: string;
+      name: string;
+      payrollRatio: number;
+      revenue: number;
+    }>;
+    improving: Array<{
+      id: string;
+      name: string;
+      payrollRatio: number;
+      trend: number;
     }>;
   };
 }
@@ -117,6 +169,9 @@ export default function AnalyticsPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [period, setPeriod] = useState("30");
   const [selectedView, setSelectedView] = useState("overview");
+  const [showPayrollData, setShowPayrollData] = useState(true);
+  const [selectedMandateType, setSelectedMandateType] = useState("all");
+  const [sortBy, setSortBy] = useState("revenue");
 
   // Charger les données analytics
   const fetchAnalytics = async (showRefreshing = false) => {
@@ -146,7 +201,7 @@ export default function AnalyticsPage() {
 
   useEffect(() => {
     fetchAnalytics();
-  }, [period]);
+  }, [period]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleExportAnalytics = async () => {
     try {
@@ -194,6 +249,27 @@ export default function AnalyticsPage() {
 
   const getGrowthColor = (value: number) => {
     return value >= 0 ? "text-green-600" : "text-red-600";
+  };
+
+  const getProfitabilityColor = (ratio?: number) => {
+    if (!ratio) return "text-gray-500";
+    if (ratio <= 30) return "text-green-600";
+    if (ratio <= 50) return "text-yellow-600";
+    if (ratio <= 70) return "text-orange-600";
+    return "text-red-600";
+  };
+
+  const getProfitabilityLabel = (ratio?: number) => {
+    if (!ratio) return "N/A";
+    if (ratio <= 30) return "Excellent";
+    if (ratio <= 50) return "Bon";
+    if (ratio <= 70) return "Attention";
+    return "Critique";
+  };
+
+  const formatRatio = (ratio?: number) => {
+    if (!ratio) return "N/A";
+    return `${ratio.toFixed(1)}%`;
   };
 
   if (loading) {
@@ -245,6 +321,31 @@ export default function AnalyticsPage() {
               <SelectItem value="365">Dernière année</SelectItem>
             </SelectContent>
           </Select>
+
+          <Select
+            value={selectedMandateType}
+            onValueChange={setSelectedMandateType}
+          >
+            <SelectTrigger className="w-[150px]">
+              <SelectValue placeholder="Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tous</SelectItem>
+              <SelectItem value="hebergement">Hébergement</SelectItem>
+              <SelectItem value="restauration">Restauration</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowPayrollData(!showPayrollData)}
+            className={showPayrollData ? "bg-primary/10" : ""}
+          >
+            <DollarSign className="mr-2 h-4 w-4" />
+            Masse salariale
+          </Button>
+
           <Button
             variant="outline"
             size="sm"
@@ -262,11 +363,50 @@ export default function AnalyticsPage() {
             <Download className="mr-2 h-4 w-4" />
             Exporter
           </Button>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Settings className="mr-2 h-4 w-4" />
+                Paramètres
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="w-[400px]">
+              <DialogHeader>
+                <DialogTitle>Paramètres avancés</DialogTitle>
+                <DialogDescription>
+                  Personnalisez l&apos;affichage des analytics.
+                </DialogDescription>
+              </DialogHeader>
+              <Separator className="my-4" />
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="showPayrollData">
+                    Afficher masse salariale
+                  </Label>
+                  <Switch
+                    checked={showPayrollData}
+                    onCheckedChange={setShowPayrollData}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="sortByRevenue">
+                    Trier par revenue par défaut
+                  </Label>
+                  <Switch
+                    checked={sortBy === "revenue"}
+                    onCheckedChange={(checked: boolean) =>
+                      setSortBy(checked ? "revenue" : "growth")
+                    }
+                  />
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
       {/* Vue d'ensemble */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Revenue Total</CardTitle>
@@ -348,26 +488,56 @@ export default function AnalyticsPage() {
             </p>
           </CardContent>
         </Card>
+
+        {showPayrollData && data.overview.totalPayroll && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Ratio Masse Salariale
+              </CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                <span
+                  className={getProfitabilityColor(
+                    data.overview.averagePayrollRatio
+                  )}
+                >
+                  {formatRatio(data.overview.averagePayrollRatio)}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {getProfitabilityLabel(data.overview.averagePayrollRatio)}
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Navigation des vues */}
       <div className="flex items-center space-x-1 border-b">
         {[
-          { id: "overview", label: "Vue d'ensemble" },
-          { id: "mandates", label: "Performance mandats" },
-          { id: "groups", label: "Analyse par groupe" },
-          { id: "periods", label: "Analyse temporelle" },
-        ].map((view) => (
-          <Button
-            key={view.id}
-            variant={selectedView === view.id ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setSelectedView(view.id)}
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary"
-          >
-            {view.label}
-          </Button>
-        ))}
+          { id: "overview", label: "Vue d'ensemble", icon: BarChart3 },
+          { id: "mandates", label: "Performance mandats", icon: Building2 },
+          { id: "profitability", label: "Rentabilité", icon: Target },
+          { id: "groups", label: "Analyse par groupe", icon: PieChart },
+          { id: "periods", label: "Analyse temporelle", icon: Activity },
+        ].map((view) => {
+          const IconComponent = view.icon;
+          return (
+            <Button
+              key={view.id}
+              variant={selectedView === view.id ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setSelectedView(view.id)}
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary"
+            >
+              <IconComponent className="mr-2 h-4 w-4" />
+              {view.label}
+            </Button>
+          );
+        })}
       </div>
 
       {/* Contenu des vues */}
@@ -466,10 +636,29 @@ export default function AnalyticsPage() {
       {selectedView === "mandates" && (
         <Card>
           <CardHeader>
-            <CardTitle>Performance détaillée des mandats</CardTitle>
-            <CardDescription>
-              Analyse complète de chaque mandat sur la période
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Performance détaillée des mandats</CardTitle>
+                <CardDescription>
+                  Analyse complète de chaque mandat sur la période
+                </CardDescription>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="w-[160px]">
+                    <SelectValue placeholder="Trier par" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="revenue">Revenue</SelectItem>
+                    <SelectItem value="growth">Croissance</SelectItem>
+                    <SelectItem value="values">Nb Saisies</SelectItem>
+                    {showPayrollData && (
+                      <SelectItem value="payroll">Ratio MS</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             <Table>
@@ -481,12 +670,34 @@ export default function AnalyticsPage() {
                   <TableHead>Nb Saisies</TableHead>
                   <TableHead>Moyenne/Saisie</TableHead>
                   <TableHead>Croissance</TableHead>
+                  {showPayrollData && <TableHead>Ratio MS</TableHead>}
                   <TableHead>Dernière Saisie</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {data.mandatePerformance
-                  .sort((a, b) => b.totalRevenue - a.totalRevenue)
+                  .filter(
+                    (mandate) =>
+                      selectedMandateType === "all" ||
+                      (selectedMandateType === "hebergement" &&
+                        mandate.group === "Hébergement") ||
+                      (selectedMandateType === "restauration" &&
+                        mandate.group === "Restauration")
+                  )
+                  .sort((a, b) => {
+                    switch (sortBy) {
+                      case "growth":
+                        return b.growthPercentage - a.growthPercentage;
+                      case "values":
+                        return b.valueCount - a.valueCount;
+                      case "payroll":
+                        return (
+                          (a.payrollRatio || 100) - (b.payrollRatio || 100)
+                        );
+                      default:
+                        return b.totalRevenue - a.totalRevenue;
+                    }
+                  })
                   .map((mandate) => (
                     <TableRow key={mandate.id}>
                       <TableCell>
@@ -530,6 +741,21 @@ export default function AnalyticsPage() {
                           </span>
                         </div>
                       </TableCell>
+                      {showPayrollData && (
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            <span
+                              className={`font-mono ${getProfitabilityColor(mandate.payrollRatio)}`}
+                            >
+                              {formatRatio(mandate.payrollRatio)}
+                            </span>
+                            {mandate.payrollRatio &&
+                              mandate.payrollRatio > 60 && (
+                                <AlertTriangle className="h-4 w-4 text-red-500" />
+                              )}
+                          </div>
+                        </TableCell>
+                      )}
                       <TableCell className="text-muted-foreground">
                         {mandate.lastEntry
                           ? new Date(mandate.lastEntry).toLocaleDateString(
@@ -541,6 +767,406 @@ export default function AnalyticsPage() {
                   ))}
               </TableBody>
             </Table>
+          </CardContent>
+        </Card>
+      )}
+
+      {selectedView === "profitability" && showPayrollData && (
+        <div className="space-y-6">
+          {/* Vue d'ensemble de la rentabilité */}
+          <div className="grid gap-4 md:grid-cols-3">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center">
+                  <Target className="mr-2 h-5 w-5 text-green-600" />
+                  Top Rentables
+                </CardTitle>
+                <CardDescription>
+                  Mandats avec les meilleurs ratios MS/CA
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {data.profitabilityAnalysis?.topProfitable
+                    ?.slice(0, 5)
+                    .map((mandate) => (
+                      <div
+                        key={mandate.id}
+                        className="flex items-center justify-between"
+                      >
+                        <div>
+                          <div className="font-medium text-sm">
+                            {mandate.name}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {formatCurrency(mandate.revenue)}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div
+                            className={`font-bold ${getProfitabilityColor(mandate.payrollRatio)}`}
+                          >
+                            {formatRatio(mandate.payrollRatio)}
+                          </div>
+                        </div>
+                      </div>
+                    )) ?? (
+                    <p className="text-sm text-muted-foreground">
+                      Aucune donnée disponible
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center">
+                  <AlertTriangle className="mr-2 h-5 w-5 text-red-600" />À
+                  Risque
+                </CardTitle>
+                <CardDescription>
+                  Mandats avec ratios MS/CA élevés
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {data.profitabilityAnalysis?.atRisk
+                    ?.slice(0, 5)
+                    .map((mandate) => (
+                      <div
+                        key={mandate.id}
+                        className="flex items-center justify-between"
+                      >
+                        <div>
+                          <div className="font-medium text-sm">
+                            {mandate.name}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {formatCurrency(mandate.revenue)}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div
+                            className={`font-bold ${getProfitabilityColor(mandate.payrollRatio)}`}
+                          >
+                            {formatRatio(mandate.payrollRatio)}
+                          </div>
+                        </div>
+                      </div>
+                    )) ?? (
+                    <p className="text-sm text-muted-foreground">
+                      Aucune donnée disponible
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center">
+                  <TrendingUp className="mr-2 h-5 w-5 text-blue-600" />
+                  En Amélioration
+                </CardTitle>
+                <CardDescription>
+                  Mandats avec tendance positive
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {data.profitabilityAnalysis?.improving
+                    ?.slice(0, 5)
+                    .map((mandate) => (
+                      <div
+                        key={mandate.id}
+                        className="flex items-center justify-between"
+                      >
+                        <div>
+                          <div className="font-medium text-sm">
+                            {mandate.name}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            Tendance: {formatPercentage(mandate.trend)}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div
+                            className={`font-bold ${getProfitabilityColor(mandate.payrollRatio)}`}
+                          >
+                            {formatRatio(mandate.payrollRatio)}
+                          </div>
+                        </div>
+                      </div>
+                    )) ?? (
+                    <p className="text-sm text-muted-foreground">
+                      Aucune donnée disponible
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Évolution des ratios dans le temps */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Évolution des ratios masse salariale</CardTitle>
+              <CardDescription>
+                Comparaison revenue vs masse salariale par mois
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {data.periodicAnalysis.monthly.map((month) => (
+                  <div
+                    key={month.month}
+                    className="flex items-center justify-between p-3 border rounded-lg"
+                  >
+                    <div>
+                      <span className="font-medium">{month.month}</span>
+                      <div className="text-sm text-muted-foreground">
+                        Revenue: {formatCurrency(month.totalRevenue)}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div
+                        className={`font-bold text-lg ${getProfitabilityColor(month.payrollRatio)}`}
+                      >
+                        {formatRatio(month.payrollRatio)}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        MS:{" "}
+                        {month.payrollCost
+                          ? formatCurrency(month.payrollCost)
+                          : "N/A"}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {selectedView === "profitability" && !showPayrollData && (
+        <Card>
+          <CardContent className="py-12">
+            <div className="text-center">
+              <DollarSign className="mx-auto h-12 w-12 text-muted-foreground" />
+              <h3 className="mt-4 text-lg font-medium">
+                Données de masse salariale requises
+              </h3>
+              <p className="mt-2 text-muted-foreground">
+                Activez l&apos;affichage des données de masse salariale pour
+                voir l&apos;analyse de rentabilité.
+              </p>
+              <Button className="mt-4" onClick={() => setShowPayrollData(true)}>
+                <DollarSign className="mr-2 h-4 w-4" />
+                Activer les données de masse salariale
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {selectedView === "profitability" && showPayrollData && (
+        <div className="space-y-6">
+          {/* Vue d'ensemble de la rentabilité */}
+          <div className="grid gap-4 md:grid-cols-3">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center">
+                  <Target className="mr-2 h-5 w-5 text-green-600" />
+                  Top Rentables
+                </CardTitle>
+                <CardDescription>
+                  Mandats avec les meilleurs ratios MS/CA
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {data.profitabilityAnalysis?.topProfitable
+                    ?.slice(0, 5)
+                    .map((mandate) => (
+                      <div
+                        key={mandate.id}
+                        className="flex items-center justify-between"
+                      >
+                        <div>
+                          <div className="font-medium text-sm">
+                            {mandate.name}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {formatCurrency(mandate.revenue)}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div
+                            className={`font-bold ${getProfitabilityColor(mandate.payrollRatio)}`}
+                          >
+                            {formatRatio(mandate.payrollRatio)}
+                          </div>
+                        </div>
+                      </div>
+                    )) ?? (
+                    <p className="text-sm text-muted-foreground">
+                      Aucune donnée disponible
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center">
+                  <AlertTriangle className="mr-2 h-5 w-5 text-red-600" />À
+                  Risque
+                </CardTitle>
+                <CardDescription>
+                  Mandats avec ratios MS/CA élevés
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {data.profitabilityAnalysis?.atRisk
+                    ?.slice(0, 5)
+                    .map((mandate) => (
+                      <div
+                        key={mandate.id}
+                        className="flex items-center justify-between"
+                      >
+                        <div>
+                          <div className="font-medium text-sm">
+                            {mandate.name}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {formatCurrency(mandate.revenue)}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div
+                            className={`font-bold ${getProfitabilityColor(mandate.payrollRatio)}`}
+                          >
+                            {formatRatio(mandate.payrollRatio)}
+                          </div>
+                        </div>
+                      </div>
+                    )) ?? (
+                    <p className="text-sm text-muted-foreground">
+                      Aucune donnée disponible
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center">
+                  <TrendingUp className="mr-2 h-5 w-5 text-blue-600" />
+                  En Amélioration
+                </CardTitle>
+                <CardDescription>
+                  Mandats avec tendance positive
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {data.profitabilityAnalysis?.improving
+                    ?.slice(0, 5)
+                    .map((mandate) => (
+                      <div
+                        key={mandate.id}
+                        className="flex items-center justify-between"
+                      >
+                        <div>
+                          <div className="font-medium text-sm">
+                            {mandate.name}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            Tendance: {formatPercentage(mandate.trend)}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div
+                            className={`font-bold ${getProfitabilityColor(mandate.payrollRatio)}`}
+                          >
+                            {formatRatio(mandate.payrollRatio)}
+                          </div>
+                        </div>
+                      </div>
+                    )) ?? (
+                    <p className="text-sm text-muted-foreground">
+                      Aucune donnée disponible
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Évolution des ratios dans le temps */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Évolution des ratios masse salariale</CardTitle>
+              <CardDescription>
+                Comparaison revenue vs masse salariale par mois
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {data.periodicAnalysis.monthly.map((month) => (
+                  <div
+                    key={month.month}
+                    className="flex items-center justify-between p-3 border rounded-lg"
+                  >
+                    <div>
+                      <span className="font-medium">{month.month}</span>
+                      <div className="text-sm text-muted-foreground">
+                        Revenue: {formatCurrency(month.totalRevenue)}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div
+                        className={`font-bold text-lg ${getProfitabilityColor(month.payrollRatio)}`}
+                      >
+                        {formatRatio(month.payrollRatio)}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        MS:{" "}
+                        {month.payrollCost
+                          ? formatCurrency(month.payrollCost)
+                          : "N/A"}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {selectedView === "profitability" && !showPayrollData && (
+        <Card>
+          <CardContent className="py-12">
+            <div className="text-center">
+              <DollarSign className="mx-auto h-12 w-12 text-muted-foreground" />
+              <h3 className="mt-4 text-lg font-medium">
+                Données de masse salariale requises
+              </h3>{" "}
+              <p className="mt-2 text-muted-foreground">
+                Activez l&apos;affichage des données de masse salariale pour
+                voir l&apos;analyse de rentabilité.
+              </p>
+              <Button className="mt-4" onClick={() => setShowPayrollData(true)}>
+                <DollarSign className="mr-2 h-4 w-4" />
+                Activer les données de masse salariale
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -575,6 +1201,33 @@ export default function AnalyticsPage() {
                   )}
                 </span>
               </div>
+              {showPayrollData &&
+                data.groupAnalysis.hebergement.payrollCost && (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">
+                        Masse salariale
+                      </span>
+                      <span className="font-mono">
+                        {formatCurrency(
+                          data.groupAnalysis.hebergement.payrollCost
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">
+                        Ratio MS/CA moyen
+                      </span>
+                      <span
+                        className={`font-bold ${getProfitabilityColor(data.groupAnalysis.hebergement.averagePayrollRatio)}`}
+                      >
+                        {formatRatio(
+                          data.groupAnalysis.hebergement.averagePayrollRatio
+                        )}
+                      </span>
+                    </div>
+                  </>
+                )}
               {data.groupAnalysis.hebergement.topMandate && (
                 <div className="border-t pt-4">
                   <div className="text-sm text-muted-foreground mb-2">
@@ -623,6 +1276,33 @@ export default function AnalyticsPage() {
                   )}
                 </span>
               </div>
+              {showPayrollData &&
+                data.groupAnalysis.restauration.payrollCost && (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">
+                        Masse salariale
+                      </span>
+                      <span className="font-mono">
+                        {formatCurrency(
+                          data.groupAnalysis.restauration.payrollCost
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">
+                        Ratio MS/CA moyen
+                      </span>
+                      <span
+                        className={`font-bold ${getProfitabilityColor(data.groupAnalysis.restauration.averagePayrollRatio)}`}
+                      >
+                        {formatRatio(
+                          data.groupAnalysis.restauration.averagePayrollRatio
+                        )}
+                      </span>
+                    </div>
+                  </>
+                )}
               {data.groupAnalysis.restauration.topMandate && (
                 <div className="border-t pt-4">
                   <div className="text-sm text-muted-foreground mb-2">
@@ -650,22 +1330,39 @@ export default function AnalyticsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Performance par jour de la semaine</CardTitle>
+              <CardDescription>
+                Analyse des tendances hebdomadaires
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
                 {data.periodicAnalysis.daily.map((day) => (
                   <div
                     key={day.dayName}
-                    className="flex items-center justify-between"
+                    className="flex items-center justify-between p-2 rounded-lg border"
                   >
                     <span className="font-medium">{day.dayName}</span>
                     <div className="flex items-center space-x-4">
-                      <span className="text-sm">
-                        {formatCurrency(day.averageRevenue)}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        ({day.totalValues} saisies)
-                      </span>
+                      <div className="text-right">
+                        <div className="text-sm font-medium">
+                          {formatCurrency(day.averageRevenue)}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {day.totalValues} saisies
+                        </div>
+                      </div>
+                      {showPayrollData && day.averagePayrollRatio && (
+                        <div className="text-right">
+                          <div
+                            className={`text-sm font-bold ${getProfitabilityColor(day.averagePayrollRatio)}`}
+                          >
+                            {formatRatio(day.averagePayrollRatio)}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            MS
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -676,22 +1373,35 @@ export default function AnalyticsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Performance mensuelle</CardTitle>
+              <CardDescription>
+                Évolution mensuelle avec rentabilité
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
                 {data.periodicAnalysis.monthly.map((month) => (
                   <div
                     key={month.month}
-                    className="flex items-center justify-between"
+                    className="flex items-center justify-between p-3 rounded-lg border"
                   >
-                    <span className="font-medium">{month.month}</span>
-                    <div className="flex items-center space-x-4">
-                      <span className="text-sm">
+                    <div>
+                      <span className="font-medium">{month.month}</span>
+                      <div className="text-xs text-muted-foreground">
+                        {month.totalValues} saisies • Moy:{" "}
+                        {formatCurrency(month.averageDaily)}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm font-bold">
                         {formatCurrency(month.totalRevenue)}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        ({month.totalValues} saisies)
-                      </span>
+                      </div>
+                      {showPayrollData && month.payrollRatio && (
+                        <div
+                          className={`text-xs font-medium ${getProfitabilityColor(month.payrollRatio)}`}
+                        >
+                          MS: {formatRatio(month.payrollRatio)}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
