@@ -480,7 +480,7 @@ export default function DashboardPage() {
     return numericValue;
   };
 
-  // ✅ NOUVELLE VERSION DE handleSaveValue
+  // ✅ NOUVELLE VERSION DE handleSaveValue AVEC POSSIBILITÉ D'ANNULATION
   const handleSaveValue = async (
     mandateId: string,
     dateKey: string,
@@ -493,6 +493,11 @@ export default function DashboardPage() {
         newValue,
         type: typeof newValue,
       });
+
+      // Sauvegarder l'ancienne valeur pour l'annulation
+      const campus = dashboardData?.data.find((item) => item.id === mandateId);
+      const oldValueStr = campus?.values[dateKey] || "0.00";
+      const oldValue = cleanNumericValue(oldValueStr);
 
       // Utiliser la nouvelle fonction de nettoyage
       const numericValue = cleanNumericValue(newValue);
@@ -525,7 +530,72 @@ export default function DashboardPage() {
 
       // Recharger les données pour refléter les changements
       await fetchDashboardData();
-      toast.success("Valeur mise à jour avec succès");
+
+      // Fonction pour formater le montant pour l'affichage
+      const formatDisplayValue = (value: number) => {
+        if (value >= 1000) {
+          const parts = value.toFixed(2).split(".");
+          const integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, "'");
+          return `CHF ${integerPart},${parts[1]}`;
+        } else {
+          return `CHF ${value.toFixed(2).replace(".", ",")}`;
+        }
+      };
+
+      // Toast avec possibilité d'annulation pendant 8 secondes
+      const toastId = toast.success(
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex-1">
+            <div className="font-medium">Valeur mise à jour</div>
+            <div className="text-sm text-muted-foreground">
+              {formatDisplayValue(oldValue)} →{" "}
+              {formatDisplayValue(numericValue)}
+            </div>
+          </div>
+          <button
+            onClick={async () => {
+              try {
+                // Annuler la modification en restaurant l'ancienne valeur
+                const undoResponse = await fetch(
+                  "/api/dashboard/update-value",
+                  {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      mandateId,
+                      dateKey,
+                      value: oldValue,
+                    }),
+                  }
+                );
+
+                if (undoResponse.ok) {
+                  // Recharger les données
+                  await fetchDashboardData();
+
+                  // Fermer le toast actuel et afficher un nouveau message
+                  toast.dismiss(toastId);
+                  toast.info("Modification annulée");
+                } else {
+                  toast.error("Erreur lors de l'annulation");
+                }
+              } catch (error) {
+                console.error("Erreur lors de l'annulation:", error);
+                toast.error("Erreur lors de l'annulation");
+              }
+            }}
+            className="px-3 py-1 text-xs bg-white text-gray-700 border border-gray-200 rounded hover:bg-gray-50 transition-colors"
+          >
+            Annuler
+          </button>
+        </div>,
+        {
+          duration: 8000, // 8 secondes
+          id: `update-${mandateId}-${dateKey}-${Date.now()}`,
+        }
+      );
     } catch (error) {
       console.error("Erreur lors de la sauvegarde:", error);
       toast.error("Erreur lors de la sauvegarde");
