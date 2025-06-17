@@ -254,6 +254,14 @@ export async function GET(request: NextRequest) {
         const dailyValues: DayCAData[] = [];
         const previousYearDailyValues: DayCAData[] = [];
 
+        // Calculer le nombre de jours dans le mois de l'année précédente
+        const previousYearEndDate = new Date(
+          periodInfo.year - 1,
+          periodInfo.month,
+          0
+        );
+        const daysInPreviousYearMonth = previousYearEndDate.getDate();
+
         for (let day = 1; day <= daysInMonth; day++) {
           const dayDate = new Date(periodInfo.year, periodInfo.month - 1, day);
 
@@ -268,16 +276,14 @@ export async function GET(request: NextRequest) {
             formattedDate: formatDate(dayDate),
           });
 
-          // Année précédente
-          const previousYearDayDate = new Date(
-            periodInfo.year - 1,
-            periodInfo.month - 1,
-            day
-          );
+          // Année précédente - Vérifier que le jour existe dans l'année précédente
+          if (day <= daysInPreviousYearMonth) {
+            const previousYearDayDate = new Date(
+              periodInfo.year - 1,
+              periodInfo.month - 1,
+              day
+            );
 
-          if (
-            day <= new Date(periodInfo.year - 1, periodInfo.month, 0).getDate()
-          ) {
             const previousDayTotal = previousYearValues
               .filter(
                 (v) =>
@@ -291,6 +297,29 @@ export async function GET(request: NextRequest) {
               formattedDate: formatDate(previousYearDayDate),
             });
           }
+        }
+
+        // Pour l'année précédente, ajouter tous les jours qui existent dans cette année
+        // mais pas dans l'année courante (cas du 29 février en année bissextile)
+        for (let day = daysInMonth + 1; day <= daysInPreviousYearMonth; day++) {
+          const previousYearDayDate = new Date(
+            periodInfo.year - 1,
+            periodInfo.month - 1,
+            day
+          );
+
+          const previousDayTotal = previousYearValues
+            .filter(
+              (v) =>
+                v.date.toDateString() === previousYearDayDate.toDateString()
+            )
+            .reduce((sum, v) => sum + v.value, 0);
+
+          previousYearDailyValues.push({
+            date: previousYearDayDate.toISOString().split("T")[0],
+            value: previousDayTotal,
+            formattedDate: formatDate(previousYearDayDate),
+          });
         }
 
         // Calculer les totaux
