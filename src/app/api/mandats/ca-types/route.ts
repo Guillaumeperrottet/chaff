@@ -121,6 +121,7 @@ export async function GET(request: NextRequest) {
       endMonth,
       period,
       selectedType,
+      isFullYear: startMonth === 1 && endMonth === 12,
     });
 
     // Récupérer tous les mandats actifs (filtrer par type si spécifié)

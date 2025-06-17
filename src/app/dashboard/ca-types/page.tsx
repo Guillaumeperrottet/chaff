@@ -179,12 +179,21 @@ export default function TypesCAPage() {
       try {
         setLoading(true);
 
-        // Calculer les mois pour le semestre sélectionné
-        const startMonth = selectedSemester === "1" ? 1 : 7;
-        const endMonth = selectedSemester === "1" ? 6 : 12;
+        // Calculer les mois selon la sélection
+        let startMonth, endMonth, period;
+
+        if (selectedSemester === "annee") {
+          startMonth = 1;
+          endMonth = 12;
+          period = "12months";
+        } else {
+          startMonth = selectedSemester === "1" ? 1 : 7;
+          endMonth = selectedSemester === "1" ? 6 : 12;
+          period = "6months";
+        }
 
         const response = await fetch(
-          `/api/mandats/ca-types?year=${selectedYear}&startMonth=${startMonth}&endMonth=${endMonth}&period=6months&type=${selectedType}`
+          `/api/mandats/ca-types?year=${selectedYear}&startMonth=${startMonth}&endMonth=${endMonth}&period=${period}&type=${selectedType}`
         );
 
         if (!response.ok) {
@@ -552,13 +561,19 @@ export default function TypesCAPage() {
                   <span>
                     Analyse quotidienne{" "}
                     {getTypeLabel(selectedType).toLowerCase()} •{" "}
-                    {selectedSemester === "1" ? "1er" : "2ème"} semestre
+                    {selectedSemester === "1"
+                      ? "1er semestre"
+                      : selectedSemester === "2"
+                        ? "2ème semestre"
+                        : "Année complète"}
                   </span>
                   <span className="text-purple-600">•</span>
                   <span>
                     {selectedSemester === "1"
                       ? "Janvier - Juin"
-                      : "Juillet - Décembre"}{" "}
+                      : selectedSemester === "2"
+                        ? "Juillet - Décembre"
+                        : "Janvier - Décembre"}{" "}
                     {selectedYear}
                   </span>
                 </div>
@@ -686,6 +701,7 @@ export default function TypesCAPage() {
                     <SelectContent>
                       <SelectItem value="1">1er semestre</SelectItem>
                       <SelectItem value="2">2ème semestre</SelectItem>
+                      <SelectItem value="annee">Année</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -693,7 +709,9 @@ export default function TypesCAPage() {
                 <span className="text-xs text-muted-foreground">
                   {selectedSemester === "1"
                     ? "Janvier - Juin"
-                    : "Juillet - Décembre"}
+                    : selectedSemester === "2"
+                      ? "Juillet - Décembre"
+                      : "Janvier - Décembre"}
                 </span>
               </div>
 
