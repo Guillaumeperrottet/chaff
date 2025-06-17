@@ -543,6 +543,7 @@ export default function DashboardPage() {
       };
 
       // Toast avec possibilité d'annulation pendant 8 secondes
+      let isUndoing = false;
       const toastId = toast.success(
         <div className="flex items-center justify-between gap-4">
           <div className="flex-1">
@@ -553,7 +554,24 @@ export default function DashboardPage() {
             </div>
           </div>
           <button
-            onClick={async () => {
+            onClick={async (e) => {
+              if (isUndoing) return; // Empêcher les clics multiples
+
+              const button = e.target as HTMLButtonElement;
+              isUndoing = true;
+
+              // Mettre à jour le bouton pour afficher le chargement
+              button.innerHTML = `
+                <div class="flex items-center gap-1">
+                  <svg class="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span>Annulation...</span>
+                </div>
+              `;
+              button.disabled = true;
+
               try {
                 // Annuler la modification en restaurant l'ancienne valeur
                 const undoResponse = await fetch(
@@ -586,7 +604,7 @@ export default function DashboardPage() {
                 toast.error("Erreur lors de l'annulation");
               }
             }}
-            className="px-3 py-1 text-xs bg-white text-gray-700 border border-gray-200 rounded hover:bg-gray-50 transition-colors"
+            className="px-3 py-1 text-xs bg-white text-gray-700 border border-gray-200 rounded hover:bg-gray-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
           >
             Annuler
           </button>
