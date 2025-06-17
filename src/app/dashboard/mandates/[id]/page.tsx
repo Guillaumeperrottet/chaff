@@ -44,7 +44,6 @@ import {
   TrendingDown,
   Calculator,
   DollarSign,
-  BarChart3,
   RefreshCw,
   FileSpreadsheet,
   Info,
@@ -1368,35 +1367,17 @@ export default function MandateCAPage() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-base">Évolution annuelle</CardTitle>
-                <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-base">Pire Mois</CardTitle>
+                <TrendingDown className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    {getGrowthIcon(caData.summary.yearOverYearGrowth.revenue)}
-                    <span className="text-sm">
-                      CA:{" "}
-                      {formatPercentage(
-                        caData.summary.yearOverYearGrowth.revenue,
-                        true,
-                        2
-                      )}
-                    </span>
+                  <div className="text-2xl font-bold">
+                    {formatCurrency(caData.summary.worstPeriod.totalValue)}
                   </div>
-                  {caData.summary.yearOverYearGrowth.payroll !== null && (
-                    <div className="flex items-center gap-2">
-                      {getGrowthIcon(caData.summary.yearOverYearGrowth.payroll)}
-                      <span className="text-sm">
-                        MS:{" "}
-                        {formatPercentage(
-                          caData.summary.yearOverYearGrowth.payroll,
-                          true,
-                          2
-                        )}
-                      </span>
-                    </div>
-                  )}
+                  <div className="text-sm text-muted-foreground">
+                    {caData.summary.worstPeriod.label}
+                  </div>
                 </div>
               </CardContent>
             </Card>
