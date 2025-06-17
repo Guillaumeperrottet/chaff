@@ -559,8 +559,7 @@ export default function TypesCAPage() {
                 </div>
                 <div className="flex items-center space-x-2 text-sm text-gray-600">
                   <span>
-                    Analyse quotidienne{" "}
-                    {getTypeLabel(selectedType).toLowerCase()} •{" "}
+                    Analyse consolidée par type •{" "}
                     {selectedSemester === "1"
                       ? "1er semestre"
                       : selectedSemester === "2"

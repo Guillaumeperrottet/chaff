@@ -165,157 +165,307 @@ export async function GET(request: NextRequest) {
     console.log("📊 Types traités:", Object.keys(typeGroups));
     console.log("📊 Nombre de mandats:", mandates.length);
 
-    // Créer des données par mois avec des valeurs journalières réalistes
-    const testData: PeriodData[] = [];
-
+    // Récupérer les vraies données CA depuis la base de données
+    const periods = [];
     for (let month = startMonth; month <= endMonth; month++) {
-      const monthLabel = new Date(year, month - 1).toLocaleDateString("fr-FR", {
-        month: "long",
-        year: "numeric",
-      });
-
-      // Calculer le nombre de jours dans le mois
-      const daysInMonth = new Date(year, month, 0).getDate();
-      const previousYearDaysInMonth = new Date(year - 1, month, 0).getDate();
-
-      // Générer des valeurs journalières pour l'année courante
-      const dailyValues: DayCAData[] = [];
-      const previousYearDailyValues: DayCAData[] = [];
-
-      let monthlyTotal = 0;
-      let previousYearMonthlyTotal = 0;
-
-      // Générer les valeurs jour par jour
-      for (let day = 1; day <= daysInMonth; day++) {
-        // Valeur courante (avec variation réaliste)
-        const baseValue = Math.random() * 5000 + 1000; // Entre 1000 et 6000
-        const dayValue = Math.round(baseValue);
-        monthlyTotal += dayValue;
-
-        const dayDate = new Date(year, month - 1, day);
-        dailyValues.push({
-          date: dayDate.toISOString().split("T")[0],
-          value: dayValue,
-          formattedDate: dayDate.toLocaleDateString("fr-FR", {
-            day: "2-digit",
-            month: "short",
-          }),
-        });
-      }
-
-      // Générer les valeurs pour l'année précédente
-      for (let day = 1; day <= previousYearDaysInMonth; day++) {
-        const baseValue = Math.random() * 4000 + 800; // Légèrement moins que l'année courante
-        const dayValue = Math.round(baseValue);
-        previousYearMonthlyTotal += dayValue;
-
-        const dayDate = new Date(year - 1, month - 1, day);
-        previousYearDailyValues.push({
-          date: dayDate.toISOString().split("T")[0],
-          value: dayValue,
-          formattedDate: dayDate.toLocaleDateString("fr-FR", {
-            day: "2-digit",
-            month: "short",
-          }),
-        });
-      }
-
-      const daysWithData = dailyValues.filter((dv) => dv.value > 0).length;
-      const averageDaily = daysWithData > 0 ? monthlyTotal / daysWithData : 0;
-
-      testData.push({
+      periods.push({
         year,
         month,
-        label: monthLabel,
-        totalValue: monthlyTotal,
-        dailyValues,
-        previousYearDailyValues,
-        averageDaily,
-        daysWithData,
-        cumulativeTotal: 0, // Sera calculé après
-        cumulativePreviousYearRevenue: 0, // Sera calculé après
-        cumulativeRevenueGrowth: null, // Sera calculé après
-        yearOverYear: {
-          previousYearRevenue: previousYearMonthlyTotal,
-          revenueGrowth:
-            previousYearMonthlyTotal > 0
-              ? ((monthlyTotal - previousYearMonthlyTotal) /
-                  previousYearMonthlyTotal) *
-                100
-              : null,
-          payrollGrowth: null,
-        },
+        label: getMonthName(month) + " " + year,
       });
     }
+
+    // Récupérer les données réelles pour tous les mandats du type sélectionné
+    const periodData = await Promise.all(
+      periods.map(async (periodInfo) => {
+        const startDate = new Date(periodInfo.year, periodInfo.month - 1, 1);
+        const endDate = new Date(periodInfo.year, periodInfo.month, 0);
+
+        // Données année précédente
+        const previousYearStart = new Date(
+          periodInfo.year - 1,
+          periodInfo.month - 1,
+          1
+        );
+        const previousYearEnd = new Date(
+          periodInfo.year - 1,
+          periodInfo.month,
+          0
+        );
+
+        // Récupérer toutes les valeurs CA pour les mandats du type
+        const [currentYearValues, previousYearValues] = await Promise.all([
+          prisma.dayValue.findMany({
+            where: {
+              mandateId: { in: mandates.map((m) => m.id) },
+              date: { gte: startDate, lte: endDate },
+            },
+            orderBy: { date: "asc" },
+          }),
+          prisma.dayValue.findMany({
+            where: {
+              mandateId: { in: mandates.map((m) => m.id) },
+              date: { gte: previousYearStart, lte: previousYearEnd },
+            },
+            orderBy: { date: "asc" },
+          }),
+        ]);
+
+        // Récupérer les données de masse salariale
+        const [payrollEntries, previousYearPayrollEntries] = await Promise.all([
+          prisma.manualPayrollEntry.findMany({
+            where: {
+              mandateId: { in: mandates.map((m) => m.id) },
+              year: periodInfo.year,
+              month: periodInfo.month,
+            },
+          }),
+          prisma.manualPayrollEntry.findMany({
+            where: {
+              mandateId: { in: mandates.map((m) => m.id) },
+              year: periodInfo.year - 1,
+              month: periodInfo.month,
+            },
+          }),
+        ]);
+
+        // Consolider par jour
+        const daysInMonth = endDate.getDate();
+        const dailyValues: DayCAData[] = [];
+        const previousYearDailyValues: DayCAData[] = [];
+
+        let monthlyTotal = 0;
+        let previousYearMonthlyTotal = 0;
+
+        for (let day = 1; day <= daysInMonth; day++) {
+          const dayDate = new Date(periodInfo.year, periodInfo.month - 1, day);
+
+          // Somme pour ce jour (tous les mandats du type)
+          const dayTotal = currentYearValues
+            .filter((v) => v.date.toDateString() === dayDate.toDateString())
+            .reduce((sum, v) => sum + v.value, 0);
+
+          monthlyTotal += dayTotal;
+
+          dailyValues.push({
+            date: dayDate.toISOString().split("T")[0],
+            value: dayTotal,
+            formattedDate: dayDate.toLocaleDateString("fr-FR", {
+              day: "2-digit",
+              month: "short",
+            }),
+          });
+        }
+
+        // Année précédente
+        const previousYearDaysInMonth = new Date(
+          periodInfo.year - 1,
+          periodInfo.month,
+          0
+        ).getDate();
+        for (let day = 1; day <= previousYearDaysInMonth; day++) {
+          const dayDate = new Date(
+            periodInfo.year - 1,
+            periodInfo.month - 1,
+            day
+          );
+
+          const dayTotal = previousYearValues
+            .filter((v) => v.date.toDateString() === dayDate.toDateString())
+            .reduce((sum, v) => sum + v.value, 0);
+
+          previousYearMonthlyTotal += dayTotal;
+
+          previousYearDailyValues.push({
+            date: dayDate.toISOString().split("T")[0],
+            value: dayTotal,
+            formattedDate: dayDate.toLocaleDateString("fr-FR", {
+              day: "2-digit",
+              month: "short",
+            }),
+          });
+        }
+
+        // Calculer masse salariale
+        const totalPayrollCost = payrollEntries.reduce(
+          (sum, entry) => sum + entry.totalCost,
+          0
+        );
+        const previousYearPayrollCost = previousYearPayrollEntries.reduce(
+          (sum, entry) => sum + entry.totalCost,
+          0
+        );
+
+        const daysWithData = dailyValues.filter((dv) => dv.value > 0).length;
+        const averageDaily = daysWithData > 0 ? monthlyTotal / daysWithData : 0;
+
+        const revenueGrowth =
+          previousYearMonthlyTotal > 0
+            ? ((monthlyTotal - previousYearMonthlyTotal) /
+                previousYearMonthlyTotal) *
+              100
+            : null;
+
+        const payrollGrowth =
+          previousYearPayrollCost > 0
+            ? ((totalPayrollCost - previousYearPayrollCost) /
+                previousYearPayrollCost) *
+              100
+            : null;
+
+        return {
+          year: periodInfo.year,
+          month: periodInfo.month,
+          label: periodInfo.label,
+          totalValue: monthlyTotal,
+          dailyValues,
+          previousYearDailyValues,
+          averageDaily,
+          daysWithData,
+          cumulativeTotal: 0, // Sera calculé après
+          cumulativePreviousYearRevenue: 0, // Sera calculé après
+          cumulativeRevenueGrowth: null, // Sera calculé après
+          payrollData:
+            totalPayrollCost > 0
+              ? {
+                  year: periodInfo.year,
+                  month: periodInfo.month,
+                  grossAmount: payrollEntries.reduce(
+                    (sum, entry) => sum + entry.grossAmount,
+                    0
+                  ),
+                  socialCharges: payrollEntries.reduce(
+                    (sum, entry) => sum + entry.socialCharges,
+                    0
+                  ),
+                  totalCost: totalPayrollCost,
+                  employeeCount:
+                    Math.max(
+                      ...payrollEntries.map((e) => e.employeeCount || 0),
+                      0
+                    ) || undefined,
+                }
+              : undefined,
+          payrollToRevenueRatio:
+            monthlyTotal > 0 && totalPayrollCost > 0
+              ? (totalPayrollCost / monthlyTotal) * 100
+              : undefined,
+          yearOverYear: {
+            previousYearRevenue: previousYearMonthlyTotal,
+            previousYearPayroll:
+              previousYearPayrollCost > 0 ? previousYearPayrollCost : undefined,
+            revenueGrowth,
+            payrollGrowth,
+          },
+        };
+      })
+    );
 
     // Calculer les cumuls après avoir créé toutes les périodes
     let cumulativeTotal = 0;
     let cumulativePreviousYearRevenue = 0;
 
-    testData.forEach((period) => {
+    const periodsWithCumuls = periodData.map((period) => {
       cumulativeTotal += period.totalValue;
       cumulativePreviousYearRevenue += period.yearOverYear.previousYearRevenue;
 
-      period.cumulativeTotal = cumulativeTotal;
-      period.cumulativePreviousYearRevenue = cumulativePreviousYearRevenue;
+      const cumulativeRevenueGrowth =
+        cumulativePreviousYearRevenue > 0
+          ? ((cumulativeTotal - cumulativePreviousYearRevenue) /
+              cumulativePreviousYearRevenue) *
+            100
+          : null;
 
-      // Calculer la croissance cumulative
-      if (cumulativePreviousYearRevenue > 0) {
-        period.cumulativeRevenueGrowth =
-          ((cumulativeTotal - cumulativePreviousYearRevenue) /
-            cumulativePreviousYearRevenue) *
-          100;
-      }
+      return {
+        ...period,
+        cumulativeTotal,
+        cumulativePreviousYearRevenue,
+        cumulativeRevenueGrowth,
+      };
     });
 
     // Calculer les breakdown par types
     const typesBreakdown: TypeBreakdown[] = Object.entries(typeGroups).map(
-      ([typeId, mandates]) => {
-        const typeTotalRevenue = Math.random() * 200000 + 100000;
+      ([typeId, mandatesInType]) => {
+        // Calculer le total réel pour ce type
+        const typeTotalRevenue = periodsWithCumuls.reduce(
+          (sum, period) => sum + period.totalValue,
+          0
+        );
+        const typeTotalPayroll = periodsWithCumuls.reduce(
+          (sum, period) => sum + (period.payrollData?.totalCost || 0),
+          0
+        );
 
         return {
           id: typeId,
           name: typeId,
-          label: typeId,
+          label: getTypeLabel(typeId),
           totalRevenue: typeTotalRevenue,
-          totalPayroll: typeTotalRevenue * 0.3,
-          contribution: Math.random() * 50 + 25,
-          mandatesCount: mandates.length,
+          totalPayroll: typeTotalPayroll,
+          contribution:
+            cumulativeTotal > 0
+              ? (typeTotalRevenue / cumulativeTotal) * 100
+              : 0,
+          mandatesCount: mandatesInType.length,
         };
       }
     );
 
-    const grandTotal = testData.reduce(
+    const grandTotal = periodsWithCumuls.reduce(
       (sum, period) => sum + period.totalValue,
       0
     );
-    const totalPayrollCost = typesBreakdown.reduce(
-      (sum, type) => sum + type.totalPayroll,
+    const totalPayrollCost = periodsWithCumuls.reduce(
+      (sum, period) => sum + (period.payrollData?.totalCost || 0),
       0
     );
+
+    // Calculer croissances année-sur-année
+    const totalPreviousYearRevenue = periodsWithCumuls.reduce(
+      (sum, period) => sum + period.yearOverYear.previousYearRevenue,
+      0
+    );
+    const totalPreviousYearPayroll = periodsWithCumuls.reduce(
+      (sum, period) => sum + (period.yearOverYear.previousYearPayroll || 0),
+      0
+    );
+
+    const yearOverYearRevenueGrowth =
+      totalPreviousYearRevenue > 0
+        ? ((grandTotal - totalPreviousYearRevenue) / totalPreviousYearRevenue) *
+          100
+        : null;
+
+    const yearOverYearPayrollGrowth =
+      totalPreviousYearPayroll > 0
+        ? ((totalPayrollCost - totalPreviousYearPayroll) /
+            totalPreviousYearPayroll) *
+          100
+        : null;
 
     const response: TypesCAResponse = {
       organization: {
         name: userWithOrg.Organization.name,
         totalTypes: Object.keys(typeGroups).length,
       },
-      periods: testData,
+      periods: periodsWithCumuls,
       summary: {
-        totalPeriods: testData.length,
+        totalPeriods: periodsWithCumuls.length,
         grandTotal,
-        averagePerPeriod: grandTotal / testData.length,
-        bestPeriod: testData.reduce((best, current) =>
+        averagePerPeriod: grandTotal / periodsWithCumuls.length,
+        bestPeriod: periodsWithCumuls.reduce((best, current) =>
           current.totalValue > best.totalValue ? current : best
         ),
-        worstPeriod: testData.reduce((worst, current) =>
+        worstPeriod: periodsWithCumuls.reduce((worst, current) =>
           current.totalValue < worst.totalValue ? current : worst
         ),
         totalPayrollCost,
         globalPayrollRatio:
           grandTotal > 0 ? (totalPayrollCost / grandTotal) * 100 : null,
         yearOverYearGrowth: {
-          revenue: Math.random() * 20 - 10, // Entre -10% et +10%
-          payroll: Math.random() * 15 - 5, // Entre -5% et +10%
+          revenue: yearOverYearRevenueGrowth,
+          payroll: yearOverYearPayrollGrowth,
         },
         typesBreakdown,
       },
@@ -339,4 +489,30 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+// Fonction pour obtenir le nom du mois
+function getMonthName(month: number): string {
+  const months = [
+    "Janvier",
+    "Février",
+    "Mars",
+    "Avril",
+    "Mai",
+    "Juin",
+    "Juillet",
+    "Août",
+    "Septembre",
+    "Octobre",
+    "Novembre",
+    "Décembre",
+  ];
+  return months[month - 1];
+}
+
+// Fonction pour obtenir le label d'un type
+function getTypeLabel(typeId: string): string {
+  if (typeId === "HEBERGEMENT") return "Hébergement";
+  if (typeId === "RESTAURATION") return "Restauration";
+  return typeId; // Pour les types personnalisés
 }
