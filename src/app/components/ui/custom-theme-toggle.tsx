@@ -57,7 +57,7 @@ const StyledWrapper = styled.div`
   /*------ Settings ------*/
   .container {
     --color: hsl(var(--muted-foreground));
-    --size: 24px;
+    --size: 20px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -67,8 +67,8 @@ const StyledWrapper = styled.div`
     user-select: none;
     fill: var(--color);
     transition: all 0.2s ease;
-    padding: 4px;
-    border-radius: 6px;
+    padding: 3px;
+    border-radius: 4px;
   }
 
   .container:hover {
@@ -79,14 +79,14 @@ const StyledWrapper = styled.div`
   .container .moon {
     position: absolute;
     animation: keyframes-fill 0.5s;
-    fill: hsl(var(--primary));
+    fill: hsl(var(--muted-foreground));
   }
 
   .container .sun {
     position: absolute;
     display: none;
     animation: keyframes-fill 0.5s;
-    fill: hsl(var(--primary));
+    fill: hsl(var(--muted-foreground));
   }
 
   /* ------ On check event ------ */
@@ -127,8 +127,8 @@ const StyledWrapper = styled.div`
   /* Responsive pour mobile */
   @media (max-width: 768px) {
     .container {
-      --size: 28px;
-      padding: 6px;
+      --size: 22px;
+      padding: 4px;
     }
   }
 `;
