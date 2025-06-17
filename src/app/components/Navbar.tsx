@@ -99,6 +99,7 @@ const generateBreadcrumbs = (pathname: string): BreadcrumbItem[] => {
     "/dashboard/dayvalues": "Chiffres d'affaires",
     "/dashboard/dayvalues/create": "Nouveau CA",
     "/dashboard/ca-global": "CA Global",
+    "/dashboard/ca-types": "CA Types",
     "/dashboard/employees": "Employés",
     "/dashboard/payroll": "Masse salariale",
     "/dashboard/payroll/import": "Import données",
