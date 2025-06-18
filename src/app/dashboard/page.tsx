@@ -247,6 +247,7 @@ export default function DashboardPage() {
 
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const categoryFilter = "all"; // Afficher toutes les catégories par défaut
   const statusFilter = "all"; // Afficher tous les statuts par défaut
   const [isBurgerMenuOpen, setIsBurgerMenuOpen] = useState(false);
@@ -1108,13 +1109,49 @@ export default function DashboardPage() {
                       <div className="flex items-center gap-2">
                         <span>Campus</span>
                         <div className="relative">
-                          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-slate-400" />
-                          <Input
-                            placeholder="Rechercher..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-7 h-6 w-28 text-xs border-slate-200 focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 bg-white/90 placeholder:text-slate-400"
-                          />
+                          {!isSearchExpanded ? (
+                            <button
+                              onClick={() => setIsSearchExpanded(true)}
+                              className="p-1 hover:bg-slate-100 rounded transition-colors"
+                              title="Cliquer pour rechercher"
+                            >
+                              <Search className="h-3 w-3 text-slate-400 hover:text-slate-600" />
+                            </button>
+                          ) : (
+                            <div className="flex items-center gap-1">
+                              <div className="relative">
+                                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-slate-400" />
+                                <Input
+                                  placeholder="Rechercher..."
+                                  value={searchTerm}
+                                  onChange={(e) =>
+                                    setSearchTerm(e.target.value)
+                                  }
+                                  onBlur={() => {
+                                    if (!searchTerm) {
+                                      setIsSearchExpanded(false);
+                                    }
+                                  }}
+                                  className="pl-7 h-6 w-32 text-xs border-slate-200 focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 bg-white/90 placeholder:text-slate-400"
+                                  autoFocus
+                                />
+                              </div>
+                              {searchTerm && (
+                                <button
+                                  onClick={() => {
+                                    setSearchTerm("");
+                                    setIsSearchExpanded(false);
+                                  }}
+                                  className="p-1 hover:bg-slate-100 rounded transition-colors"
+                                  title="Effacer la recherche"
+                                >
+                                  <span className="text-xs text-slate-400 hover:text-slate-600">
+                                    ✕
+                                  </span>
+                                </button>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </TableHead>
