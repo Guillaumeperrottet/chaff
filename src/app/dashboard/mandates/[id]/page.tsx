@@ -1115,7 +1115,7 @@ export default function MandateCAPage() {
               {/* Ligne total jour (moyenne journalière) */}
               <TableRow className="bg-gray-100 font-medium">
                 <TableCell className="bg-gray-100 border-r text-center py-2 p-2">
-                  <span className="text-sm font-bold">Total jour</span>
+                  <span className="text-sm font-bold">CA jour</span>
                 </TableCell>
                 {caData.periods.map((period, index) => (
                   <TableCell
@@ -1148,7 +1148,7 @@ export default function MandateCAPage() {
               {/* Ligne évolution CA basée sur moyenne journalière */}
               <TableRow className="bg-gray-100 font-medium">
                 <TableCell className="bg-gray-100 border-r text-center py-2 p-2">
-                  <span className="text-sm font-bold">Évol. CA %</span>
+                  <span className="text-sm font-bold">CA %</span>
                 </TableCell>
                 {caData.periods.map((period, index) => {
                   // Calculer l'évolution basée sur les moyennes journalières
@@ -1187,7 +1187,7 @@ export default function MandateCAPage() {
               <TableRow className="bg-gray-100 font-medium">
                 <TableCell className="bg-gray-100 border-r text-center py-2 p-2">
                   <div className="flex items-center justify-center gap-1">
-                    <span className="text-sm font-bold">Cumul</span>
+                    <span className="text-sm font-bold">CA cumul</span>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Info className="h-3 w-3 text-gray-600 cursor-help" />
@@ -1248,11 +1248,11 @@ export default function MandateCAPage() {
                 ))}
               </TableRow>
 
-              {/* Ligne évolution du cumul */}
+              {/* Ligne % cumul */}
               <TableRow className="bg-gray-100 font-medium">
                 <TableCell className="bg-gray-100 border-r text-center py-2 p-2">
                   <div className="flex items-center justify-center gap-1">
-                    <span className="text-sm font-bold">Évol. Cumul %</span>
+                    <span className="text-sm font-bold">Cumul %</span>
                   </div>
                 </TableCell>
                 {caData.periods.map((period, index) => (
@@ -1261,8 +1261,6 @@ export default function MandateCAPage() {
                     className="text-center border-r px-1 py-2 whitespace-nowrap"
                   >
                     <div className="flex justify-between items-center space-x-1 text-sm">
-                      {/* Note: Comme on affiche maintenant seulement le CA dans les cumuls, 
-                          on peut simplifier cette ligne pour afficher seulement l'évolution du cumul CA */}
                       <div className="flex-1 text-center font-bold">
                         {period.cumulativeRevenueGrowth !== null &&
                         period.cumulativeRevenueGrowth !== undefined
@@ -1276,6 +1274,109 @@ export default function MandateCAPage() {
                     </div>
                   </TableCell>
                 ))}
+              </TableRow>
+
+              {/* Ligne des totaux Masse salariale */}
+              <TableRow className="bg-blue-50 font-medium border-t-2 border-blue-200">
+                <TableCell className="bg-blue-50 border-r text-center py-2 p-2">
+                  <span className="text-sm font-bold text-blue-800">
+                    Masse sal.
+                  </span>
+                </TableCell>
+                {caData.periods.map((period, index) => (
+                  <TableCell
+                    key={index}
+                    className="text-center border-r px-1 py-2 whitespace-nowrap"
+                  >
+                    <div className="flex justify-between items-center space-x-1 text-sm">
+                      {/* Année précédente - masse salariale */}
+                      <div className="flex-1 text-left text-muted-foreground">
+                        {period.yearOverYear.previousYearPayroll
+                          ? formatCurrency(
+                              period.yearOverYear.previousYearPayroll
+                            )
+                          : "-"}
+                      </div>
+                      {/* Année courante - masse salariale */}
+                      <div className="flex-1 text-right font-bold text-blue-800">
+                        {period.payrollData?.totalCost
+                          ? formatCurrency(period.payrollData.totalCost)
+                          : "-"}
+                      </div>
+                    </div>
+                  </TableCell>
+                ))}
+              </TableRow>
+
+              {/* Ligne pourcentage Masse salariale / CA */}
+              <TableRow className="bg-blue-50 font-medium">
+                <TableCell className="bg-blue-50 border-r text-center py-2 p-2">
+                  <div className="flex items-center justify-center gap-1">
+                    <span className="text-sm font-bold text-blue-800">
+                      Masse sal. %
+                    </span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-3 w-3 text-blue-600 cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent
+                        side="right"
+                        className="max-w-xs bg-white border border-gray-200 shadow-lg p-3"
+                        sideOffset={8}
+                      >
+                        <div className="space-y-2 text-xs">
+                          <div className="font-semibold text-gray-900">
+                            Ratio Masse salariale / CA
+                          </div>
+                          <div className="text-gray-600">
+                            Pourcentage que représente la masse salariale par
+                            rapport au chiffre d&pos;affaires du mois.
+                          </div>
+                          <div className="text-gray-500 text-[10px]">
+                            Un ratio élevé peut indiquer des coûts salariaux
+                            importants par rapport aux revenus.
+                          </div>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                </TableCell>
+                {caData.periods.map((period, index) => {
+                  // Calculer le ratio pour l'année précédente
+                  const previousPayrollRatio =
+                    period.yearOverYear.previousYearRevenue > 0 &&
+                    period.yearOverYear.previousYearPayroll
+                      ? (period.yearOverYear.previousYearPayroll /
+                          period.yearOverYear.previousYearRevenue) *
+                        100
+                      : null;
+
+                  // Ratio pour l'année courante
+                  const currentPayrollRatio =
+                    period.payrollToRevenueRatio ?? null;
+
+                  return (
+                    <TableCell
+                      key={index}
+                      className="text-center border-r px-1 py-2 whitespace-nowrap"
+                    >
+                      <div className="flex justify-between items-center space-x-1 text-sm">
+                        {/* Année précédente - ratio */}
+                        <div className="flex-1 text-left text-muted-foreground">
+                          {previousPayrollRatio !== null
+                            ? formatPercentage(previousPayrollRatio, false, 1)
+                            : "-"}
+                        </div>
+                        {/* Année courante - ratio */}
+                        <div className="flex-1 text-right font-bold text-blue-800">
+                          {currentPayrollRatio !== null
+                            ? formatPercentage(currentPayrollRatio, false, 1)
+                            : "-"}
+                        </div>
+                      </div>
+                    </TableCell>
+                  );
+                })}
               </TableRow>
 
               {/* Ligne séparatrice vide */}
