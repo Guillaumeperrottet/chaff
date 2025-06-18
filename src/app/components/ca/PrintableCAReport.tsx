@@ -186,7 +186,7 @@ export default function PrintableCAReport({
       <style jsx global>{`
         @media print {
           @page {
-            margin: 15mm;
+            margin: 8mm;
             size: A4 landscape;
           }
 
@@ -194,59 +194,73 @@ export default function PrintableCAReport({
             font-family: Arial, sans-serif;
             color: black;
             background: white;
+            font-size: 10px;
           }
 
           .print-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 9px;
-            margin-bottom: 20px;
+            font-size: 7px;
+            margin-bottom: 5px;
           }
 
           .print-table th,
           .print-table td {
             border: 1px solid #333;
-            padding: 4px 2px;
+            padding: 1px;
             text-align: center;
+            line-height: 1.1;
           }
 
           .print-table th {
             background-color: #f5f5f5;
             font-weight: bold;
+            font-size: 6px;
           }
 
           .print-title {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
+          }
+
+          .print-title h1 {
+            font-size: 14px;
+            margin: 0 0 3px 0;
+          }
+
+          .print-title p {
+            font-size: 10px;
+            margin: 0;
           }
 
           .print-stats-grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
-            margin-top: 20px;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-top: 10px;
           }
 
           .print-card {
             border: 1px solid #ddd;
-            padding: 10px;
+            padding: 6px;
             border-radius: 4px;
+            text-align: center;
           }
 
           .print-card-title {
-            font-size: 11px;
-            font-weight: bold;
-            margin-bottom: 5px;
-          }
-
-          .print-card-value {
-            font-size: 14px;
+            font-size: 9px;
             font-weight: bold;
             margin-bottom: 3px;
           }
 
+          .print-card-value {
+            font-size: 11px;
+            font-weight: bold;
+            margin-bottom: 2px;
+          }
+
           .print-card-subtitle {
-            font-size: 9px;
+            font-size: 7px;
             color: #666;
           }
 
@@ -262,124 +276,126 @@ export default function PrintableCAReport({
         }
       `}</style>
 
-      <div className="print-title">
-        <h1>Analyse Chiffre d&apos;Affaires - {caData.mandate.name}</h1>
-        <p>
-          Données détaillées par jour - {selectedYear} vs{" "}
-          {parseInt(selectedYear) - 1}
-        </p>
-      </div>
+      {/* PAGE 1: Tableau des données */}
+      <div>
+        <div className="print-title">
+          <h1>Analyse CA - {caData.mandate.name}</h1>
+          <p>
+            {selectedYear} vs {parseInt(selectedYear) - 1}
+          </p>
+        </div>
 
-      <table className="print-table">
-        <thead>
-          <tr>
-            <th>Jour</th>
-            {caData.periods.map((period, index) => (
-              <th key={index}>
-                <div>{period.label}</div>
-                <div>Actuel / Précédent</div>
-              </th>
+        <table className="print-table">
+          <thead>
+            <tr>
+              <th>Jour</th>
+              {caData.periods.map((period, index) => (
+                <th key={index}>
+                  <div>{period.label}</div>
+                  <div>Act. / Préc.</div>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.day}>
+                <td>{row.day.toString().padStart(2, "0")}</td>
+                {caData.periods.map((_, index) => (
+                  <td key={index}>
+                    <div>
+                      {row.values[`period_${index}`]?.current > 0
+                        ? formatCurrency(row.values[`period_${index}`].current)
+                        : "-"}
+                    </div>
+                    <div>
+                      {row.values[`period_${index}`]?.previous > 0
+                        ? formatCurrency(row.values[`period_${index}`].previous)
+                        : "-"}
+                    </div>
+                  </td>
+                ))}
+              </tr>
             ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr key={row.day}>
-              <td>{row.day.toString().padStart(2, "0")}</td>
+
+            <tr style={{ backgroundColor: "#f5f5f5", fontWeight: "bold" }}>
+              <td>TOTAL CA</td>
               {caData.periods.map((_, index) => (
                 <td key={index}>
                   <div>
-                    {row.values[`period_${index}`]?.current > 0
-                      ? formatCurrency(row.values[`period_${index}`].current)
+                    {formatCurrency(totals[`period_${index}`]?.current || 0)}
+                  </div>
+                  <div>
+                    {formatCurrency(totals[`period_${index}`]?.previous || 0)}
+                  </div>
+                </td>
+              ))}
+            </tr>
+
+            <tr style={{ backgroundColor: "#f5f5f5", fontWeight: "bold" }}>
+              <td>MOY/JOUR</td>
+              {caData.periods.map((period, index) => (
+                <td key={index}>
+                  <div>
+                    {period.daysWithData > 0
+                      ? formatCurrency(period.averageDaily)
                       : "-"}
                   </div>
                   <div>
-                    {row.values[`period_${index}`]?.previous > 0
-                      ? formatCurrency(row.values[`period_${index}`].previous)
+                    {period.yearOverYear.previousYearRevenue > 0
+                      ? formatCurrency(
+                          period.yearOverYear.previousYearRevenue /
+                            (period.previousYearDailyValues?.filter(
+                              (dv) => dv.value > 0
+                            ).length || 1)
+                        )
                       : "-"}
                   </div>
                 </td>
               ))}
             </tr>
-          ))}
 
-          <tr style={{ backgroundColor: "#f5f5f5", fontWeight: "bold" }}>
-            <td>TOTAL CA</td>
-            {caData.periods.map((_, index) => (
-              <td key={index}>
-                <div>
-                  {formatCurrency(totals[`period_${index}`]?.current || 0)}
-                </div>
-                <div>
-                  {formatCurrency(totals[`period_${index}`]?.previous || 0)}
-                </div>
-              </td>
-            ))}
-          </tr>
+            <tr style={{ backgroundColor: "#f5f5f5", fontWeight: "bold" }}>
+              <td>MASSE SAL.</td>
+              {caData.periods.map((_, index) => (
+                <td key={index}>
+                  <div>
+                    {formatCurrency(
+                      payrollTotals[`period_${index}`]?.current || 0
+                    )}
+                  </div>
+                  <div>
+                    {formatCurrency(
+                      payrollTotals[`period_${index}`]?.previous || 0
+                    )}
+                  </div>
+                </td>
+              ))}
+            </tr>
 
-          <tr style={{ backgroundColor: "#f5f5f5", fontWeight: "bold" }}>
-            <td>TOTAL JOUR</td>
-            {caData.periods.map((period, index) => (
-              <td key={index}>
-                <div>
-                  {period.daysWithData > 0
-                    ? formatCurrency(period.averageDaily)
-                    : "-"}
-                </div>
-                <div>
-                  {period.yearOverYear.previousYearRevenue > 0
-                    ? formatCurrency(
-                        period.yearOverYear.previousYearRevenue /
-                          (period.previousYearDailyValues?.filter(
-                            (dv) => dv.value > 0
-                          ).length || 1)
-                      )
-                    : "-"}
-                </div>
-              </td>
-            ))}
-          </tr>
+            <tr style={{ backgroundColor: "#f5f5f5", fontWeight: "bold" }}>
+              <td>RATIO %</td>
+              {caData.periods.map((_, index) => (
+                <td key={index}>
+                  <div>
+                    {ratios[`period_${index}`]?.current?.toFixed(1) || "-"}%
+                  </div>
+                  <div>
+                    {ratios[`period_${index}`]?.previous?.toFixed(1) || "-"}%
+                  </div>
+                </td>
+              ))}
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
-          <tr style={{ backgroundColor: "#f5f5f5", fontWeight: "bold" }}>
-            <td>MASSE SAL.</td>
-            {caData.periods.map((_, index) => (
-              <td key={index}>
-                <div>
-                  {formatCurrency(
-                    payrollTotals[`period_${index}`]?.current || 0
-                  )}
-                </div>
-                <div>
-                  {formatCurrency(
-                    payrollTotals[`period_${index}`]?.previous || 0
-                  )}
-                </div>
-              </td>
-            ))}
-          </tr>
-
-          <tr style={{ backgroundColor: "#f5f5f5", fontWeight: "bold" }}>
-            <td>RATIO %</td>
-            {caData.periods.map((_, index) => (
-              <td key={index}>
-                <div>
-                  {ratios[`period_${index}`]?.current?.toFixed(1) || "-"}%
-                </div>
-                <div>
-                  {ratios[`period_${index}`]?.previous?.toFixed(1) || "-"}%
-                </div>
-              </td>
-            ))}
-          </tr>
-        </tbody>
-      </table>
-
+      {/* PAGE 2: Statistiques de performance */}
       <div className="page-break">
         <div className="print-title">
-          <h1>Indicateurs de Performance - {caData.mandate.name}</h1>
+          <h1>Indicateurs de Performance</h1>
           <p>
-            Analyse statistique - {selectedYear} | Généré le{" "}
-            {new Date().toLocaleDateString("fr-CH")}
+            {caData.mandate.name} - {selectedYear}
           </p>
         </div>
 
@@ -393,8 +409,7 @@ export default function PrintableCAReport({
               <div className="print-card-subtitle">
                 Évolution:{" "}
                 {caData.summary.yearOverYearGrowth.revenue >= 0 ? "+" : ""}
-                {caData.summary.yearOverYearGrowth.revenue?.toFixed(1)}% vs{" "}
-                {parseInt(selectedYear) - 1}
+                {caData.summary.yearOverYearGrowth.revenue?.toFixed(1)}%
               </div>
             )}
           </div>
@@ -408,8 +423,7 @@ export default function PrintableCAReport({
               <div className="print-card-subtitle">
                 Évolution:{" "}
                 {caData.summary.yearOverYearGrowth.payroll >= 0 ? "+" : ""}
-                {caData.summary.yearOverYearGrowth.payroll?.toFixed(1)}% vs{" "}
-                {parseInt(selectedYear) - 1}
+                {caData.summary.yearOverYearGrowth.payroll?.toFixed(1)}%
               </div>
             )}
           </div>

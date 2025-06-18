@@ -1107,7 +1107,7 @@ export default function DashboardPage() {
                   <TableRow className="h-8">
                     <TableHead className="w-[200px] py-0.5 text-sm font-semibold">
                       <div className="flex items-center gap-2">
-                        <span>Campus</span>
+                        <span>Mandants</span>
                         <div className="relative">
                           {!isSearchExpanded ? (
                             <button
