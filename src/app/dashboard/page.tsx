@@ -247,8 +247,8 @@ export default function DashboardPage() {
 
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const categoryFilter = "all"; // Afficher toutes les catégories par défaut
+  const statusFilter = "all"; // Afficher tous les statuts par défaut
   const [isBurgerMenuOpen, setIsBurgerMenuOpen] = useState(false);
 
   // ✅ FONCTION POUR RÉCUPÉRER LES TYPES D'ÉTABLISSEMENT
