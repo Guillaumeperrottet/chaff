@@ -119,6 +119,15 @@ export default function MandatePayrollPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<PayrollEntry | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // ✅ NOUVEAU: État pour les seuils de ratio personnalisables
+  const [ratioThresholds, setRatioThresholds] = useState({
+    good: 30, // Vert si < 30%
+    medium: 50, // Jaune si < 50%
+    // Rouge si >= 50%
+  });
+  const [showThresholdSettings, setShowThresholdSettings] = useState(false);
+
   const [formData, setFormData] = useState({
     month: "",
     grossAmount: "",
@@ -322,18 +331,25 @@ export default function MandatePayrollPage() {
     return `${value.toFixed(1)}%`;
   }, []); // ✅ FIX: Mémoriser pour éviter les re-renders
 
-  const getRatioColor = useCallback((ratio: number | null) => {
-    if (ratio === null) return "text-muted-foreground";
-    if (ratio < 30) return "text-green-600";
-    if (ratio < 50) return "text-yellow-600";
-    return "text-red-600";
-  }, []); // ✅ FIX: Mémoriser pour éviter les re-renders
+  const getRatioColor = useCallback(
+    (ratio: number | null) => {
+      if (ratio === null) return "text-muted-foreground";
+      if (ratio < ratioThresholds.good) return "text-green-600";
+      if (ratio < ratioThresholds.medium) return "text-yellow-600";
+      return "text-red-600";
+    },
+    [ratioThresholds]
+  ); // ✅ FIX: Mémoriser pour éviter les re-renders
 
-  const getRatioIcon = useCallback((ratio: number | null) => {
-    if (ratio === null) return null;
-    if (ratio < 35) return <TrendingDown className="h-4 w-4 text-green-600" />;
-    return <TrendingUp className="h-4 w-4 text-red-600" />;
-  }, []); // ✅ FIX: Mémoriser pour éviter les re-renders
+  const getRatioIcon = useCallback(
+    (ratio: number | null) => {
+      if (ratio === null) return null;
+      if (ratio < ratioThresholds.good)
+        return <TrendingDown className="h-4 w-4 text-green-600" />;
+      return <TrendingUp className="h-4 w-4 text-red-600" />;
+    },
+    [ratioThresholds]
+  ); // ✅ FIX: Mémoriser pour éviter les re-renders
 
   // ✅ NOUVEAU: Fonction pour extraire le taux de charges sociales des notes
   const extractSocialChargesRate = useCallback((notes: string | undefined) => {
@@ -455,8 +471,18 @@ export default function MandatePayrollPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ratio moyen</CardTitle>
-            <Calculator className="h-4 w-4 text-muted-foreground" />
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-sm font-medium">Ratio moyen</CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowThresholdSettings(true)}
+                className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                title="Configurer les seuils de couleur"
+              >
+                <Calculator className="h-3 w-3" />
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <div
@@ -877,6 +903,148 @@ export default function MandatePayrollPage() {
                   Enregistrer
                 </>
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ✅ NOUVEAU: Dialog de configuration des seuils */}
+      <Dialog
+        open={showThresholdSettings}
+        onOpenChange={setShowThresholdSettings}
+      >
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Configuration des seuils de couleur</DialogTitle>
+            <DialogDescription>
+              Personnalisez les seuils pour l&apos;affichage coloré des ratios
+              masse salariale / CA
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-6 py-4">
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <div className="w-4 h-4 bg-green-600 rounded"></div>
+                <div className="flex-1">
+                  <Label htmlFor="goodThreshold">Ratio excellent (vert)</Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-sm text-muted-foreground">
+                      Moins de
+                    </span>
+                    <Input
+                      id="goodThreshold"
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="1"
+                      value={ratioThresholds.good}
+                      onChange={(e) =>
+                        setRatioThresholds((prev) => ({
+                          ...prev,
+                          good: parseFloat(e.target.value) || 0,
+                        }))
+                      }
+                      className="w-20"
+                    />
+                    <span className="text-sm text-muted-foreground">%</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <div className="w-4 h-4 bg-yellow-600 rounded"></div>
+                <div className="flex-1">
+                  <Label htmlFor="mediumThreshold">
+                    Ratio acceptable (jaune)
+                  </Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-sm text-muted-foreground">
+                      Entre {ratioThresholds.good}% et
+                    </span>
+                    <Input
+                      id="mediumThreshold"
+                      type="number"
+                      min={ratioThresholds.good}
+                      max="100"
+                      step="1"
+                      value={ratioThresholds.medium}
+                      onChange={(e) =>
+                        setRatioThresholds((prev) => ({
+                          ...prev,
+                          medium: parseFloat(e.target.value) || 0,
+                        }))
+                      }
+                      className="w-20"
+                    />
+                    <span className="text-sm text-muted-foreground">%</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <div className="w-4 h-4 bg-red-600 rounded"></div>
+                <div className="flex-1">
+                  <Label>Ratio élevé (rouge)</Label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {ratioThresholds.medium}% et plus
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 bg-muted/50 rounded-lg">
+              <h4 className="font-medium mb-2">Aperçu des couleurs :</h4>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span>Exemple 25%</span>
+                  <span className={getRatioColor(25)}>
+                    ■{" "}
+                    {25 < ratioThresholds.good
+                      ? "Vert"
+                      : 25 < ratioThresholds.medium
+                        ? "Jaune"
+                        : "Rouge"}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Exemple 40%</span>
+                  <span className={getRatioColor(40)}>
+                    ■{" "}
+                    {40 < ratioThresholds.good
+                      ? "Vert"
+                      : 40 < ratioThresholds.medium
+                        ? "Jaune"
+                        : "Rouge"}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Exemple 55%</span>
+                  <span className={getRatioColor(55)}>
+                    ■{" "}
+                    {55 < ratioThresholds.good
+                      ? "Vert"
+                      : 55 < ratioThresholds.medium
+                        ? "Jaune"
+                        : "Rouge"}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                // Réinitialiser aux valeurs par défaut
+                setRatioThresholds({ good: 30, medium: 50 });
+              }}
+            >
+              Valeurs par défaut
+            </Button>
+            <Button onClick={() => setShowThresholdSettings(false)}>
+              Appliquer
             </Button>
           </DialogFooter>
         </DialogContent>
