@@ -34,17 +34,9 @@ import {
   Calculator,
   BarChart3,
   Users,
-  ChevronDown,
 } from "lucide-react";
 import EmptyState from "@/app/components/EmptyState";
 import { Input } from "@/app/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/app/components/ui/select";
 import { TooltipProvider } from "@/app/components/ui/tooltip";
 import { toast } from "sonner";
 import PremiumBurgerButton from "@/app/components/ui/BurgerButton";
@@ -885,34 +877,6 @@ export default function DashboardPage() {
     });
   };
 
-  // ✅ COMPOSANT POUR LES FILTRES DE CATÉGORIE
-  const CategoryFilter = () => (
-    <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-      <SelectTrigger className="w-full h-8 text-xs border-slate-200 focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 bg-white/80">
-        <SelectValue placeholder="Catégorie" />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="all">Toutes catégories</SelectItem>
-        <SelectItem value="hebergement">Hébergement</SelectItem>
-        <SelectItem value="restauration">Restauration</SelectItem>
-        {/* ✅ AJOUTER CHAQUE TYPE PERSONNALISÉ INDIVIDUELLEMENT */}
-        {establishmentTypes
-          .filter(
-            (type) =>
-              type.id !== "HEBERGEMENT" &&
-              type.id !== "RESTAURATION" &&
-              type.label !== "Hébergement" &&
-              type.label !== "Restauration"
-          )
-          .map((type) => (
-            <SelectItem key={type.id} value={type.id}>
-              {type.label}
-            </SelectItem>
-          ))}
-      </SelectContent>
-    </Select>
-  );
-
   if (loading) {
     return (
       <div className="space-y-6">
@@ -962,10 +926,16 @@ export default function DashboardPage() {
       <div className="w-full">
         {/* Header avec titre et actions - Hauteur réduite */}
         <div className="flex items-center justify-between mb-2 px-4 py-2">
-          <div className="flex-1">
+          <div className="flex items-center gap-4">
             <h1 className="text-xl md:text-2xl font-bold tracking-tight">
               Tableau de bord
             </h1>
+            <Link
+              href="/dashboard/mandates"
+              className="text-xs font-medium text-slate-600 hover:text-slate-900 transition-colors underline"
+            >
+              Index des mandats
+            </Link>
           </div>
 
           {/* Actions - Desktop */}
@@ -1121,108 +1091,6 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Barre de filtres compacte - Espacement réduit */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-          <div className="flex items-center gap-2">
-            <Link
-              href="/dashboard/mandates"
-              className="text-xs font-medium text-slate-600 hover:text-slate-900 transition-colors underline"
-            >
-              Index des mandats
-            </Link>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-slate-600 hover:text-slate-900 transition-colors text-xs h-7"
-                >
-                  <span className="mr-1">Filtres</span>
-                  <ChevronDown className="h-3 w-3 opacity-70" />
-                  {(searchTerm ||
-                    categoryFilter !== "all" ||
-                    statusFilter !== "all") && (
-                    <div className="ml-1 h-2 w-2 bg-blue-500 rounded-full"></div>
-                  )}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-80 p-4" align="end">
-                <div className="space-y-3">
-                  {/* Recherche */}
-                  <div>
-                    <label className="text-sm font-medium text-slate-700 mb-1.5 block">
-                      Recherche
-                    </label>
-                    <div className="relative">
-                      <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-                      <Input
-                        placeholder="Rechercher un campus..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-8 h-8 text-xs border-slate-200 focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 bg-white/80 placeholder:text-slate-400"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Filtres */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-sm font-medium text-slate-700 mb-1.5 block">
-                        Catégorie
-                      </label>
-                      <CategoryFilter />
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-medium text-slate-700 mb-1.5 block">
-                        Statut
-                      </label>
-                      <Select
-                        value={statusFilter}
-                        onValueChange={setStatusFilter}
-                      >
-                        <SelectTrigger className="w-full h-8 text-xs border-slate-200 focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 bg-white/80">
-                          <SelectValue placeholder="Statut" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Tous statuts</SelectItem>
-                          <SelectItem value="active">Actif</SelectItem>
-                          <SelectItem value="inactive">Inactif</SelectItem>
-                          <SelectItem value="new">Nouveau</SelectItem>
-                          <SelectItem value="warning">Attention</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  {/* Bouton de reset */}
-                  {(searchTerm ||
-                    categoryFilter !== "all" ||
-                    statusFilter !== "all") && (
-                    <div className="pt-1.5 border-t border-slate-100">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setSearchTerm("");
-                          setCategoryFilter("all");
-                          setStatusFilter("all");
-                        }}
-                        className="w-full h-8 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100"
-                      >
-                        ✕ Effacer tous les filtres
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-
         {/* Table avec scroll horizontal sur mobile */}
         {mergedData.length === 0 ? (
           <EmptyState
@@ -1237,7 +1105,18 @@ export default function DashboardPage() {
                 <TableHeader>
                   <TableRow className="h-10">
                     <TableHead className="w-[200px] py-2 text-xs font-semibold">
-                      Campus
+                      <div className="flex items-center gap-2">
+                        <span>Campus</span>
+                        <div className="relative">
+                          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-slate-400" />
+                          <Input
+                            placeholder="Rechercher..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pl-7 h-6 w-32 text-xs border-slate-200 focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 bg-white/90 placeholder:text-slate-400"
+                          />
+                        </div>
+                      </div>
                     </TableHead>
                     <TableHead className="w-[140px] py-2 text-xs font-semibold">
                       Dernière saisie
