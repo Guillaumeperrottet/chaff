@@ -51,8 +51,15 @@ import {
   Save,
   BarChart3,
   Upload,
+  Info,
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/app/components/ui/tooltip";
 
 interface PayrollEntry {
   id: string;
@@ -387,668 +394,703 @@ export default function MandatePayrollPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Navigation */}
-      <BackButton
-        href="/dashboard/payroll"
-        label="Retour a la masse salariale"
-      />
+    <TooltipProvider>
+      <div className="space-y-6">
+        {/* Navigation */}
+        <BackButton
+          href="/dashboard/payroll"
+          label="Retour a la masse salariale"
+        />
 
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            Masse salariale - {payrollData.mandate.name}
-          </h1>
-          <p className="text-muted-foreground">
-            Saisie manuelle et analyse des ratios CA/Masse salariale
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Select value={selectedYear} onValueChange={setSelectedYear}>
-            <SelectTrigger className="w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {[2022, 2023, 2024, 2025].map((year) => (
-                <SelectItem key={year} value={year.toString()}>
-                  {year}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button
-            variant="outline"
-            onClick={() =>
-              router.push(
-                `/dashboard/payroll/import-with-validation?mandateId=${mandateId}`
-              )
-            }
-          >
-            <Upload className="mr-2 h-4 w-4" />
-            Import avec Gastrotime
-          </Button>
-          <Button onClick={openNewEntryDialog}>
-            <Plus className="mr-2 h-4 w-4" />
-            Saisie manuelle
-          </Button>
-        </div>
-      </div>
-
-      {/* Statistiques globales */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Masse salariale totale
-            </CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatCurrency(payrollData.totals.totalPayrollCost)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Année {selectedYear}
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">
+              Masse salariale - {payrollData.mandate.name}
+            </h1>
+            <p className="text-muted-foreground">
+              Saisie manuelle et analyse des ratios CA/Masse salariale
             </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">CA total</CardTitle>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatCurrency(payrollData.totals.totalRevenue)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Année {selectedYear}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <div className="flex items-center gap-2">
-              <CardTitle className="text-sm font-medium">Ratio moyen</CardTitle>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowThresholdSettings(true)}
-                className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-                title="Configurer les seuils de couleur"
-              >
-                <Calculator className="h-3 w-3" />
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div
-              className={`text-2xl font-bold ${getRatioColor(payrollData.totals.averageRatio)}`}
+          </div>
+          <div className="flex items-center gap-2">
+            <Select value={selectedYear} onValueChange={setSelectedYear}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[2022, 2023, 2024, 2025].map((year) => (
+                  <SelectItem key={year} value={year.toString()}>
+                    {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              variant="outline"
+              onClick={() =>
+                router.push(
+                  `/dashboard/payroll/import-with-validation?mandateId=${mandateId}`
+                )
+              }
             >
-              {formatPercentage(payrollData.totals.averageRatio)}
-            </div>
-            <p className="text-xs text-muted-foreground">Masse sal. / CA</p>
-          </CardContent>
-        </Card>
-      </div>
+              <Upload className="mr-2 h-4 w-4" />
+              Import avec Gastrotime
+            </Button>
+            <Button onClick={openNewEntryDialog}>
+              <Plus className="mr-2 h-4 w-4" />
+              Saisie manuelle
+            </Button>
+          </div>
+        </div>
 
-      {/* Tableau mensuel */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Analyse mensuelle {selectedYear}</CardTitle>
-          <CardDescription>
-            Suivi de la masse salariale et des ratios par mois
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Mois</TableHead>
-                <TableHead className="text-right">CA</TableHead>
-                <TableHead className="text-right">Masse salariale</TableHead>
-                <TableHead className="text-right">Ratio %</TableHead>
-                <TableHead className="text-center">Charges sociales</TableHead>
-                <TableHead className="text-right">Employés</TableHead>
-                <TableHead>Notes</TableHead>
-                <TableHead className="w-[100px]">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {payrollData.summary.map((summary) => (
-                <TableRow
-                  key={summary.month}
-                  className={summary.hasData ? "" : "opacity-50"}
+        {/* Statistiques globales */}
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Masse salariale totale
+              </CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {formatCurrency(payrollData.totals.totalPayrollCost)}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Année {selectedYear}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">CA total</CardTitle>
+              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {formatCurrency(payrollData.totals.totalRevenue)}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Année {selectedYear}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-sm font-medium">
+                  Ratio moyen
+                </CardTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowThresholdSettings(true)}
+                  className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                  title="Configurer les seuils de couleur"
                 >
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{summary.monthName}</span>
-                      {summary.manualEntry && (
-                        <Badge variant="default" className="text-xs">
-                          Saisi
-                        </Badge>
-                      )}
-                      {summary.gastrotimeImport && (
-                        <Badge variant="secondary" className="text-xs">
-                          Gastrotime
-                        </Badge>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {summary.revenue > 0
-                      ? formatCurrency(summary.revenue)
-                      : "-"}
-                    {summary.revenueEntries > 0 && (
-                      <div className="text-xs text-muted-foreground">
-                        {summary.revenueEntries} saisies
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {summary.manualEntry || summary.gastrotimeImport ? (
-                      <>
-                        {summary.manualEntry
-                          ? formatCurrency(summary.manualEntry.totalCost)
-                          : formatCurrency(summary.gastrotimeImport!.totalCost)}
-                        <div className="text-xs text-muted-foreground">
-                          {summary.manualEntry ? (
-                            <>
-                              +
-                              {formatCurrency(
-                                summary.manualEntry.socialCharges
-                              )}{" "}
-                              charges
-                            </>
-                          ) : (
-                            <span className="italic">Import Gastrotime</span>
-                          )}
-                        </div>
-                      </>
-                    ) : (
-                      "-"
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div
-                      className={`flex items-center justify-end gap-1 ${getRatioColor(summary.payrollToRevenueRatio)}`}
-                    >
-                      {getRatioIcon(summary.payrollToRevenueRatio)}
-                      <span className="font-medium">
-                        {formatPercentage(summary.payrollToRevenueRatio)}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {(() => {
-                      // Pour les imports Gastrotime, extraire le taux depuis les notes
-                      if (summary.manualEntry?.notes) {
-                        const socialChargesRate = extractSocialChargesRate(
-                          summary.manualEntry.notes
-                        );
-                        if (socialChargesRate !== null) {
-                          return (
-                            <div className="text-sm font-medium text-primary">
-                              {socialChargesRate}%
+                  <Calculator className="h-3 w-3" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div
+                className={`text-2xl font-bold ${getRatioColor(payrollData.totals.averageRatio)}`}
+              >
+                {formatPercentage(payrollData.totals.averageRatio)}
+              </div>
+              <p className="text-xs text-muted-foreground">Masse sal. / CA</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Tableau mensuel */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Analyse mensuelle {selectedYear}</CardTitle>
+            <CardDescription>
+              Suivi de la masse salariale et des ratios par mois
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Mois</TableHead>
+                  <TableHead className="text-right">CA</TableHead>
+                  <TableHead className="text-right">Masse salariale</TableHead>
+                  <TableHead className="text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <span>Ratio %</span>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="max-w-xs">
+                          <div className="text-xs">
+                            <div className="font-medium mb-1">
+                              Personnaliser les couleurs
                             </div>
-                          );
-                        }
-                      }
-
-                      // Pour les saisies manuelles, calculer le pourcentage si possible
-                      if (
-                        summary.manualEntry?.grossAmount &&
-                        summary.manualEntry?.socialCharges
-                      ) {
-                        const rate =
-                          (summary.manualEntry.socialCharges /
-                            summary.manualEntry.grossAmount) *
-                          100;
-                        return (
-                          <div className="text-sm text-muted-foreground">
-                            {rate.toFixed(1)}%
+                            <div>
+                              Cliquez sur l&apos;icône calculatrice{" "}
+                              <Calculator className="h-3 w-3 inline mx-1" />{" "}
+                              dans les statistiques pour configurer les seuils
+                              de couleur des ratios.
+                            </div>
                           </div>
-                        );
-                      }
-
-                      return <span className="text-muted-foreground">-</span>;
-                    })()}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {summary.manualEntry?.employeeCount ||
-                      summary.gastrotimeImport?.totalEmployees ||
-                      "-"}
-                  </TableCell>
-                  <TableCell>
-                    {summary.manualEntry?.notes && (
-                      <div className="space-y-1">
-                        <span className="text-sm text-muted-foreground truncate block max-w-[200px]">
-                          {summary.manualEntry.notes}
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                  </TableHead>
+                  <TableHead className="text-center">
+                    Charges sociales
+                  </TableHead>
+                  <TableHead className="text-right">Employés</TableHead>
+                  <TableHead>Notes</TableHead>
+                  <TableHead className="w-[100px]">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {payrollData.summary.map((summary) => (
+                  <TableRow
+                    key={summary.month}
+                    className={summary.hasData ? "" : "opacity-50"}
+                  >
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{summary.monthName}</span>
+                        {summary.manualEntry && (
+                          <Badge variant="default" className="text-xs">
+                            Saisi
+                          </Badge>
+                        )}
+                        {summary.gastrotimeImport && (
+                          <Badge variant="secondary" className="text-xs">
+                            Gastrotime
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {summary.revenue > 0
+                        ? formatCurrency(summary.revenue)
+                        : "-"}
+                      {summary.revenueEntries > 0 && (
+                        <div className="text-xs text-muted-foreground">
+                          {summary.revenueEntries} saisies
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {summary.manualEntry || summary.gastrotimeImport ? (
+                        <>
+                          {summary.manualEntry
+                            ? formatCurrency(summary.manualEntry.totalCost)
+                            : formatCurrency(
+                                summary.gastrotimeImport!.totalCost
+                              )}
+                          <div className="text-xs text-muted-foreground">
+                            {summary.manualEntry ? (
+                              <>
+                                +
+                                {formatCurrency(
+                                  summary.manualEntry.socialCharges
+                                )}{" "}
+                                charges
+                              </>
+                            ) : (
+                              <span className="italic">Import Gastrotime</span>
+                            )}
+                          </div>
+                        </>
+                      ) : (
+                        "-"
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div
+                        className={`flex items-center justify-end gap-1 ${getRatioColor(summary.payrollToRevenueRatio)}`}
+                      >
+                        {getRatioIcon(summary.payrollToRevenueRatio)}
+                        <span className="font-medium">
+                          {formatPercentage(summary.payrollToRevenueRatio)}
                         </span>
-                        {/* Afficher le taux de charges sociales si c'est un import Gastrotime */}
-                        {(() => {
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {(() => {
+                        // Pour les imports Gastrotime, extraire le taux depuis les notes
+                        if (summary.manualEntry?.notes) {
                           const socialChargesRate = extractSocialChargesRate(
                             summary.manualEntry.notes
                           );
-                          return socialChargesRate !== null ? (
-                            <div className="text-xs text-muted-foreground italic">
-                              Charges sociales: {socialChargesRate}%
+                          if (socialChargesRate !== null) {
+                            return (
+                              <div className="text-sm font-medium text-primary">
+                                {socialChargesRate}%
+                              </div>
+                            );
+                          }
+                        }
+
+                        // Pour les saisies manuelles, calculer le pourcentage si possible
+                        if (
+                          summary.manualEntry?.grossAmount &&
+                          summary.manualEntry?.socialCharges
+                        ) {
+                          const rate =
+                            (summary.manualEntry.socialCharges /
+                              summary.manualEntry.grossAmount) *
+                            100;
+                          return (
+                            <div className="text-sm text-muted-foreground">
+                              {rate.toFixed(1)}%
                             </div>
-                          ) : null;
-                        })()}
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      {summary.manualEntry ? (
-                        // Actions pour saisie manuelle
-                        <>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEdit(summary)}
-                            title="Modifier la saisie manuelle"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
+                          );
+                        }
+
+                        return <span className="text-muted-foreground">-</span>;
+                      })()}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {summary.manualEntry?.employeeCount ||
+                        summary.gastrotimeImport?.totalEmployees ||
+                        "-"}
+                    </TableCell>
+                    <TableCell>
+                      {summary.manualEntry?.notes && (
+                        <div className="space-y-1">
+                          <span className="text-sm text-muted-foreground truncate block max-w-[200px]">
+                            {summary.manualEntry.notes}
+                          </span>
+                          {/* Afficher le taux de charges sociales si c'est un import Gastrotime */}
+                          {(() => {
+                            const socialChargesRate = extractSocialChargesRate(
+                              summary.manualEntry.notes
+                            );
+                            return socialChargesRate !== null ? (
+                              <div className="text-xs text-muted-foreground italic">
+                                Charges sociales: {socialChargesRate}%
+                              </div>
+                            ) : null;
+                          })()}
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        {summary.manualEntry ? (
+                          // Actions pour saisie manuelle
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEdit(summary)}
+                              title="Modifier la saisie manuelle"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() =>
+                                handleDelete(summary.year, summary.month)
+                              }
+                              title="Supprimer la saisie manuelle"
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </>
+                        ) : summary.gastrotimeImport ? (
+                          // Actions pour import Gastrotime
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() =>
-                              handleDelete(summary.year, summary.month)
+                              handleDeleteGastrotimeImport(
+                                summary.gastrotimeImport!.id
+                              )
                             }
-                            title="Supprimer la saisie manuelle"
+                            title="Supprimer l'import Gastrotime"
                             className="text-red-600 hover:text-red-700"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
-                        </>
-                      ) : summary.gastrotimeImport ? (
-                        // Actions pour import Gastrotime
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            handleDeleteGastrotimeImport(
-                              summary.gastrotimeImport!.id
-                            )
-                          }
-                          title="Supprimer l'import Gastrotime"
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      ) : (
-                        // Bouton d'ajout si aucune donnée
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setFormData((prev) => ({
-                              ...prev,
-                              month: summary.month.toString(),
-                            }));
-                            setIsDialogOpen(true);
-                          }}
-                          title="Ajouter une saisie manuelle"
-                        >
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
+                        ) : (
+                          // Bouton d'ajout si aucune donnée
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setFormData((prev) => ({
+                                ...prev,
+                                month: summary.month.toString(),
+                              }));
+                              setIsDialogOpen(true);
+                            }}
+                            title="Ajouter une saisie manuelle"
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+              <TableFooter>
+                <TableRow>
+                  <TableCell className="font-bold">Total</TableCell>
+                  <TableCell className="text-right font-bold">
+                    {formatCurrency(payrollData.totals.totalRevenue)}
                   </TableCell>
+                  <TableCell className="text-right font-bold">
+                    {formatCurrency(payrollData.totals.totalPayrollCost)}
+                  </TableCell>
+                  <TableCell
+                    className={`text-right font-bold ${getRatioColor(payrollData.totals.averageRatio)}`}
+                  >
+                    {formatPercentage(payrollData.totals.averageRatio)}
+                  </TableCell>
+                  <TableCell></TableCell>
+                  <TableCell></TableCell>
+                  <TableCell></TableCell>
+                  <TableCell></TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-            <TableFooter>
-              <TableRow>
-                <TableCell className="font-bold">Total</TableCell>
-                <TableCell className="text-right font-bold">
-                  {formatCurrency(payrollData.totals.totalRevenue)}
-                </TableCell>
-                <TableCell className="text-right font-bold">
-                  {formatCurrency(payrollData.totals.totalPayrollCost)}
-                </TableCell>
-                <TableCell
-                  className={`text-right font-bold ${getRatioColor(payrollData.totals.averageRatio)}`}
-                >
-                  {formatPercentage(payrollData.totals.averageRatio)}
-                </TableCell>
-                <TableCell></TableCell>
-                <TableCell></TableCell>
-                <TableCell></TableCell>
-                <TableCell></TableCell>
-              </TableRow>
-            </TableFooter>
-          </Table>
-        </CardContent>
-      </Card>
+              </TableFooter>
+            </Table>
+          </CardContent>
+        </Card>
 
-      {/* Dialog de saisie */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>
-              {editingEntry ? "Modifier" : "Nouvelle"} saisie masse salariale
-            </DialogTitle>
-            <DialogDescription>
-              Saisissez les données de masse salariale pour{" "}
-              {payrollData.mandate.name}
-            </DialogDescription>
-          </DialogHeader>
+        {/* Dialog de saisie */}
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>
+                {editingEntry ? "Modifier" : "Nouvelle"} saisie masse salariale
+              </DialogTitle>
+              <DialogDescription>
+                Saisissez les données de masse salariale pour{" "}
+                {payrollData.mandate.name}
+              </DialogDescription>
+            </DialogHeader>
 
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="month">Mois *</Label>
-                <Select
-                  value={formData.month}
-                  onValueChange={(value) =>
-                    setFormData((prev) => ({ ...prev, month: value }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionnez un mois..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Array.from({ length: 12 }, (_, i) => {
-                      const month = i + 1;
-                      const monthName = new Date(0, i).toLocaleDateString(
-                        "fr-CH",
-                        { month: "long" }
-                      );
-                      return (
-                        <SelectItem key={month} value={month.toString()}>
-                          {monthName}
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="month">Mois *</Label>
+                  <Select
+                    value={formData.month}
+                    onValueChange={(value) =>
+                      setFormData((prev) => ({ ...prev, month: value }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionnez un mois..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 12 }, (_, i) => {
+                        const month = i + 1;
+                        const monthName = new Date(0, i).toLocaleDateString(
+                          "fr-CH",
+                          { month: "long" }
+                        );
+                        return (
+                          <SelectItem key={month} value={month.toString()}>
+                            {monthName}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="employeeCount">Nombre d&apos;employés</Label>
+                  <Input
+                    id="employeeCount"
+                    type="number"
+                    min="0"
+                    value={formData.employeeCount}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        employeeCount: e.target.value,
+                      }))
+                    }
+                    placeholder="0"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="employeeCount">Nombre d&apos;employés</Label>
+                <Label htmlFor="grossAmount">Montant brut total * (CHF)</Label>
                 <Input
-                  id="employeeCount"
+                  id="grossAmount"
                   type="number"
+                  step="0.01"
                   min="0"
-                  value={formData.employeeCount}
+                  value={formData.grossAmount}
                   onChange={(e) =>
                     setFormData((prev) => ({
                       ...prev,
-                      employeeCount: e.target.value,
+                      grossAmount: e.target.value,
                     }))
                   }
-                  placeholder="0"
+                  placeholder="0.00"
                 />
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="grossAmount">Montant brut total * (CHF)</Label>
-              <Input
-                id="grossAmount"
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.grossAmount}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    grossAmount: e.target.value,
-                  }))
-                }
-                placeholder="0.00"
-              />
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="socialChargesRate">
+                  Taux de charges sociales (%)
+                </Label>
+                <Input
+                  id="socialChargesRate"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="100"
+                  value={formData.socialChargesRate}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      socialChargesRate: e.target.value,
+                    }))
+                  }
+                  placeholder="22"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Laissez vide pour utiliser 22% par défaut
+                </p>
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="socialChargesRate">
-                Taux de charges sociales (%)
-              </Label>
-              <Input
-                id="socialChargesRate"
-                type="number"
-                step="0.1"
-                min="0"
-                max="100"
-                value={formData.socialChargesRate}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    socialChargesRate: e.target.value,
-                  }))
-                }
-                placeholder="22"
-              />
-              <p className="text-xs text-muted-foreground">
-                Laissez vide pour utiliser 22% par défaut
-              </p>
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="notes">Notes</Label>
+                <Textarea
+                  id="notes"
+                  value={formData.notes}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, notes: e.target.value }))
+                  }
+                  placeholder="Remarques particulières..."
+                  rows={3}
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="notes">Notes</Label>
-              <Textarea
-                id="notes"
-                value={formData.notes}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, notes: e.target.value }))
-                }
-                placeholder="Remarques particulières..."
-                rows={3}
-              />
-            </div>
-
-            {/* Aperçu du calcul */}
-            {formData.grossAmount && (
-              <div className="p-4 bg-muted/50 rounded-lg space-y-2">
-                <h4 className="font-medium">Aperçu du calcul :</h4>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">
-                      Montant brut :
-                    </span>
-                    <span className="float-right font-medium">
-                      {formatCurrency(parseFloat(formData.grossAmount) || 0)}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">
-                      Charges sociales ({formData.socialChargesRate || "22"}%) :
-                    </span>
-                    <span className="float-right font-medium">
-                      {formatCurrency(
-                        formData.socialChargesRate
-                          ? (parseFloat(formData.grossAmount) || 0) *
-                              (parseFloat(formData.socialChargesRate) / 100)
-                          : (parseFloat(formData.grossAmount) || 0) * 0.22
-                      )}
-                    </span>
-                  </div>
-                  <div className="col-span-2 border-t pt-2">
-                    <span className="font-medium">Coût total employeur :</span>
-                    <span className="float-right font-bold text-primary">
-                      {formatCurrency(
-                        (parseFloat(formData.grossAmount) || 0) +
-                          (formData.socialChargesRate
+              {/* Aperçu du calcul */}
+              {formData.grossAmount && (
+                <div className="p-4 bg-muted/50 rounded-lg space-y-2">
+                  <h4 className="font-medium">Aperçu du calcul :</h4>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">
+                        Montant brut :
+                      </span>
+                      <span className="float-right font-medium">
+                        {formatCurrency(parseFloat(formData.grossAmount) || 0)}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">
+                        Charges sociales ({formData.socialChargesRate || "22"}%)
+                        :
+                      </span>
+                      <span className="float-right font-medium">
+                        {formatCurrency(
+                          formData.socialChargesRate
                             ? (parseFloat(formData.grossAmount) || 0) *
-                              (parseFloat(formData.socialChargesRate) / 100)
-                            : (parseFloat(formData.grossAmount) || 0) * 0.22)
-                      )}
-                    </span>
+                                (parseFloat(formData.socialChargesRate) / 100)
+                            : (parseFloat(formData.grossAmount) || 0) * 0.22
+                        )}
+                      </span>
+                    </div>
+                    <div className="col-span-2 border-t pt-2">
+                      <span className="font-medium">
+                        Coût total employeur :
+                      </span>
+                      <span className="float-right font-bold text-primary">
+                        {formatCurrency(
+                          (parseFloat(formData.grossAmount) || 0) +
+                            (formData.socialChargesRate
+                              ? (parseFloat(formData.grossAmount) || 0) *
+                                (parseFloat(formData.socialChargesRate) / 100)
+                              : (parseFloat(formData.grossAmount) || 0) * 0.22)
+                        )}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-              Annuler
-            </Button>
-            <Button onClick={handleSaveEntry} disabled={saving}>
-              {saving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Enregistrement...
-                </>
-              ) : (
-                <>
-                  <Save className="mr-2 h-4 w-4" />
-                  Enregistrer
-                </>
               )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </div>
 
-      {/* ✅ NOUVEAU: Dialog de configuration des seuils */}
-      <Dialog
-        open={showThresholdSettings}
-        onOpenChange={setShowThresholdSettings}
-      >
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Configuration des seuils de couleur</DialogTitle>
-            <DialogDescription>
-              Personnalisez les seuils pour l&apos;affichage coloré des ratios
-              masse salariale / CA
-            </DialogDescription>
-          </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                Annuler
+              </Button>
+              <Button onClick={handleSaveEntry} disabled={saving}>
+                {saving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Enregistrement...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Enregistrer
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
-          <div className="grid gap-6 py-4">
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <div className="w-4 h-4 bg-green-600 rounded"></div>
-                <div className="flex-1">
-                  <Label htmlFor="goodThreshold">Ratio excellent (vert)</Label>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-sm text-muted-foreground">
-                      Moins de
-                    </span>
-                    <Input
-                      id="goodThreshold"
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="1"
-                      value={ratioThresholds.good}
-                      onChange={(e) =>
-                        setRatioThresholds((prev) => ({
-                          ...prev,
-                          good: parseFloat(e.target.value) || 0,
-                        }))
-                      }
-                      className="w-20"
-                    />
-                    <span className="text-sm text-muted-foreground">%</span>
+        {/* ✅ NOUVEAU: Dialog de configuration des seuils */}
+        <Dialog
+          open={showThresholdSettings}
+          onOpenChange={setShowThresholdSettings}
+        >
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Configuration des seuils de couleur</DialogTitle>
+              <DialogDescription>
+                Personnalisez les seuils pour l&apos;affichage coloré des ratios
+                masse salariale / CA
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="grid gap-6 py-4">
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-4 h-4 bg-green-600 rounded"></div>
+                  <div className="flex-1">
+                    <Label htmlFor="goodThreshold">
+                      Ratio excellent (vert)
+                    </Label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-sm text-muted-foreground">
+                        Moins de
+                      </span>
+                      <Input
+                        id="goodThreshold"
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="1"
+                        value={ratioThresholds.good}
+                        onChange={(e) =>
+                          setRatioThresholds((prev) => ({
+                            ...prev,
+                            good: parseFloat(e.target.value) || 0,
+                          }))
+                        }
+                        className="w-20"
+                      />
+                      <span className="text-sm text-muted-foreground">%</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <div className="w-4 h-4 bg-yellow-600 rounded"></div>
+                  <div className="flex-1">
+                    <Label htmlFor="mediumThreshold">
+                      Ratio acceptable (jaune)
+                    </Label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-sm text-muted-foreground">
+                        Entre {ratioThresholds.good}% et
+                      </span>
+                      <Input
+                        id="mediumThreshold"
+                        type="number"
+                        min={ratioThresholds.good}
+                        max="100"
+                        step="1"
+                        value={ratioThresholds.medium}
+                        onChange={(e) =>
+                          setRatioThresholds((prev) => ({
+                            ...prev,
+                            medium: parseFloat(e.target.value) || 0,
+                          }))
+                        }
+                        className="w-20"
+                      />
+                      <span className="text-sm text-muted-foreground">%</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <div className="w-4 h-4 bg-red-600 rounded"></div>
+                  <div className="flex-1">
+                    <Label>Ratio élevé (rouge)</Label>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {ratioThresholds.medium}% et plus
+                    </p>
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-4">
-                <div className="w-4 h-4 bg-yellow-600 rounded"></div>
-                <div className="flex-1">
-                  <Label htmlFor="mediumThreshold">
-                    Ratio acceptable (jaune)
-                  </Label>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-sm text-muted-foreground">
-                      Entre {ratioThresholds.good}% et
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <h4 className="font-medium mb-2">Aperçu des couleurs :</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span>Exemple 25%</span>
+                    <span className={getRatioColor(25)}>
+                      ■{" "}
+                      {25 < ratioThresholds.good
+                        ? "Vert"
+                        : 25 < ratioThresholds.medium
+                          ? "Jaune"
+                          : "Rouge"}
                     </span>
-                    <Input
-                      id="mediumThreshold"
-                      type="number"
-                      min={ratioThresholds.good}
-                      max="100"
-                      step="1"
-                      value={ratioThresholds.medium}
-                      onChange={(e) =>
-                        setRatioThresholds((prev) => ({
-                          ...prev,
-                          medium: parseFloat(e.target.value) || 0,
-                        }))
-                      }
-                      className="w-20"
-                    />
-                    <span className="text-sm text-muted-foreground">%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Exemple 40%</span>
+                    <span className={getRatioColor(40)}>
+                      ■{" "}
+                      {40 < ratioThresholds.good
+                        ? "Vert"
+                        : 40 < ratioThresholds.medium
+                          ? "Jaune"
+                          : "Rouge"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Exemple 55%</span>
+                    <span className={getRatioColor(55)}>
+                      ■{" "}
+                      {55 < ratioThresholds.good
+                        ? "Vert"
+                        : 55 < ratioThresholds.medium
+                          ? "Jaune"
+                          : "Rouge"}
+                    </span>
                   </div>
                 </div>
               </div>
-
-              <div className="flex items-center gap-4">
-                <div className="w-4 h-4 bg-red-600 rounded"></div>
-                <div className="flex-1">
-                  <Label>Ratio élevé (rouge)</Label>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {ratioThresholds.medium}% et plus
-                  </p>
-                </div>
-              </div>
             </div>
 
-            <div className="p-4 bg-muted/50 rounded-lg">
-              <h4 className="font-medium mb-2">Aperçu des couleurs :</h4>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span>Exemple 25%</span>
-                  <span className={getRatioColor(25)}>
-                    ■{" "}
-                    {25 < ratioThresholds.good
-                      ? "Vert"
-                      : 25 < ratioThresholds.medium
-                        ? "Jaune"
-                        : "Rouge"}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Exemple 40%</span>
-                  <span className={getRatioColor(40)}>
-                    ■{" "}
-                    {40 < ratioThresholds.good
-                      ? "Vert"
-                      : 40 < ratioThresholds.medium
-                        ? "Jaune"
-                        : "Rouge"}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Exemple 55%</span>
-                  <span className={getRatioColor(55)}>
-                    ■{" "}
-                    {55 < ratioThresholds.good
-                      ? "Vert"
-                      : 55 < ratioThresholds.medium
-                        ? "Jaune"
-                        : "Rouge"}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                // Réinitialiser aux valeurs par défaut
-                setRatioThresholds({ good: 30, medium: 50 });
-              }}
-            >
-              Valeurs par défaut
-            </Button>
-            <Button onClick={() => setShowThresholdSettings(false)}>
-              Appliquer
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  // Réinitialiser aux valeurs par défaut
+                  setRatioThresholds({ good: 30, medium: 50 });
+                }}
+              >
+                Valeurs par défaut
+              </Button>
+              <Button onClick={() => setShowThresholdSettings(false)}>
+                Appliquer
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </TooltipProvider>
   );
 }
