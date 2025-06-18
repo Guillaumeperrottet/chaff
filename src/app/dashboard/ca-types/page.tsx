@@ -56,6 +56,7 @@ import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import React from "react";
 import PremiumBurgerButton from "@/app/components/ui/BurgerButton";
+import PrintableTypesCAReport from "@/app/components/ca/PrintableTypesCAReport";
 
 // Types pour les données CA par types
 interface DayCAData {
@@ -1245,6 +1246,17 @@ export default function TypesCAPage() {
             {selectedSemester === "1" ? "1er semestre" : "2ème semestre"}{" "}
             {selectedYear} | Vue consolidée par types d&apos;établissements
           </p>
+        </div>
+
+        {/* Composant d'impression - masqué à l'écran, visible uniquement à l'impression */}
+        <div className="print:block hidden">
+          <PrintableTypesCAReport
+            caData={caData}
+            selectedYear={selectedYear}
+            selectedSemester={selectedSemester}
+            selectedType={selectedType}
+            typeLabel={getTypeLabel(selectedType)}
+          />
         </div>
       </div>
     </TooltipProvider>
