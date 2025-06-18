@@ -127,13 +127,39 @@ export default function MandatePayrollPage() {
   const [editingEntry, setEditingEntry] = useState<PayrollEntry | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // ✅ NOUVEAU: État pour les seuils de ratio personnalisables
+  // ✅ NOUVEAU: État pour les seuils de ratio personnalisables avec persistance
   const [ratioThresholds, setRatioThresholds] = useState({
     good: 30, // Vert si < 30%
     medium: 50, // Jaune si < 50%
     // Rouge si >= 50%
   });
   const [showThresholdSettings, setShowThresholdSettings] = useState(false);
+
+  // ✅ NOUVEAU: Charger les seuils depuis localStorage au démarrage
+  useEffect(() => {
+    const savedThresholds = localStorage.getItem("payroll-ratio-thresholds");
+    if (savedThresholds) {
+      try {
+        const parsed = JSON.parse(savedThresholds);
+        setRatioThresholds(parsed);
+      } catch (error) {
+        console.error("Erreur lors du chargement des seuils:", error);
+      }
+    }
+  }, []);
+
+  // ✅ NOUVEAU: Sauvegarder les seuils dans localStorage quand ils changent
+  const updateRatioThresholds = useCallback(
+    (newThresholds: typeof ratioThresholds) => {
+      setRatioThresholds(newThresholds);
+      localStorage.setItem(
+        "payroll-ratio-thresholds",
+        JSON.stringify(newThresholds)
+      );
+      toast.success("Seuils de couleur sauvegardés");
+    },
+    []
+  );
 
   const [formData, setFormData] = useState({
     month: "",
@@ -981,10 +1007,10 @@ export default function MandatePayrollPage() {
                         step="1"
                         value={ratioThresholds.good}
                         onChange={(e) =>
-                          setRatioThresholds((prev) => ({
-                            ...prev,
+                          updateRatioThresholds({
+                            ...ratioThresholds,
                             good: parseFloat(e.target.value) || 0,
-                          }))
+                          })
                         }
                         className="w-20"
                       />
@@ -1011,10 +1037,10 @@ export default function MandatePayrollPage() {
                         step="1"
                         value={ratioThresholds.medium}
                         onChange={(e) =>
-                          setRatioThresholds((prev) => ({
-                            ...prev,
+                          updateRatioThresholds({
+                            ...ratioThresholds,
                             medium: parseFloat(e.target.value) || 0,
-                          }))
+                          })
                         }
                         className="w-20"
                       />
@@ -1075,11 +1101,12 @@ export default function MandatePayrollPage() {
             </div>
 
             <DialogFooter>
+              {" "}
               <Button
                 variant="outline"
                 onClick={() => {
                   // Réinitialiser aux valeurs par défaut
-                  setRatioThresholds({ good: 30, medium: 50 });
+                  updateRatioThresholds({ good: 30, medium: 50 });
                 }}
               >
                 Valeurs par défaut

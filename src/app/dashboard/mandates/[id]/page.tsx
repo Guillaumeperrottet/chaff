@@ -1276,12 +1276,18 @@ export default function MandateCAPage() {
                 ))}
               </TableRow>
 
+              {/* Ligne séparatrice vide */}
+              <TableRow className="h-4">
+                <TableCell className="border-r"></TableCell>
+                {caData.periods.map((_, index) => (
+                  <TableCell key={index} className="border-r"></TableCell>
+                ))}
+              </TableRow>
+
               {/* Ligne des totaux Masse salariale */}
-              <TableRow className="bg-blue-50 font-medium border-t-2 border-blue-200">
-                <TableCell className="bg-blue-50 border-r text-center py-2 p-2">
-                  <span className="text-sm font-bold text-blue-800">
-                    Masse sal.
-                  </span>
+              <TableRow className="bg-gray-100 font-medium">
+                <TableCell className="bg-gray-100 border-r text-center py-2 p-2">
+                  <span className="text-sm font-bold">Masse sal.</span>
                 </TableCell>
                 {caData.periods.map((period, index) => (
                   <TableCell
@@ -1298,7 +1304,7 @@ export default function MandateCAPage() {
                           : "-"}
                       </div>
                       {/* Année courante - masse salariale */}
-                      <div className="flex-1 text-right font-bold text-blue-800">
+                      <div className="flex-1 text-right font-bold">
                         {period.payrollData?.totalCost
                           ? formatCurrency(period.payrollData.totalCost)
                           : "-"}
@@ -1309,15 +1315,13 @@ export default function MandateCAPage() {
               </TableRow>
 
               {/* Ligne pourcentage Masse salariale / CA */}
-              <TableRow className="bg-blue-50 font-medium">
-                <TableCell className="bg-blue-50 border-r text-center py-2 p-2">
+              <TableRow className="bg-gray-100 font-medium">
+                <TableCell className="bg-gray-100 border-r text-center py-2 p-2">
                   <div className="flex items-center justify-center gap-1">
-                    <span className="text-sm font-bold text-blue-800">
-                      Masse sal. %
-                    </span>
+                    <span className="text-sm font-bold">Masse sal. %</span>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Info className="h-3 w-3 text-blue-600 cursor-help" />
+                        <Info className="h-3 w-3 text-muted-foreground cursor-help" />
                       </TooltipTrigger>
                       <TooltipContent
                         side="right"
@@ -1368,7 +1372,7 @@ export default function MandateCAPage() {
                             : "-"}
                         </div>
                         {/* Année courante - ratio */}
-                        <div className="flex-1 text-right font-bold text-blue-800">
+                        <div className="flex-1 text-right font-bold">
                           {currentPayrollRatio !== null
                             ? formatPercentage(currentPayrollRatio, false, 1)
                             : "-"}
@@ -1377,14 +1381,6 @@ export default function MandateCAPage() {
                     </TableCell>
                   );
                 })}
-              </TableRow>
-
-              {/* Ligne séparatrice vide */}
-              <TableRow className="h-4">
-                <TableCell className="border-r"></TableCell>
-                {caData.periods.map((_, index) => (
-                  <TableCell key={index} className="border-r"></TableCell>
-                ))}
               </TableRow>
             </TableBody>
           </Table>
