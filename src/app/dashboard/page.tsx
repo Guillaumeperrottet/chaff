@@ -207,7 +207,7 @@ const EditableCell: React.FC<EditableCellProps> = ({
           }}
           onKeyDown={handleKeyDown}
           onBlur={handleSave}
-          className="h-8 text-sm text-center border-blue-500 focus:ring-2 focus:ring-blue-500"
+          className="h-6 text-xs text-center border-blue-500 focus:ring-2 focus:ring-blue-500"
           placeholder="0.00"
           autoFocus
           disabled={isSaving}
@@ -225,7 +225,7 @@ const EditableCell: React.FC<EditableCellProps> = ({
 
   return (
     <div
-      className="text-sm font-medium cursor-pointer hover:bg-blue-50 hover:text-blue-700 rounded px-1 py-1 transition-colors group"
+      className="text-xs font-medium cursor-pointer hover:bg-blue-50 hover:text-blue-700 rounded px-1 py-0.5 transition-colors group"
       onClick={() => {
         // Pour l'édition, on utilise la valeur affichée mais nettoyée
         const rawValue = getRawValue(value);
@@ -960,10 +960,10 @@ export default function DashboardPage() {
     <TooltipProvider>
       {/* ✅ CHANGEMENT 1: Conteneur principal SANS width/padding contraints */}
       <div className="w-full">
-        {/* Header avec titre et actions */}
-        <div className="flex items-center justify-between mb-4 px-4">
+        {/* Header avec titre et actions - Hauteur réduite */}
+        <div className="flex items-center justify-between mb-2 px-4 py-2">
           <div className="flex-1">
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight">
               Tableau de bord
             </h1>
           </div>
@@ -1121,12 +1121,12 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Barre de filtres compacte */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-          <div className="flex items-center gap-3">
+        {/* Barre de filtres compacte - Espacement réduit */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+          <div className="flex items-center gap-2">
             <Link
               href="/dashboard/mandates"
-              className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors underline"
+              className="text-xs font-medium text-slate-600 hover:text-slate-900 transition-colors underline"
             >
               Index des mandats
             </Link>
@@ -1138,9 +1138,9 @@ export default function DashboardPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="text-slate-600 hover:text-slate-900 transition-colors text-sm h-8"
+                  className="text-slate-600 hover:text-slate-900 transition-colors text-xs h-7"
                 >
-                  <span className="mr-2">Filtres</span>
+                  <span className="mr-1">Filtres</span>
                   <ChevronDown className="h-3 w-3 opacity-70" />
                   {(searchTerm ||
                     categoryFilter !== "all" ||
@@ -1235,25 +1235,25 @@ export default function DashboardPage() {
             <div className="overflow-x-auto">
               <Table className="w-full min-w-[1000px]">
                 <TableHeader>
-                  <TableRow className="h-12">
-                    <TableHead className="w-[200px] py-3 text-sm font-semibold">
+                  <TableRow className="h-10">
+                    <TableHead className="w-[200px] py-2 text-xs font-semibold">
                       Campus
                     </TableHead>
-                    <TableHead className="w-[140px] py-3 text-sm font-semibold">
+                    <TableHead className="w-[140px] py-2 text-xs font-semibold">
                       Dernière saisie
                     </TableHead>
-                    <TableHead className="w-[160px] py-3 text-sm font-semibold">
+                    <TableHead className="w-[160px] py-2 text-xs font-semibold">
                       Top
                     </TableHead>
                     {visibleColumns.map((col) => (
                       <TableHead
                         key={col.key}
-                        className="text-center w-[120px] py-3 text-sm font-semibold"
+                        className="text-center w-[120px] py-2 text-xs font-semibold"
                       >
                         {col.label}
                       </TableHead>
                     ))}
-                    <TableHead className="w-[60px] py-3"></TableHead>
+                    <TableHead className="w-[60px] py-2"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1280,31 +1280,31 @@ export default function DashboardPage() {
                         {groupData.map((campus) => (
                           <TableRow
                             key={campus.id}
-                            className="hover:bg-muted/50 h-14"
+                            className="hover:bg-muted/50 h-10"
                           >
-                            <TableCell className="py-3">
+                            <TableCell className="py-2">
                               <div className="flex items-center space-x-2">
                                 <div>
-                                  <div className="font-medium text-base">
+                                  <div className="font-medium text-sm">
                                     {campus.name}
                                   </div>
                                 </div>
                               </div>
                             </TableCell>
-                            <TableCell className="py-3">
-                              <div className="text-sm">
+                            <TableCell className="py-2">
+                              <div className="text-xs">
                                 {campus.lastEntry || "Jamais"}
                               </div>
                             </TableCell>
-                            <TableCell className="py-3">
-                              <div className="text-sm font-medium text-blue-600">
+                            <TableCell className="py-2">
+                              <div className="text-xs font-medium text-blue-600">
                                 {campus.performance}
                               </div>
                             </TableCell>
                             {visibleColumns.map((col) => (
                               <TableCell
                                 key={col.key}
-                                className="text-center py-3"
+                                className="text-center py-2"
                               >
                                 <EditableCell
                                   value={campus.values[col.key] || "0.00"}
@@ -1341,12 +1341,12 @@ export default function DashboardPage() {
                                 />
                               </TableCell>
                             ))}
-                            <TableCell className="py-3">
+                            <TableCell className="py-2">
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button
                                     variant="ghost"
-                                    className="h-8 w-8 p-0"
+                                    className="h-6 w-6 p-0"
                                   >
                                     <MoreHorizontal className="h-4 w-4" />
                                   </Button>
@@ -1400,12 +1400,12 @@ export default function DashboardPage() {
                         ))}
 
                         {groupData.length > 0 && (
-                          <TableRow className="bg-slate-50 hover:bg-slate-50 border-t-2 h-12">
+                          <TableRow className="bg-slate-50 hover:bg-slate-50 border-t-2 h-10">
                             <TableCell
                               colSpan={2}
-                              className="font-semibold text-slate-700 py-3"
+                              className="font-semibold text-slate-700 py-2"
                             >
-                              <span className="text-base">
+                              <span className="text-sm">
                                 {(() => {
                                   if (groupKey === "hebergement")
                                     return "Hébergement";
@@ -1415,31 +1415,31 @@ export default function DashboardPage() {
                                 })()}
                               </span>
                             </TableCell>
-                            <TableCell className="font-semibold text-slate-700 py-3">
-                              <div className="text-sm">
+                            <TableCell className="font-semibold text-slate-700 py-2">
+                              <div className="text-xs">
                                 {calculateGroupTop(groupData)}
                               </div>
                             </TableCell>
                             {visibleColumns.map((col) => (
                               <TableCell
                                 key={col.key}
-                                className="text-center font-semibold text-slate-700 py-3"
+                                className="text-center font-semibold text-slate-700 py-2"
                               >
-                                <div className="text-base">
+                                <div className="text-sm">
                                   {formatCurrency(
                                     groupTotals[groupKey][col.key] || 0
                                   )}
                                 </div>
                               </TableCell>
                             ))}
-                            <TableCell className="py-3">
+                            <TableCell className="py-2">
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button
                                     variant="ghost"
-                                    className="h-8 w-8 p-0"
+                                    className="h-6 w-6 p-0"
                                   >
-                                    <MoreHorizontal className="h-4 w-4" />
+                                    <MoreHorizontal className="h-3 w-3" />
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
@@ -1474,31 +1474,31 @@ export default function DashboardPage() {
 
                 {categoryFilter === "all" && (
                   <TableFooter>
-                    <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-150 border-t-4 border-gray-300 h-14">
+                    <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-150 border-t-4 border-gray-300 h-10">
                       <TableCell
                         colSpan={2}
-                        className="font-bold text-gray-900 py-3"
+                        className="font-bold text-gray-900 py-2"
                       >
-                        <span className="text-base">Total général</span>
+                        <span className="text-sm">Total général</span>
                       </TableCell>
-                      <TableCell className="font-bold text-gray-900 py-3">
-                        <div className="text-sm">{calculateGrandTop()}</div>
+                      <TableCell className="font-bold text-gray-900 py-2">
+                        <div className="text-xs">{calculateGrandTop()}</div>
                       </TableCell>
                       {visibleColumns.map((col) => (
                         <TableCell
                           key={col.key}
-                          className="text-center font-bold text-gray-900 py-3"
+                          className="text-center font-bold text-gray-900 py-2"
                         >
-                          <div className="text-base">
+                          <div className="text-sm">
                             {formatCurrency(grandTotals[col.key] || 0)}
                           </div>
                         </TableCell>
                       ))}
-                      <TableCell className="py-3">
+                      <TableCell className="py-2">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <MoreHorizontal className="h-4 w-4" />
+                            <Button variant="ghost" className="h-6 w-6 p-0">
+                              <MoreHorizontal className="h-3 w-3" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
