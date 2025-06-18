@@ -307,8 +307,9 @@ export default function PrintableCAReport({
               <th>Jour</th>
               {caData.periods.map((period, index) => (
                 <th key={index}>
-                  <div>{period.label}</div>
-                  <div>Act. / Préc.</div>
+                  {period.label}
+                  <br />
+                  (Act. / Préc.)
                 </th>
               ))}
             </tr>
@@ -319,16 +320,13 @@ export default function PrintableCAReport({
                 <td>{row.day.toString().padStart(2, "0")}</td>
                 {caData.periods.map((_, index) => (
                   <td key={index}>
-                    <div>
-                      {row.values[`period_${index}`]?.current > 0
-                        ? formatCurrency(row.values[`period_${index}`].current)
-                        : "-"}
-                    </div>
-                    <div>
-                      {row.values[`period_${index}`]?.previous > 0
-                        ? formatCurrency(row.values[`period_${index}`].previous)
-                        : "-"}
-                    </div>
+                    {row.values[`period_${index}`]?.current > 0
+                      ? formatCurrency(row.values[`period_${index}`].current)
+                      : "-"}{" "}
+                    /{" "}
+                    {row.values[`period_${index}`]?.previous > 0
+                      ? formatCurrency(row.values[`period_${index}`].previous)
+                      : "-"}
                   </td>
                 ))}
               </tr>
@@ -338,12 +336,8 @@ export default function PrintableCAReport({
               <td>TOTAL CA</td>
               {caData.periods.map((_, index) => (
                 <td key={index}>
-                  <div>
-                    {formatCurrency(totals[`period_${index}`]?.current || 0)}
-                  </div>
-                  <div>
-                    {formatCurrency(totals[`period_${index}`]?.previous || 0)}
-                  </div>
+                  {formatCurrency(totals[`period_${index}`]?.current || 0)} /{" "}
+                  {formatCurrency(totals[`period_${index}`]?.previous || 0)}
                 </td>
               ))}
             </tr>
@@ -352,21 +346,18 @@ export default function PrintableCAReport({
               <td>MOY/JOUR</td>
               {caData.periods.map((period, index) => (
                 <td key={index}>
-                  <div>
-                    {period.daysWithData > 0
-                      ? formatCurrency(period.averageDaily)
-                      : "-"}
-                  </div>
-                  <div>
-                    {period.yearOverYear.previousYearRevenue > 0
-                      ? formatCurrency(
-                          period.yearOverYear.previousYearRevenue /
-                            (period.previousYearDailyValues?.filter(
-                              (dv) => dv.value > 0
-                            ).length || 1)
-                        )
-                      : "-"}
-                  </div>
+                  {period.daysWithData > 0
+                    ? formatCurrency(period.averageDaily)
+                    : "-"}{" "}
+                  /{" "}
+                  {period.yearOverYear.previousYearRevenue > 0
+                    ? formatCurrency(
+                        period.yearOverYear.previousYearRevenue /
+                          (period.previousYearDailyValues?.filter(
+                            (dv) => dv.value > 0
+                          ).length || 1)
+                      )
+                    : "-"}
                 </td>
               ))}
             </tr>
@@ -375,16 +366,13 @@ export default function PrintableCAReport({
               <td>MASSE SAL.</td>
               {caData.periods.map((_, index) => (
                 <td key={index}>
-                  <div>
-                    {formatCurrency(
-                      payrollTotals[`period_${index}`]?.current || 0
-                    )}
-                  </div>
-                  <div>
-                    {formatCurrency(
-                      payrollTotals[`period_${index}`]?.previous || 0
-                    )}
-                  </div>
+                  {formatCurrency(
+                    payrollTotals[`period_${index}`]?.current || 0
+                  )}{" "}
+                  /{" "}
+                  {formatCurrency(
+                    payrollTotals[`period_${index}`]?.previous || 0
+                  )}
                 </td>
               ))}
             </tr>
@@ -393,12 +381,8 @@ export default function PrintableCAReport({
               <td>RATIO %</td>
               {caData.periods.map((_, index) => (
                 <td key={index}>
-                  <div>
-                    {ratios[`period_${index}`]?.current?.toFixed(1) || "-"}%
-                  </div>
-                  <div>
-                    {ratios[`period_${index}`]?.previous?.toFixed(1) || "-"}%
-                  </div>
+                  {ratios[`period_${index}`]?.current?.toFixed(1) || "-"}% /{" "}
+                  {ratios[`period_${index}`]?.previous?.toFixed(1) || "-"}%
                 </td>
               ))}
             </tr>
