@@ -458,10 +458,6 @@ export async function GET(request: NextRequest) {
     });
 
     // Calculer le summary global
-    const totalPayrollCost = cumulativeData.reduce(
-      (sum, p) => sum + (p.payrollData?.totalCost || 0),
-      0
-    );
     const totalPreviousYearRevenue = cumulativeData.reduce(
       (sum, p) => sum + p.yearOverYear.previousYearRevenue,
       0
@@ -500,6 +496,28 @@ export async function GET(request: NextRequest) {
       };
     });
 
+    // Filtrer les données pour exclure le mois en cours des statistiques
+    const currentDate = new Date();
+    const currentYearForStats = currentDate.getFullYear();
+    const currentMonthForStats = currentDate.getMonth() + 1;
+
+    const statsData = cumulativeData.filter((period) => {
+      // Exclure le mois en cours si c'est la même année
+      if (
+        period.year === currentYearForStats &&
+        period.month === currentMonthForStats
+      ) {
+        return false;
+      }
+      return true;
+    });
+
+    // Utiliser statsData pour les calculs de best/worst period et masse salariale
+    const statsTotalPayrollCost = statsData.reduce(
+      (sum, p) => sum + (p.payrollData?.totalCost || 0),
+      0
+    );
+
     const response: GlobalCAResponse = {
       organization: {
         name: userWithOrg.Organization.name,
@@ -510,16 +528,26 @@ export async function GET(request: NextRequest) {
         totalPeriods: cumulativeData.length,
         grandTotal: cumulativeTotal,
         averagePerPeriod: cumulativeTotal / cumulativeData.length,
-        bestPeriod: cumulativeData.reduce((best, current) =>
-          current.totalValue > best.totalValue ? current : best
-        ),
-        worstPeriod: cumulativeData.reduce((worst, current) =>
-          current.totalValue < worst.totalValue ? current : worst
-        ),
-        totalPayrollCost,
+        bestPeriod:
+          statsData.length > 0
+            ? statsData.reduce((best, current) =>
+                current.totalValue > best.totalValue ? current : best
+              )
+            : cumulativeData.reduce((best, current) =>
+                current.totalValue > best.totalValue ? current : best
+              ),
+        worstPeriod:
+          statsData.length > 0
+            ? statsData.reduce((worst, current) =>
+                current.totalValue < worst.totalValue ? current : worst
+              )
+            : cumulativeData.reduce((worst, current) =>
+                current.totalValue < worst.totalValue ? current : worst
+              ),
+        totalPayrollCost: statsTotalPayrollCost,
         globalPayrollRatio:
-          cumulativeTotal > 0 && totalPayrollCost > 0
-            ? (totalPayrollCost / cumulativeTotal) * 100
+          cumulativeTotal > 0 && statsTotalPayrollCost > 0
+            ? (statsTotalPayrollCost / cumulativeTotal) * 100
             : null,
         yearOverYearGrowth: {
           revenue:
@@ -529,8 +557,8 @@ export async function GET(request: NextRequest) {
                 100
               : null,
           payroll:
-            totalPreviousYearPayroll > 0 && totalPayrollCost > 0
-              ? ((totalPayrollCost - totalPreviousYearPayroll) /
+            totalPreviousYearPayroll > 0 && statsTotalPayrollCost > 0
+              ? ((statsTotalPayrollCost - totalPreviousYearPayroll) /
                   totalPreviousYearPayroll) *
                 100
               : null,

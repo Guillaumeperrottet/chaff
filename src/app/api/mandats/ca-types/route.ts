@@ -412,35 +412,56 @@ export async function GET(request: NextRequest) {
       }
     );
 
+    // Exclure le mois courant des statistiques pour éviter les données incomplètes
+    const currentDate = new Date();
+    const currentYearForStats = currentDate.getFullYear();
+    const currentMonthForStats = currentDate.getMonth() + 1; // getMonth() retourne 0-11
+
+    // Filtrer les données pour les statistiques (exclure le mois courant de l'année courante)
+    const statsData = periodsWithCumuls.filter(
+      (period) =>
+        !(
+          period.year === currentYearForStats &&
+          period.month === currentMonthForStats
+        )
+    );
+
     const grandTotal = periodsWithCumuls.reduce(
       (sum, period) => sum + period.totalValue,
       0
     );
-    const totalPayrollCost = periodsWithCumuls.reduce(
+
+    // Calculer les totaux pour les statistiques (sans le mois courant)
+    const statsTotalPayrollCost = statsData.reduce(
       (sum, period) => sum + (period.payrollData?.totalCost || 0),
       0
     );
+    const statsGrandTotal = statsData.reduce(
+      (sum, period) => sum + period.totalValue,
+      0
+    );
 
-    // Calculer croissances année-sur-année
-    const totalPreviousYearRevenue = periodsWithCumuls.reduce(
+    // Croissances basées sur les données filtrées pour les statistiques
+    const statsTotalPreviousYearRevenue = statsData.reduce(
       (sum, period) => sum + period.yearOverYear.previousYearRevenue,
       0
     );
-    const totalPreviousYearPayroll = periodsWithCumuls.reduce(
+    const statsTotalPreviousYearPayroll = statsData.reduce(
       (sum, period) => sum + (period.yearOverYear.previousYearPayroll || 0),
       0
     );
 
     const yearOverYearRevenueGrowth =
-      totalPreviousYearRevenue > 0
-        ? ((grandTotal - totalPreviousYearRevenue) / totalPreviousYearRevenue) *
+      statsTotalPreviousYearRevenue > 0
+        ? ((statsGrandTotal - statsTotalPreviousYearRevenue) /
+            statsTotalPreviousYearRevenue) *
           100
         : null;
 
     const yearOverYearPayrollGrowth =
-      totalPreviousYearPayroll > 0
-        ? ((totalPayrollCost - totalPreviousYearPayroll) /
-            totalPreviousYearPayroll) *
+      statsTotalPreviousYearPayroll > 0
+        ? ((statsTotalPayrollCost - statsTotalPreviousYearPayroll) /
+            statsTotalPreviousYearPayroll) *
           100
         : null;
 
@@ -454,15 +475,27 @@ export async function GET(request: NextRequest) {
         totalPeriods: periodsWithCumuls.length,
         grandTotal,
         averagePerPeriod: grandTotal / periodsWithCumuls.length,
-        bestPeriod: periodsWithCumuls.reduce((best, current) =>
-          current.totalValue > best.totalValue ? current : best
-        ),
-        worstPeriod: periodsWithCumuls.reduce((worst, current) =>
-          current.totalValue < worst.totalValue ? current : worst
-        ),
-        totalPayrollCost,
+        bestPeriod:
+          statsData.length > 0
+            ? statsData.reduce((best, current) =>
+                current.totalValue > best.totalValue ? current : best
+              )
+            : periodsWithCumuls.reduce((best, current) =>
+                current.totalValue > best.totalValue ? current : best
+              ),
+        worstPeriod:
+          statsData.length > 0
+            ? statsData.reduce((worst, current) =>
+                current.totalValue < worst.totalValue ? current : worst
+              )
+            : periodsWithCumuls.reduce((worst, current) =>
+                current.totalValue < worst.totalValue ? current : worst
+              ),
+        totalPayrollCost: statsTotalPayrollCost,
         globalPayrollRatio:
-          grandTotal > 0 ? (totalPayrollCost / grandTotal) * 100 : null,
+          statsGrandTotal > 0
+            ? (statsTotalPayrollCost / statsGrandTotal) * 100
+            : null,
         yearOverYearGrowth: {
           revenue: yearOverYearRevenueGrowth,
           payroll: yearOverYearPayrollGrowth,
