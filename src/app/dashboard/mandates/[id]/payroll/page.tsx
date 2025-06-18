@@ -134,6 +134,11 @@ export default function MandatePayrollPage() {
     // Rouge si >= 50%
   });
   const [showThresholdSettings, setShowThresholdSettings] = useState(false);
+  // ✅ NOUVEAU: État temporaire pour les seuils en cours d'édition
+  const [tempRatioThresholds, setTempRatioThresholds] = useState({
+    good: 30,
+    medium: 50,
+  });
 
   // ✅ NOUVEAU: Charger les seuils depuis localStorage au démarrage
   useEffect(() => {
@@ -142,24 +147,29 @@ export default function MandatePayrollPage() {
       try {
         const parsed = JSON.parse(savedThresholds);
         setRatioThresholds(parsed);
+        setTempRatioThresholds(parsed);
       } catch (error) {
         console.error("Erreur lors du chargement des seuils:", error);
       }
     }
   }, []);
 
-  // ✅ NOUVEAU: Sauvegarder les seuils dans localStorage quand ils changent
-  const updateRatioThresholds = useCallback(
-    (newThresholds: typeof ratioThresholds) => {
-      setRatioThresholds(newThresholds);
-      localStorage.setItem(
-        "payroll-ratio-thresholds",
-        JSON.stringify(newThresholds)
-      );
-      toast.success("Seuils de couleur sauvegardés");
-    },
-    []
-  );
+  // ✅ NOUVEAU: Sauvegarder les seuils dans localStorage quand on clique sur Appliquer
+  const applyRatioThresholds = useCallback(() => {
+    setRatioThresholds(tempRatioThresholds);
+    localStorage.setItem(
+      "payroll-ratio-thresholds",
+      JSON.stringify(tempRatioThresholds)
+    );
+    toast.success("Seuils de couleur sauvegardés");
+    setShowThresholdSettings(false);
+  }, [tempRatioThresholds]);
+
+  // ✅ NOUVEAU: Ouvrir le dialog des seuils avec les valeurs actuelles
+  const openThresholdSettings = useCallback(() => {
+    setTempRatioThresholds(ratioThresholds);
+    setShowThresholdSettings(true);
+  }, [ratioThresholds]);
 
   const [formData, setFormData] = useState({
     month: "",
@@ -512,7 +522,7 @@ export default function MandatePayrollPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setShowThresholdSettings(true)}
+                  onClick={openThresholdSettings}
                   className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
                   title="Configurer les seuils de couleur"
                 >
@@ -1005,10 +1015,10 @@ export default function MandatePayrollPage() {
                         min="0"
                         max="100"
                         step="1"
-                        value={ratioThresholds.good}
+                        value={tempRatioThresholds.good}
                         onChange={(e) =>
-                          updateRatioThresholds({
-                            ...ratioThresholds,
+                          setTempRatioThresholds({
+                            ...tempRatioThresholds,
                             good: parseFloat(e.target.value) || 0,
                           })
                         }
@@ -1027,18 +1037,18 @@ export default function MandatePayrollPage() {
                     </Label>
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-sm text-muted-foreground">
-                        Entre {ratioThresholds.good}% et
+                        Entre {tempRatioThresholds.good}% et
                       </span>
                       <Input
                         id="mediumThreshold"
                         type="number"
-                        min={ratioThresholds.good}
+                        min={tempRatioThresholds.good}
                         max="100"
                         step="1"
-                        value={ratioThresholds.medium}
+                        value={tempRatioThresholds.medium}
                         onChange={(e) =>
-                          updateRatioThresholds({
-                            ...ratioThresholds,
+                          setTempRatioThresholds({
+                            ...tempRatioThresholds,
                             medium: parseFloat(e.target.value) || 0,
                           })
                         }
@@ -1054,7 +1064,7 @@ export default function MandatePayrollPage() {
                   <div className="flex-1">
                     <Label>Ratio élevé (rouge)</Label>
                     <p className="text-sm text-muted-foreground mt-1">
-                      {ratioThresholds.medium}% et plus
+                      {tempRatioThresholds.medium}% et plus
                     </p>
                   </div>
                 </div>
@@ -1067,9 +1077,9 @@ export default function MandatePayrollPage() {
                     <span>Exemple 25%</span>
                     <span className={getRatioColor(25)}>
                       ■{" "}
-                      {25 < ratioThresholds.good
+                      {25 < tempRatioThresholds.good
                         ? "Vert"
-                        : 25 < ratioThresholds.medium
+                        : 25 < tempRatioThresholds.medium
                           ? "Jaune"
                           : "Rouge"}
                     </span>
@@ -1078,9 +1088,9 @@ export default function MandatePayrollPage() {
                     <span>Exemple 40%</span>
                     <span className={getRatioColor(40)}>
                       ■{" "}
-                      {40 < ratioThresholds.good
+                      {40 < tempRatioThresholds.good
                         ? "Vert"
-                        : 40 < ratioThresholds.medium
+                        : 40 < tempRatioThresholds.medium
                           ? "Jaune"
                           : "Rouge"}
                     </span>
@@ -1089,9 +1099,9 @@ export default function MandatePayrollPage() {
                     <span>Exemple 55%</span>
                     <span className={getRatioColor(55)}>
                       ■{" "}
-                      {55 < ratioThresholds.good
+                      {55 < tempRatioThresholds.good
                         ? "Vert"
-                        : 55 < ratioThresholds.medium
+                        : 55 < tempRatioThresholds.medium
                           ? "Jaune"
                           : "Rouge"}
                     </span>
@@ -1106,14 +1116,12 @@ export default function MandatePayrollPage() {
                 variant="outline"
                 onClick={() => {
                   // Réinitialiser aux valeurs par défaut
-                  updateRatioThresholds({ good: 30, medium: 50 });
+                  setTempRatioThresholds({ good: 30, medium: 50 });
                 }}
               >
                 Valeurs par défaut
               </Button>
-              <Button onClick={() => setShowThresholdSettings(false)}>
-                Appliquer
-              </Button>
+              <Button onClick={applyRatioThresholds}>Appliquer</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
