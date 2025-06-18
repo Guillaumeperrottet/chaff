@@ -190,7 +190,23 @@ export default function PrintableCAReport({
             size: A4 landscape;
           }
 
+          /* Masquer TOUT le contenu de la page */
+          * {
+            visibility: hidden;
+          }
+
+          /* Rendre visible seulement le rapport d'impression et ses enfants */
+          .print-report,
+          .print-report * {
+            visibility: visible;
+          }
+
+          /* Positionner le rapport d'impression en haut de la page */
           .print-report {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
             font-family: Arial, sans-serif;
             color: black;
             background: white;
