@@ -830,7 +830,7 @@ export default function TypesCAPage() {
               {/* Ligne total jour (moyenne journalière) */}
               <TableRow className="bg-gray-100 font-medium">
                 <TableCell className="bg-gray-100 border-r text-center py-2 p-2">
-                  <span className="text-sm font-bold">Total jour</span>
+                  <span className="text-sm font-bold">CA jour</span>
                 </TableCell>
                 {caData.periods.map((period, index) => (
                   <TableCell
@@ -863,7 +863,7 @@ export default function TypesCAPage() {
               {/* Ligne évolution CA basée sur moyenne journalière */}
               <TableRow className="bg-gray-100 font-medium">
                 <TableCell className="bg-gray-100 border-r text-center py-2 p-2">
-                  <span className="text-sm font-bold">Évol. CA %</span>
+                  <span className="text-sm font-bold">CA %</span>
                 </TableCell>
                 {caData.periods.map((period, index) => {
                   // Calculer l'évolution basée sur les moyennes journalières
@@ -902,7 +902,7 @@ export default function TypesCAPage() {
               <TableRow className="bg-gray-100 font-medium">
                 <TableCell className="bg-gray-100 border-r text-center py-2 p-2">
                   <div className="flex items-center justify-center gap-1">
-                    <span className="text-sm font-bold">Cumul</span>
+                    <span className="text-sm font-bold">CA cumul</span>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Info className="h-3 w-3 text-gray-600 cursor-help" />
@@ -966,7 +966,7 @@ export default function TypesCAPage() {
               <TableRow className="bg-gray-100 font-medium">
                 <TableCell className="bg-gray-100 border-r text-center py-2 p-2">
                   <div className="flex items-center justify-center gap-1">
-                    <span className="text-sm font-bold">Évol. Cumul %</span>
+                    <span className="text-sm font-bold">Cumul %</span>
                   </div>
                 </TableCell>
                 {caData.periods.map((period, index) => (
@@ -997,6 +997,105 @@ export default function TypesCAPage() {
                   <TableCell key={index} className="border-r"></TableCell>
                 ))}
               </TableRow>
+
+              {/* Ligne des totaux Masse salariale */}
+              <TableRow className="bg-gray-100 font-medium">
+                <TableCell className="bg-gray-100 border-r text-center py-2 p-2">
+                  <span className="text-sm font-bold">Masse sal.</span>
+                </TableCell>
+                {caData.periods.map((period, index) => (
+                  <TableCell
+                    key={index}
+                    className="text-center border-r px-1 py-2 whitespace-nowrap"
+                  >
+                    <div className="flex justify-between items-center space-x-1 text-sm">
+                      {/* Année précédente - masse salariale */}
+                      <div className="flex-1 text-left text-muted-foreground">
+                        {period.yearOverYear.previousYearPayroll
+                          ? formatCurrency(
+                              period.yearOverYear.previousYearPayroll
+                            )
+                          : "-"}
+                      </div>
+                      {/* Année courante - masse salariale */}
+                      <div className="flex-1 text-right font-bold">
+                        {period.payrollData?.totalCost
+                          ? formatCurrency(period.payrollData.totalCost)
+                          : "-"}
+                      </div>
+                    </div>
+                  </TableCell>
+                ))}
+              </TableRow>
+
+              {/* Ligne pourcentage Masse salariale / CA */}
+              <TableRow className="bg-gray-100 font-medium">
+                <TableCell className="bg-gray-100 border-r text-center py-2 p-2">
+                  <div className="flex items-center justify-center gap-1">
+                    <span className="text-sm font-bold">Masse sal. %</span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent
+                        side="right"
+                        className="max-w-xs bg-white border border-gray-200 shadow-lg p-3"
+                        sideOffset={8}
+                      >
+                        <div className="space-y-2 text-xs">
+                          <div className="font-semibold text-gray-900">
+                            Ratio Masse salariale / CA
+                          </div>
+                          <div className="text-gray-600">
+                            Pourcentage que représente la masse salariale par
+                            rapport au chiffre d&apos;affaires du mois.
+                          </div>
+                          <div className="text-gray-500 text-[10px]">
+                            Un ratio élevé peut indiquer des coûts salariaux
+                            importants par rapport aux revenus.
+                          </div>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                </TableCell>
+                {caData.periods.map((period, index) => {
+                  // Calculer le ratio pour l'année précédente
+                  const previousPayrollRatio =
+                    period.yearOverYear.previousYearRevenue > 0 &&
+                    period.yearOverYear.previousYearPayroll
+                      ? (period.yearOverYear.previousYearPayroll /
+                          period.yearOverYear.previousYearRevenue) *
+                        100
+                      : null;
+
+                  // Ratio pour l'année courante
+                  const currentPayrollRatio =
+                    period.payrollToRevenueRatio ?? null;
+
+                  return (
+                    <TableCell
+                      key={index}
+                      className="text-center border-r px-1 py-2 whitespace-nowrap"
+                    >
+                      <div className="flex justify-between items-center space-x-1 text-sm">
+                        {/* Année précédente - ratio */}
+                        <div className="flex-1 text-left text-muted-foreground">
+                          {previousPayrollRatio !== null
+                            ? formatPercentage(previousPayrollRatio, false, 1)
+                            : "-"}
+                        </div>
+                        {/* Année courante - ratio */}
+                        <div className="flex-1 text-right font-bold">
+                          {currentPayrollRatio !== null
+                            ? formatPercentage(currentPayrollRatio, false, 1)
+                            : "-"}
+                        </div>
+                      </div>
+                    </TableCell>
+                  );
+                })}
+              </TableRow>
             </TableBody>
           </Table>
         </div>
@@ -1006,7 +1105,7 @@ export default function TypesCAPage() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-base">CA Total par Types</CardTitle>
+                <CardTitle className="text-base">CA Total</CardTitle>
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -1074,16 +1173,16 @@ export default function TypesCAPage() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-base">Types Actifs</CardTitle>
-                <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-base">Pire Mois</CardTitle>
+                <TrendingDown className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
                   <div className="text-2xl font-bold">
-                    {caData.organization.totalTypes}
+                    {formatCurrency(caData.summary.worstPeriod.totalValue)}
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    Types consolidés
+                    {caData.summary.worstPeriod.label}
                   </div>
                 </div>
               </CardContent>
