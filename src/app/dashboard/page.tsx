@@ -1105,7 +1105,7 @@ export default function DashboardPage() {
               <Table className="w-full min-w-[1000px]">
                 <TableHeader>
                   <TableRow className="h-8">
-                    <TableHead className="w-[200px] py-1 text-sm font-semibold">
+                    <TableHead className="w-[200px] py-0.5 text-sm font-semibold">
                       <div className="flex items-center gap-2">
                         <span>Campus</span>
                         <div className="relative">
@@ -1155,21 +1155,21 @@ export default function DashboardPage() {
                         </div>
                       </div>
                     </TableHead>
-                    <TableHead className="w-[140px] py-1 text-sm font-semibold">
+                    <TableHead className="w-[140px] py-0.5 text-sm font-semibold">
                       Dernière saisie
                     </TableHead>
-                    <TableHead className="w-[160px] py-1 text-sm font-semibold">
+                    <TableHead className="w-[160px] py-0.5 text-sm font-semibold">
                       Top
                     </TableHead>
                     {visibleColumns.map((col) => (
                       <TableHead
                         key={col.key}
-                        className="text-center w-[120px] py-1 text-sm font-semibold"
+                        className="text-center w-[120px] py-0.5 text-sm font-semibold"
                       >
                         {col.label}
                       </TableHead>
                     ))}
-                    <TableHead className="w-[60px] py-1"></TableHead>
+                    <TableHead className="w-[60px] py-0.5"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
