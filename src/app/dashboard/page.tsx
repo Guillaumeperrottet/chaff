@@ -1103,8 +1103,8 @@ export default function DashboardPage() {
             <div className="overflow-x-auto">
               <Table className="w-full min-w-[1000px]">
                 <TableHeader>
-                  <TableRow className="h-10">
-                    <TableHead className="w-[200px] py-2 text-xs font-semibold">
+                  <TableRow className="h-8">
+                    <TableHead className="w-[200px] py-1 text-sm font-semibold">
                       <div className="flex items-center gap-2">
                         <span>Campus</span>
                         <div className="relative">
@@ -1113,26 +1113,26 @@ export default function DashboardPage() {
                             placeholder="Rechercher..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-7 h-6 w-32 text-xs border-slate-200 focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 bg-white/90 placeholder:text-slate-400"
+                            className="pl-7 h-6 w-28 text-xs border-slate-200 focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500 bg-white/90 placeholder:text-slate-400"
                           />
                         </div>
                       </div>
                     </TableHead>
-                    <TableHead className="w-[140px] py-2 text-xs font-semibold">
+                    <TableHead className="w-[140px] py-1 text-sm font-semibold">
                       Dernière saisie
                     </TableHead>
-                    <TableHead className="w-[160px] py-2 text-xs font-semibold">
+                    <TableHead className="w-[160px] py-1 text-sm font-semibold">
                       Top
                     </TableHead>
                     {visibleColumns.map((col) => (
                       <TableHead
                         key={col.key}
-                        className="text-center w-[120px] py-2 text-xs font-semibold"
+                        className="text-center w-[120px] py-1 text-sm font-semibold"
                       >
                         {col.label}
                       </TableHead>
                     ))}
-                    <TableHead className="w-[60px] py-2"></TableHead>
+                    <TableHead className="w-[60px] py-1"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
