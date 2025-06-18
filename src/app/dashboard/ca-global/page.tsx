@@ -55,6 +55,7 @@ import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import React from "react";
 import PremiumBurgerButton from "@/app/components/ui/BurgerButton";
+import PrintableGlobalCAReport from "@/app/components/ca/PrintableGlobalCAReport";
 
 // Types pour les données CA Global
 interface DayCAData {
@@ -1175,6 +1176,15 @@ export default function GlobalCAPage() {
                 : "Année complète"}{" "}
             {selectedYear} | Vue consolidée de tous les mandats actifs
           </p>
+        </div>
+
+        {/* Composant d'impression (caché à l'écran, visible à l'impression) */}
+        <div className="hidden print:block">
+          <PrintableGlobalCAReport
+            caData={caData}
+            selectedYear={selectedYear}
+            selectedSemester={selectedSemester}
+          />
         </div>
       </div>
     </TooltipProvider>
