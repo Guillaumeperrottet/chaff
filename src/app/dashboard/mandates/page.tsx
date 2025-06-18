@@ -865,12 +865,6 @@ export default function MandatesIndexPage() {
                       Revenue Total
                     </TableHead>
                     <TableHead className="font-semibold text-slate-900 text-center">
-                      Saisies
-                    </TableHead>
-                    <TableHead className="font-semibold text-slate-900">
-                      Dernière Saisie
-                    </TableHead>
-                    <TableHead className="font-semibold text-slate-900 text-center">
                       Statut
                     </TableHead>
                     <TableHead className="font-semibold text-slate-900 text-right">
@@ -892,12 +886,6 @@ export default function MandatesIndexPage() {
                       </TableCell>
                       <TableCell className="text-right font-medium text-slate-900">
                         {formatCurrency(mandate.totalRevenue)}
-                      </TableCell>
-                      <TableCell className="text-center text-slate-700">
-                        {mandate._count?.dayValues || 0}
-                      </TableCell>
-                      <TableCell className="text-slate-700">
-                        {formatDate(mandate.lastEntry)}
                       </TableCell>
                       <TableCell className="text-center">
                         <Badge
