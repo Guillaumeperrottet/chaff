@@ -270,7 +270,9 @@ export default function MandatePayrollPage() {
     setEditingEntry(summary.manualEntry);
     // Calculer le taux de charges sociales à partir du montant
     const socialChargesRate =
-      summary.manualEntry.socialCharges && summary.manualEntry.grossAmount
+      summary.manualEntry.socialCharges !== null &&
+      summary.manualEntry.socialCharges !== undefined &&
+      summary.manualEntry.grossAmount
         ? (
             (summary.manualEntry.socialCharges /
               summary.manualEntry.grossAmount) *
