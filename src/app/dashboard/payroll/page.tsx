@@ -52,9 +52,6 @@ interface Mandate {
   // Données spécifiques à la masse salariale
   hasPayrollData?: boolean;
   lastPayrollEntry?: Date | null;
-  currentMonthRatio?: number | null;
-  socialChargesRate?: number | null; // ✅ NOUVEAU: Taux de charges sociales du dernier import
-  employeeCount?: number;
 }
 
 export default function PayrollIndexPage() {
@@ -115,32 +112,9 @@ export default function PayrollIndexPage() {
   const formatDate = (date: Date | null) => {
     if (!date) return "Jamais";
     return new Date(date).toLocaleDateString("fr-CH", {
-      day: "2-digit",
-      month: "2-digit",
+      month: "long",
       year: "numeric",
     });
-  };
-
-  const formatPercentage = (value: number | null) => {
-    if (value === null) return "-";
-    return `${value.toFixed(1)}%`;
-  };
-
-  const getRatioColor = (ratio: number | null) => {
-    if (ratio === null) return "text-muted-foreground";
-    if (ratio < 25) return "text-green-600";
-    if (ratio < 35) return "text-yellow-600";
-    return "text-red-600";
-  };
-
-  const getRatioStatus = (ratio: number | null) => {
-    if (ratio === null)
-      return { label: "Pas de données", variant: "outline" as const };
-    if (ratio < 25) return { label: "Excellent", variant: "default" as const };
-    if (ratio < 35) return { label: "Bon", variant: "secondary" as const };
-    if (ratio < 50)
-      return { label: "Attention", variant: "destructive" as const };
-    return { label: "Critique", variant: "destructive" as const };
   };
 
   if (loading) {
@@ -243,19 +217,12 @@ export default function PayrollIndexPage() {
               <TableRow>
                 <TableHead>Établissement</TableHead>
                 <TableHead>Type</TableHead>
-                <TableHead className="text-center">Employés</TableHead>
-                <TableHead className="text-center">Ratio actuel</TableHead>
-                <TableHead className="text-center">Charges sociales</TableHead>
-                <TableHead className="text-center">Status MS</TableHead>
-                <TableHead>Dernière saisie MS</TableHead>
+                <TableHead>Dernier mois saisi</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredMandates.map((mandate) => {
-                const ratioStatus = getRatioStatus(
-                  mandate.currentMonthRatio ?? null
-                );
                 return (
                   <TableRow key={mandate.id} className="hover:bg-muted/50">
                     <TableCell>
@@ -285,32 +252,6 @@ export default function PayrollIndexPage() {
                             Restauration
                           </>
                         )}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {mandate.employeeCount || "-"}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <div
-                        className={getRatioColor(
-                          mandate.currentMonthRatio ?? null
-                        )}
-                      >
-                        {formatPercentage(mandate.currentMonthRatio ?? null)}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {mandate.socialChargesRate ? (
-                        <div className="text-sm text-muted-foreground">
-                          {mandate.socialChargesRate}%
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Badge variant={ratioStatus.variant}>
-                        {ratioStatus.label}
                       </Badge>
                     </TableCell>
                     <TableCell>
