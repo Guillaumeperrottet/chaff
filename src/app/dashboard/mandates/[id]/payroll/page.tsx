@@ -264,32 +264,6 @@ export default function MandatePayrollPage() {
     }
   };
 
-  const handleEdit = useCallback((summary: PayrollSummary) => {
-    if (!summary.manualEntry) return;
-
-    setEditingEntry(summary.manualEntry);
-    // Calculer le taux de charges sociales à partir du montant
-    const socialChargesRate =
-      summary.manualEntry.socialCharges !== null &&
-      summary.manualEntry.socialCharges !== undefined &&
-      summary.manualEntry.grossAmount
-        ? (
-            (summary.manualEntry.socialCharges /
-              summary.manualEntry.grossAmount) *
-            100
-          ).toString()
-        : "";
-
-    setFormData({
-      month: summary.month.toString(),
-      grossAmount: summary.manualEntry.grossAmount.toString(),
-      socialChargesRate: socialChargesRate,
-      employeeCount: summary.manualEntry.employeeCount?.toString() || "",
-      notes: summary.manualEntry.notes || "",
-    });
-    setIsDialogOpen(true);
-  }, []); // ✅ FIX: Mémoriser pour éviter les re-renders
-
   const handleDelete = useCallback(
     async (year: number, month: number) => {
       if (!confirm("Supprimer cette saisie de masse salariale ?")) return;
@@ -363,6 +337,70 @@ export default function MandatePayrollPage() {
     resetForm();
     setIsDialogOpen(true);
   }, [resetForm]); // ✅ FIX: Dépendance correcte
+
+  // ✅ NOUVEAU: Fonction spécialisée pour ouvrir avec un mois pré-sélectionné
+  const openNewEntryDialogWithMonth = useCallback(
+    (month: number) => {
+      resetForm();
+      // Attendre un tick pour s'assurer que la réinitialisation est effectuée
+      setTimeout(() => {
+        setFormData((prev) => ({
+          ...prev,
+          month: month.toString(),
+        }));
+        setIsDialogOpen(true);
+      }, 0);
+    },
+    [resetForm]
+  );
+
+  // ✅ NOUVEAU: Fonction pour gérer la fermeture du dialog
+  const handleDialogClose = useCallback(
+    (open: boolean) => {
+      setIsDialogOpen(open);
+      if (!open) {
+        // Réinitialiser le formulaire quand on ferme le dialog
+        resetForm();
+      }
+    },
+    [resetForm]
+  );
+
+  // ✅ AMÉLIORATION: Version améliorée de handleEdit avec réinitialisation
+  const handleEditImproved = useCallback(
+    (summary: PayrollSummary) => {
+      if (!summary.manualEntry) return;
+
+      // ✅ FIX: Réinitialiser d'abord le formulaire pour éviter la persistance des données
+      resetForm();
+
+      // Attendre un tick pour s'assurer que la réinitialisation est faite
+      setTimeout(() => {
+        setEditingEntry(summary.manualEntry!);
+        // Calculer le taux de charges sociales à partir du montant
+        const socialChargesRate =
+          summary.manualEntry!.socialCharges !== null &&
+          summary.manualEntry!.socialCharges !== undefined &&
+          summary.manualEntry!.grossAmount
+            ? (
+                (summary.manualEntry!.socialCharges /
+                  summary.manualEntry!.grossAmount) *
+                100
+              ).toString()
+            : "";
+
+        setFormData({
+          month: summary.month.toString(),
+          grossAmount: summary.manualEntry!.grossAmount.toString(),
+          socialChargesRate: socialChargesRate,
+          employeeCount: summary.manualEntry!.employeeCount?.toString() || "",
+          notes: summary.manualEntry!.notes || "",
+        });
+        setIsDialogOpen(true);
+      }, 0);
+    },
+    [resetForm]
+  );
 
   const formatCurrency = useCallback((amount: number) => {
     return new Intl.NumberFormat("fr-CH", {
@@ -724,7 +762,7 @@ export default function MandatePayrollPage() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleEdit(summary)}
+                              onClick={() => handleEditImproved(summary)}
                               title="Modifier la saisie manuelle"
                             >
                               <Edit className="h-4 w-4" />
@@ -761,13 +799,9 @@ export default function MandatePayrollPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => {
-                              setFormData((prev) => ({
-                                ...prev,
-                                month: summary.month.toString(),
-                              }));
-                              setIsDialogOpen(true);
-                            }}
+                            onClick={() =>
+                              openNewEntryDialogWithMonth(summary.month)
+                            }
                             title="Ajouter une saisie manuelle"
                           >
                             <Plus className="h-4 w-4" />
@@ -803,7 +837,7 @@ export default function MandatePayrollPage() {
         </Card>
 
         {/* Dialog de saisie */}
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
           <DialogContent className="sm:max-w-[600px]">
             <DialogHeader>
               <DialogTitle>
