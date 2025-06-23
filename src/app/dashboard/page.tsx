@@ -858,14 +858,17 @@ export default function DashboardPage() {
       : "Aucune donnée";
   };
 
-  // ✅ FONCTION POUR FILTRER LES COLONNES AVEC DONNÉES
+  // ✅ FONCTION POUR FILTRER LES COLONNES AVEC DONNÉES INTELLIGENTE (MAX 7 COLONNES)
   const getVisibleColumns = () => {
     if (!dashboardData) return [];
 
     const mergedData = getMergedData();
+    const allColumns = dashboardData.columnLabels;
 
-    return dashboardData.columnLabels.filter((col) => {
-      // Calculer le total pour cette colonne
+    // Identifier toutes les colonnes avec des données (total > 0)
+    const columnsWithDataIndexes: number[] = [];
+
+    allColumns.forEach((col, index) => {
       const columnTotal = mergedData.reduce((sum, item) => {
         const valueStr = item.values[col.key] || "0,00";
         const cleanedValue = valueStr.replace(/['\s]/g, "").replace(",", ".");
@@ -873,9 +876,30 @@ export default function DashboardPage() {
         return sum + (isNaN(value) ? 0 : value);
       }, 0);
 
-      // Afficher la colonne seulement si elle a des données (total > 0)
-      return columnTotal > 0;
+      if (columnTotal > 0) {
+        columnsWithDataIndexes.push(index);
+      }
     });
+
+    // Si aucune donnée, retourner les 7 dernières colonnes
+    if (columnsWithDataIndexes.length === 0) {
+      return allColumns.slice(-7);
+    }
+
+    // Trouver le premier et le dernier index avec des données
+    const firstDataIndex = Math.min(...columnsWithDataIndexes);
+    const lastDataIndex = Math.max(...columnsWithDataIndexes);
+
+    // Calculer la plage complète (du premier au dernier jour avec données)
+    const fullRange = allColumns.slice(firstDataIndex, lastDataIndex + 1);
+
+    // Si la plage complète fait 7 colonnes ou moins, la retourner entièrement
+    if (fullRange.length <= 7) {
+      return fullRange;
+    }
+
+    // Sinon, prendre les 7 dernières colonnes de cette plage
+    return fullRange.slice(-7);
   };
 
   if (loading) {

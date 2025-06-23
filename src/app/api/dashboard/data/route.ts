@@ -208,23 +208,22 @@ export async function GET(request: NextRequest) {
       })
     );
 
-    // Trier par dernière saisie (plus récente en premier)
+    // Trier par type d'établissement, puis par ordre alphabétique dans chaque groupe
     dashboardData.sort((a, b) => {
-      if (!a.lastEntry && !b.lastEntry) return 0;
-      if (!a.lastEntry) return 1;
-      if (!b.lastEntry) return -1;
+      // D'abord trier par catégorie/type
+      const categoryComparison = a.category.localeCompare(b.category, "fr", {
+        sensitivity: "base",
+      });
 
-      try {
-        const dateA = parseSimpleDate(a.lastEntry);
-        const dateB = parseSimpleDate(b.lastEntry);
-        return dateB.getTime() - dateA.getTime();
-      } catch {
-        console.error("Erreur parsing dates pour tri:", {
-          a: a.lastEntry,
-          b: b.lastEntry,
+      // Si même catégorie, trier par nom alphabétiquement
+      if (categoryComparison === 0) {
+        return a.name.localeCompare(b.name, "fr", {
+          sensitivity: "base",
+          numeric: true,
         });
-        return 0;
       }
+
+      return categoryComparison;
     });
 
     // ✅ MODIFIÉ: Calculer les totaux côté serveur avec support des nouveaux types
@@ -313,37 +312,6 @@ function formatDateSimple(date: Date): string {
     month: "2-digit",
     year: "2-digit",
   });
-}
-
-function parseSimpleDate(dateStr: string): Date {
-  try {
-    if (dateStr.includes(".")) {
-      const [day, month, year] = dateStr.split(".");
-      let fullYear = parseInt(year);
-
-      if (fullYear < 100) {
-        fullYear += fullYear < 50 ? 2000 : 1900;
-      }
-
-      return new Date(Date.UTC(fullYear, parseInt(month) - 1, parseInt(day)));
-    }
-
-    if (dateStr.includes("/")) {
-      const [day, month, year] = dateStr.split("/");
-      let fullYear = parseInt(year);
-
-      if (fullYear < 100) {
-        fullYear += fullYear < 50 ? 2000 : 1900;
-      }
-
-      return new Date(Date.UTC(fullYear, parseInt(month) - 1, parseInt(day)));
-    }
-
-    return new Date(dateStr);
-  } catch (error) {
-    console.error("Erreur parsing date:", dateStr, error);
-    return new Date(0);
-  }
 }
 
 // Format pour affichage (avec apostrophes pour les milliers)
