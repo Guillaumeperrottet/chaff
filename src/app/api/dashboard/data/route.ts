@@ -79,11 +79,19 @@ export async function GET(request: NextRequest) {
       orderBy: [{ group: "asc" }, { name: "asc" }],
     });
 
-    // ✅ NOUVEAU: Trouver la date la plus récente avec des données
+    // ✅ NOUVEAU: Trouver la date la plus récente avec des données (dans les 60 derniers jours)
+    const today = new Date();
+    const sixtyDaysAgo = new Date();
+    sixtyDaysAgo.setDate(today.getDate() - 60);
+
     const latestDataDate = await prisma.dayValue.findFirst({
       where: {
         mandate: {
           organizationId: user.organizationId,
+        },
+        date: {
+          gte: sixtyDaysAgo,
+          lte: today,
         },
       },
       select: {
@@ -100,11 +108,12 @@ export async function GET(request: NextRequest) {
 
     let endDate: Date;
     if (latestDataDate) {
-      // Utiliser la date la plus récente avec des données
-      endDate = new Date(latestDataDate.date);
+      // Utiliser la date la plus récente avec des données, mais jamais plus tard qu'aujourd'hui
+      const latestDate = new Date(latestDataDate.date);
+      endDate = latestDate > today ? today : latestDate;
     } else {
-      // Fallback: utiliser aujourd'hui si aucune donnée n'existe
-      endDate = new Date();
+      // Fallback: utiliser aujourd'hui si aucune donnée récente n'existe
+      endDate = today;
     }
 
     // Créer 7 jours consécutifs en remontant à partir de la date de fin
