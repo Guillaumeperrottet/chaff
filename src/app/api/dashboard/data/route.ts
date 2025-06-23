@@ -79,14 +79,38 @@ export async function GET(request: NextRequest) {
       orderBy: [{ group: "asc" }, { name: "asc" }],
     });
 
-    // Générer les colonnes de dates
+    // ✅ NOUVEAU: Trouver la date la plus récente avec des données
+    const latestDataDate = await prisma.dayValue.findFirst({
+      where: {
+        mandate: {
+          organizationId: user.organizationId,
+        },
+      },
+      select: {
+        date: true,
+      },
+      orderBy: {
+        date: "desc",
+      },
+    });
+
+    // Générer les colonnes de dates - période continue basée sur la dernière donnée
     const dateColumns: string[] = [];
     const columnLabels: ColumnLabel[] = [];
-    const today = new Date();
 
+    let endDate: Date;
+    if (latestDataDate) {
+      // Utiliser la date la plus récente avec des données
+      endDate = new Date(latestDataDate.date);
+    } else {
+      // Fallback: utiliser aujourd'hui si aucune donnée n'existe
+      endDate = new Date();
+    }
+
+    // Créer 7 jours consécutifs en remontant à partir de la date de fin
     for (let i = days - 1; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
+      const date = new Date(endDate);
+      date.setDate(endDate.getDate() - i);
       const dateKey = date.toISOString().split("T")[0];
       dateColumns.push(dateKey);
 
