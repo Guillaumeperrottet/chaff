@@ -238,8 +238,14 @@ function ChaffNavbar() {
               href="/dashboard"
               className="flex items-center space-x-3 text-xl font-bold text-primary hover:opacity-80 transition-opacity group"
             >
-              <div className="flex items-center justify-center w-10 h-10 bg-chaff-gradient text-white rounded-xl shadow-lg group-hover:shadow-xl transition-all duration-300">
-                <BarChart3 className="text-lg font-bold" />
+              <div className="flex items-center justify-center w-10 h-10 rounded-xl shadow-lg group-hover:shadow-xl transition-all duration-300 overflow-hidden">
+                <Image
+                  src="/icons/icon-96.png"
+                  alt="Chaff.ch Logo"
+                  width={40}
+                  height={40}
+                  className="object-contain"
+                />
               </div>
               <div className="flex flex-col">
                 <span className="text-primary text-xl font-bold">Chaff.ch</span>
@@ -462,8 +468,14 @@ export default function ConditionalNavbar({
         <div className="sticky top-0 z-50 w-full h-16 border-b bg-white/95 backdrop-blur dark:bg-gray-950/95">
           <div className="container mx-auto px-4 h-full flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-chaff-gradient rounded-xl flex items-center justify-center">
-                <BarChart3 className="text-white" />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden">
+                <Image
+                  src="/icons/icon-96.png"
+                  alt="Chaff.ch Logo"
+                  width={40}
+                  height={40}
+                  className="object-contain"
+                />
               </div>
               <div className="flex flex-col">
                 <span className="text-xl font-bold text-primary">Chaff.ch</span>
