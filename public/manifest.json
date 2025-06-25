@@ -1,7 +1,7 @@
 {
-  "name": "PlanniKeeper",
-  "short_name": "PlanniKeeper",
-  "description": "Gestion immobilière simplifiée",
+  "name": "Chaff.ch",
+  "short_name": "Chaff.ch",
+  "description": "Gestion chiffre d'affaire simplifiée",
   "start_url": "/dashboard",
   "display": "browser",
   "background_color": "#f9f3ec",
