@@ -338,7 +338,7 @@ export default function DashboardPage() {
     }
   };
 
-  // ✅ FONCTION POUR FILTRER AVEC LES NOUVEAUX TYPES
+  // ✅ FONCTION POUR FILTRER AVEC LES NOUVEAUX TYPE
   const filteredData =
     dashboardData?.data.filter((item) => {
       const matchesSearch = item.name
