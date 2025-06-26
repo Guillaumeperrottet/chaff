@@ -238,17 +238,17 @@ function ChaffNavbar() {
               href="/dashboard"
               className="flex items-center space-x-3 text-xl font-bold text-primary hover:opacity-80 transition-opacity group"
             >
-              <div className="flex items-center justify-center w-12 h-12 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:bg-gray-950/95 dark:supports-[backdrop-filter]:bg-gray-950/80 rounded-xl shadow-lg group-hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-200/50 dark:border-gray-700/50">
+              <div className="flex items-center justify-center w-12 h-12 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:bg-gray-950/95 dark:supports-[backdrop-filter]:bg-gray-950/80 rounded-xl transition-all duration-300 overflow-hidden">
                 <Image
                   src="/icons/icon-96.png"
                   alt="Chaff.ch Logo"
-                  width={36}
-                  height={36}
+                  width={44}
+                  height={44}
                   className="object-contain"
                 />
               </div>
               <div className="flex flex-col">
-                <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 dark:from-blue-400 dark:to-blue-600 bg-clip-text text-transparent tracking-tight">
+                <span className="text-2xl font-bold bg-blue-600 bg-clip-text text-transparent tracking-tight">
                   Chaff.ch
                 </span>
               </div>
@@ -467,7 +467,7 @@ export default function ConditionalNavbar({
         <div className="sticky top-0 z-50 w-full h-16 border-b bg-white/95 backdrop-blur dark:bg-gray-950/95">
           <div className="container mx-auto px-4 h-full flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:bg-gray-950/95 dark:supports-[backdrop-filter]:bg-gray-950/80 rounded-xl flex items-center justify-center overflow-hidden border border-gray-200/50 dark:border-gray-700/50">
+              <div className="w-12 h-12 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:bg-gray-950/95 dark:supports-[backdrop-filter]:bg-gray-950/80 rounded-xl flex items-center justify-center overflow-hidden">
                 <Image
                   src="/icons/icon-96.png"
                   alt="Chaff.ch Logo"

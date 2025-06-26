@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Poppins } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
 import { cn } from "@/lib/utils";
@@ -7,7 +7,16 @@ import { ThemeProvider } from "@/app/components/theme-provider";
 import Navbar from "@/app/components/Navbar";
 import { UnifiedSessionManager } from "@/app/components/UnifiedSessionManager";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+});
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-poppins",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Chaff.ch - Analytics Business",
@@ -42,6 +51,7 @@ export default function RootLayout({
       <body
         className={cn(
           inter.className,
+          poppins.variable,
           "min-h-screen bg-background antialiased"
         )}
       >

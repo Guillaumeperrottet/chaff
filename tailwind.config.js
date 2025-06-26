@@ -83,6 +83,7 @@ const config = {
         sans: ["Inter", "sans-serif"],
         serif: ["Merriweather", "serif"],
         mono: ["Monaco", "monospace"],
+        logo: ["var(--font-montserrat)", "Montserrat", "sans-serif"],
       },
       // Simplifier les box-shadow pour éviter les problèmes
       boxShadow: {
