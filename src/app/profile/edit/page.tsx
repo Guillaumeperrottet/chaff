@@ -67,7 +67,6 @@ export default async function ProfileEditPage() {
               <div className="flex items-center gap-6">
                 {/* Icône principale avec gradient */}
                 <div className="relative">
-                  <div className="absolute -inset-2 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 rounded-xl blur-md"></div>
                   <div className="relative p-4 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg">
                     <Users className="h-8 w-8 text-white" />
                   </div>
@@ -96,7 +95,7 @@ export default async function ProfileEditPage() {
               <div className="flex flex-col sm:flex-row gap-3">
                 <Button
                   asChild
-                  className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                  className="bg-blue-500 text-white shadow-lg transition-all duration-300"
                 >
                   <Link href="/profile/invitations">
                     <PlusCircle size={16} className="mr-2" />

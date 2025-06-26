@@ -96,10 +96,10 @@ export function UsersTable({ users }: { users: User[] }) {
           />
           {searchQuery && (
             <button
-              className="absolute inset-y-0 right-0 pr-3 flex items-center hover:bg-slate-50 rounded-r-lg transition-colors"
+              className="absolute inset-y-0 right-0 pr-3 flex items-center rounded-r-lg transition-colors"
               onClick={() => setSearchQuery("")}
             >
-              <X size={16} className="text-slate-400 hover:text-slate-600" />
+              <X size={16} className="text-slate-400" />
             </button>
           )}
         </div>
@@ -118,7 +118,7 @@ export function UsersTable({ users }: { users: User[] }) {
             <tr className="bg-gradient-to-r from-slate-50 to-blue-50/30 border-b border-slate-200/60">
               <th className="p-4 text-left font-medium text-sm text-slate-600 w-12"></th>
               <th
-                className="p-4 text-left font-medium text-sm text-slate-600 cursor-pointer hover:text-blue-600 transition-colors"
+                className="p-4 text-left font-medium text-sm text-slate-600 cursor-pointer transition-colors"
                 onClick={() => toggleSort("name")}
               >
                 <div className="flex items-center">
@@ -127,7 +127,7 @@ export function UsersTable({ users }: { users: User[] }) {
                 </div>
               </th>
               <th
-                className="p-4 text-left font-medium text-sm text-slate-600 cursor-pointer hover:text-blue-600 transition-colors"
+                className="p-4 text-left font-medium text-sm text-slate-600 cursor-pointer transition-colors"
                 onClick={() => toggleSort("email")}
               >
                 <div className="flex items-center">
@@ -136,7 +136,7 @@ export function UsersTable({ users }: { users: User[] }) {
                 </div>
               </th>
               <th
-                className="p-4 text-left font-medium text-sm text-slate-600 cursor-pointer hover:text-blue-600 transition-colors"
+                className="p-4 text-left font-medium text-sm text-slate-600 cursor-pointer transition-colors"
                 onClick={() => toggleSort("role")}
               >
                 <div className="flex items-center">
@@ -174,7 +174,7 @@ export function UsersTable({ users }: { users: User[] }) {
               sortedUsers.map((user, index) => (
                 <tr
                   key={user.id}
-                  className={`border-b border-slate-200/40 hover:bg-gradient-to-r hover:from-blue-50/30 hover:to-transparent transition-all duration-200 ${
+                  className={`border-b border-slate-200/40 transition-all duration-200 ${
                     index % 2 === 0 ? "bg-white/30" : "bg-slate-50/30"
                   }`}
                 >
@@ -252,7 +252,7 @@ export function UsersTable({ users }: { users: User[] }) {
                       asChild
                       variant="outline"
                       size="sm"
-                      className="gap-2 border-slate-200 bg-white/80 hover:bg-blue-50 hover:border-blue-200 text-slate-700 hover:text-blue-700 transition-all duration-200"
+                      className="gap-2 border-slate-200 bg-white/80 text-slate-700 transition-all duration-200"
                     >
                       <Link href={`/profile/edit/${user.id}`}>
                         <Edit size={14} />
@@ -291,7 +291,7 @@ export function UsersTable({ users }: { users: User[] }) {
           sortedUsers.map((user) => (
             <div
               key={user.id}
-              className="relative bg-white/80 backdrop-blur-sm border border-slate-200/60 rounded-xl p-5 shadow-sm hover:shadow-md transition-all duration-200"
+              className="relative bg-white/80 backdrop-blur-sm border border-slate-200/60 rounded-xl p-5 shadow-sm transition-all duration-200"
             >
               {/* Badge admin pour mobile */}
               {user.role === "admin" && (
@@ -369,7 +369,7 @@ export function UsersTable({ users }: { users: User[] }) {
                       asChild
                       variant="outline"
                       size="sm"
-                      className="gap-1.5 border-slate-200 bg-white hover:bg-blue-50 hover:border-blue-200 text-slate-700 hover:text-blue-700 transition-all duration-200"
+                      className="gap-1.5 border-slate-200 bg-white text-slate-700 transition-all duration-200"
                       onClick={() => router.push(`/profile/edit/${user.id}`)}
                     >
                       <Link href={`/profile/edit/${user.id}`}>
