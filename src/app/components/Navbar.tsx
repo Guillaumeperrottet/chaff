@@ -238,12 +238,12 @@ function ChaffNavbar() {
               href="/dashboard"
               className="flex items-center space-x-3 text-xl font-bold text-primary hover:opacity-80 transition-opacity group"
             >
-              <div className="flex items-center justify-center w-10 h-10 bg-white rounded-xl shadow-lg group-hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 dark:border-gray-800 dark:bg-gray-900">
+              <div className="flex items-center justify-center w-12 h-12 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:bg-gray-950/95 dark:supports-[backdrop-filter]:bg-gray-950/80 rounded-xl shadow-lg group-hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-200/50 dark:border-gray-700/50">
                 <Image
                   src="/icons/icon-96.png"
                   alt="Chaff.ch Logo"
-                  width={32}
-                  height={32}
+                  width={36}
+                  height={36}
                   className="object-contain"
                 />
               </div>
@@ -467,12 +467,12 @@ export default function ConditionalNavbar({
         <div className="sticky top-0 z-50 w-full h-16 border-b bg-white/95 backdrop-blur dark:bg-gray-950/95">
           <div className="container mx-auto px-4 h-full flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center overflow-hidden border border-gray-100 dark:border-gray-800 dark:bg-gray-900">
+              <div className="w-12 h-12 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:bg-gray-950/95 dark:supports-[backdrop-filter]:bg-gray-950/80 rounded-xl flex items-center justify-center overflow-hidden border border-gray-200/50 dark:border-gray-700/50">
                 <Image
                   src="/icons/icon-96.png"
                   alt="Chaff.ch Logo"
-                  width={32}
-                  height={32}
+                  width={36}
+                  height={36}
                   className="object-contain"
                 />
               </div>
