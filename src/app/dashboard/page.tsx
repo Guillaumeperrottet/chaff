@@ -252,6 +252,19 @@ export default function DashboardPage() {
     formattedValue: string;
   } | null>(null);
 
+  // ✅ NOUVEAU: État pour stocker les meilleurs jours par groupe historiques
+  const [bestDaysByGroup, setBestDaysByGroup] = useState<
+    Record<
+      string,
+      {
+        date: string;
+        formattedDate: string;
+        totalValue: number;
+        formattedValue: string;
+      } | null
+    >
+  >({});
+
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
@@ -288,6 +301,22 @@ export default function DashboardPage() {
     }
   };
 
+  // ✅ NOUVEAU: FONCTION POUR RÉCUPÉRER LES MEILLEURS JOURS PAR GROUPE HISTORIQUES
+  const fetchBestDaysByGroup = async () => {
+    try {
+      const response = await fetch("/api/dashboard/best-days-by-group");
+      if (response.ok) {
+        const data = await response.json();
+        setBestDaysByGroup(data.bestDaysByGroup || {});
+      }
+    } catch (error) {
+      console.error(
+        "Erreur lors du chargement des meilleurs jours par groupe:",
+        error
+      );
+    }
+  };
+
   // ✅ FONCTION POUR OBTENIR LE LABEL D'UN TYPE
   const getTypeLabel = (groupId: string): string => {
     // Types par défaut
@@ -301,7 +330,7 @@ export default function DashboardPage() {
     return customType?.label || groupId; // Fallback vers l'ID si pas trouvé
   };
 
-  // ✅ MODIFIER LE useEffect POUR CHARGER AUSSI LES TYPES ET LE MEILLEUR JOUR GLOBAL
+  // ✅ MODIFIER LE useEffect POUR CHARGER AUSSI LES TYPES ET LES MEILLEURS JOURS
   useEffect(() => {
     const loadAllData = async () => {
       await Promise.all([
@@ -309,6 +338,7 @@ export default function DashboardPage() {
         fetchPayrollRatios(),
         fetchEstablishmentTypes(), // ✅ Ajouter ici
         fetchBestDayGlobal(), // ✅ NOUVEAU: Charger le meilleur jour global
+        fetchBestDaysByGroup(), // ✅ NOUVEAU: Charger les meilleurs jours par groupe
       ]);
       setLoading(false);
     };
@@ -781,10 +811,18 @@ export default function DashboardPage() {
     return totals;
   };
 
-  // ✅ NOUVEAU: Calculer le Top pour un groupe (meilleur jour du sous-total groupe)
+  // ✅ MODIFIÉ: Calculer le Top pour un groupe (meilleur jour historique de tous les temps pour ce groupe)
   const calculateGroupTop = (
-    groupData: (DashboardData & { payroll?: PayrollRatioData })[]
+    groupData: (DashboardData & { payroll?: PayrollRatioData })[],
+    groupKey: string
   ): string => {
+    // ✅ CHANGEMENT: Utiliser les données du meilleur jour par groupe historique
+    const bestDayForGroup = bestDaysByGroup[groupKey];
+    if (bestDayForGroup) {
+      return `${bestDayForGroup.formattedValue} / ${bestDayForGroup.formattedDate}`;
+    }
+
+    // Fallback: calculer sur la période actuelle si les données historiques ne sont pas disponibles
     if (groupData.length === 0 || !dashboardData) return "Aucune donnée";
 
     // Utiliser TOUTES les colonnes pour calculer le top
@@ -817,7 +855,7 @@ export default function DashboardPage() {
     });
 
     return maxValue > 0
-      ? `${formatCurrency(maxValue)} / ${bestDate}`
+      ? `${formatCurrency(maxValue)} / ${bestDate} (période actuelle)`
       : "Aucune donnée";
   };
 
@@ -973,7 +1011,7 @@ export default function DashboardPage() {
   const groupTops: Record<string, string> = {};
   Object.keys(grouped).forEach((groupKey) => {
     groupTotals[groupKey] = calculateGroupTotals(grouped[groupKey]);
-    groupTops[groupKey] = calculateGroupTop(grouped[groupKey]);
+    groupTops[groupKey] = calculateGroupTop(grouped[groupKey], groupKey);
   });
 
   return (
@@ -1387,7 +1425,7 @@ export default function DashboardPage() {
                             </TableCell>
                             <TableCell className="font-semibold text-slate-700 py-2">
                               <div className="text-xs">
-                                {calculateGroupTop(groupData)}
+                                {groupTops[groupKey]}
                               </div>
                             </TableCell>
                             {visibleColumns.map((col) => (
