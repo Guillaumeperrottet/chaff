@@ -763,11 +763,11 @@ export default function DashboardPage() {
   ): string => {
     if (groupData.length === 0 || !dashboardData) return "Aucune donnée";
 
-    // Utiliser seulement les colonnes visibles pour calculer le top
-    const visibleColumns = getVisibleColumns();
+    // Utiliser TOUTES les colonnes pour calculer le top
+    const allColumns = dashboardData.columnLabels;
     const dailyGroupTotals: Record<string, number> = {};
 
-    visibleColumns.forEach((col) => {
+    allColumns.forEach((col) => {
       const dailyTotal = groupData.reduce((sum, campus) => {
         const valueStr = campus.values[col.key] || "0,00";
         // Nettoyer la valeur : supprimer apostrophes et espaces, puis remplacer virgules par points
@@ -787,7 +787,7 @@ export default function DashboardPage() {
         maxValue = total;
         // Trouver le label correspondant à cette clé
         const dateLabel =
-          visibleColumns.find((col) => col.key === dateKey)?.label || dateKey;
+          allColumns.find((col) => col.key === dateKey)?.label || dateKey;
         bestDate = dateLabel;
       }
     });
@@ -824,11 +824,11 @@ export default function DashboardPage() {
     const mergedData = getMergedData();
     if (mergedData.length === 0) return "Aucune donnée";
 
-    // Utiliser seulement les colonnes visibles pour calculer le grand total
-    const visibleColumns = getVisibleColumns();
+    // Utiliser TOUTES les colonnes pour calculer le grand total
+    const allColumns = dashboardData.columnLabels;
     const dailyGrandTotals: Record<string, number> = {};
 
-    visibleColumns.forEach((col) => {
+    allColumns.forEach((col) => {
       const dailyTotal = mergedData.reduce((sum, campus) => {
         const valueStr = campus.values[col.key] || "0,00";
         // Nettoyer la valeur : supprimer apostrophes et espaces, puis remplacer virgules par points
@@ -848,7 +848,7 @@ export default function DashboardPage() {
         maxValue = total;
         // Trouver le label correspondant à cette clé
         const dateLabel =
-          visibleColumns.find((col) => col.key === dateKey)?.label || dateKey;
+          allColumns.find((col) => col.key === dateKey)?.label || dateKey;
         bestDate = dateLabel;
       }
     });
@@ -1388,14 +1388,6 @@ export default function DashboardPage() {
                                   </DropdownMenuLabel>
                                   <DropdownMenuItem
                                     onClick={() =>
-                                      router.push("/dashboard/ca-global")
-                                    }
-                                  >
-                                    <Eye className="mr-2 h-4 w-4" />
-                                    Voir CA Global
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() =>
                                       router.push("/dashboard/ca-types")
                                     }
                                   >
@@ -1449,12 +1441,6 @@ export default function DashboardPage() {
                             >
                               <Eye className="mr-2 h-4 w-4" />
                               Voir CA Global
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => router.push("/dashboard/ca-types")}
-                            >
-                              <BarChart3 className="mr-2 h-4 w-4" />
-                              Voir CA Types
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
