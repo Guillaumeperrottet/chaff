@@ -118,6 +118,7 @@ interface TypesCAResponse {
   summary: {
     totalPeriods: number;
     grandTotal: number;
+    grandTotalExcludingCurrentMonth: number; // Nouveau champ
     averagePerPeriod: number;
     bestPeriod: PeriodData;
     worstPeriod: PeriodData;
@@ -125,6 +126,7 @@ interface TypesCAResponse {
     globalPayrollRatio: number | null;
     yearOverYearGrowth: {
       revenue: number | null;
+      revenueExcludingCurrentMonth: number | null;
       payroll: number | null;
     };
     typesBreakdown: TypeBreakdown[];
@@ -1103,6 +1105,13 @@ export default function TypesCAPage() {
 
         {/* Statistiques de performance par types - En bas de page */}
         <div className="print:hidden">
+          <div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground">
+            <Info className="h-4 w-4" />
+            <span>
+              Les statistiques excluent le mois en cours car il n&apos;est pas
+              complet.
+            </span>
+          </div>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -1112,14 +1121,21 @@ export default function TypesCAPage() {
               <CardContent>
                 <div className="space-y-2">
                   <div className="text-2xl font-bold">
-                    {formatCurrency(caData.summary.grandTotal)}
+                    {formatCurrency(
+                      caData.summary.grandTotalExcludingCurrentMonth
+                    )}
                   </div>
-                  {caData.summary.yearOverYearGrowth.revenue !== null && (
+                  {caData.summary.yearOverYearGrowth
+                    .revenueExcludingCurrentMonth !== null && (
                     <div className="flex items-center text-sm">
-                      {getGrowthIcon(caData.summary.yearOverYearGrowth.revenue)}
+                      {getGrowthIcon(
+                        caData.summary.yearOverYearGrowth
+                          .revenueExcludingCurrentMonth
+                      )}
                       <span className="ml-1">
                         {formatPercentage(
-                          caData.summary.yearOverYearGrowth.revenue,
+                          caData.summary.yearOverYearGrowth
+                            .revenueExcludingCurrentMonth,
                           true,
                           2
                         )}{" "}

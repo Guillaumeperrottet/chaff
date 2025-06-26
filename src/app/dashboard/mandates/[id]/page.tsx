@@ -1398,8 +1398,8 @@ export default function MandateCAPage() {
           <div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground">
             <Info className="h-4 w-4" />
             <span>
-              Les statistiques (meilleur/pire mois, masse salariale totale)
-              excluent le mois en cours car il n&apos;est pas complet.
+              Les statistiques excluent le mois en cours car il n&apos;est pas
+              complet.
             </span>
           </div>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

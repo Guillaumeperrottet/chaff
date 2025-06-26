@@ -59,6 +59,7 @@ interface GlobalCAResponse {
   summary: {
     totalPeriods: number;
     grandTotal: number;
+    grandTotalExcludingCurrentMonth: number; // Nouveau champ
     averagePerPeriod: number;
     bestPeriod: PeriodData;
     worstPeriod: PeriodData;
@@ -66,6 +67,7 @@ interface GlobalCAResponse {
     globalPayrollRatio: number | null;
     yearOverYearGrowth: {
       revenue: number | null;
+      revenueExcludingCurrentMonth: number | null;
       payroll: number | null;
     };
     mandatesBreakdown: Array<{
@@ -518,6 +520,18 @@ export async function GET(request: NextRequest) {
       0
     );
 
+    // Calculer le CA total excluant le mois en cours pour les statistiques
+    const grandTotalExcludingCurrentMonth = statsData.reduce(
+      (sum, p) => sum + p.totalValue,
+      0
+    );
+
+    // Calculs pour les statistiques excluant le mois en cours
+    const totalPreviousYearRevenueExcludingCurrent = statsData.reduce(
+      (sum, p) => sum + p.yearOverYear.previousYearRevenue,
+      0
+    );
+
     const response: GlobalCAResponse = {
       organization: {
         name: userWithOrg.Organization.name,
@@ -527,6 +541,7 @@ export async function GET(request: NextRequest) {
       summary: {
         totalPeriods: cumulativeData.length,
         grandTotal: cumulativeTotal,
+        grandTotalExcludingCurrentMonth, // Nouveau champ pour les statistiques
         averagePerPeriod: cumulativeTotal / cumulativeData.length,
         bestPeriod:
           statsData.length > 0
@@ -554,6 +569,14 @@ export async function GET(request: NextRequest) {
             totalPreviousYearRevenue > 0
               ? ((cumulativeTotal - totalPreviousYearRevenue) /
                   totalPreviousYearRevenue) *
+                100
+              : null,
+          // Nouvelle croissance basée sur les données excluant le mois en cours
+          revenueExcludingCurrentMonth:
+            totalPreviousYearRevenueExcludingCurrent > 0
+              ? ((grandTotalExcludingCurrentMonth -
+                  totalPreviousYearRevenueExcludingCurrent) /
+                  totalPreviousYearRevenueExcludingCurrent) *
                 100
               : null,
           payroll:

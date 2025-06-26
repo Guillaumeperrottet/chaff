@@ -63,6 +63,7 @@ interface TypesCAResponse {
   summary: {
     totalPeriods: number;
     grandTotal: number;
+    grandTotalExcludingCurrentMonth: number; // Nouveau champ
     averagePerPeriod: number;
     bestPeriod: PeriodData;
     worstPeriod: PeriodData;
@@ -70,6 +71,7 @@ interface TypesCAResponse {
     globalPayrollRatio: number | null;
     yearOverYearGrowth: {
       revenue: number | null;
+      revenueExcludingCurrentMonth: number | null;
       payroll: number | null;
     };
     typesBreakdown: TypeBreakdown[];
@@ -474,6 +476,7 @@ export async function GET(request: NextRequest) {
       summary: {
         totalPeriods: periodsWithCumuls.length,
         grandTotal,
+        grandTotalExcludingCurrentMonth: statsGrandTotal, // Nouveau champ pour les statistiques
         averagePerPeriod: grandTotal / periodsWithCumuls.length,
         bestPeriod:
           statsData.length > 0
@@ -498,6 +501,7 @@ export async function GET(request: NextRequest) {
             : null,
         yearOverYearGrowth: {
           revenue: yearOverYearRevenueGrowth,
+          revenueExcludingCurrentMonth: yearOverYearRevenueGrowth, // Utilise déjà les données filtrées
           payroll: yearOverYearPayrollGrowth,
         },
         typesBreakdown,
