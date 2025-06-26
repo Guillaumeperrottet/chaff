@@ -248,9 +248,8 @@ function ChaffNavbar() {
                 />
               </div>
               <div className="flex flex-col">
-                <span className="text-primary text-xl font-bold">Chaff.ch</span>
-                <span className="text-xs text-muted-foreground font-normal">
-                  Analytics Business
+                <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 dark:from-blue-400 dark:to-blue-600 bg-clip-text text-transparent tracking-tight">
+                  Chaff.ch
                 </span>
               </div>
             </Link>
@@ -478,8 +477,10 @@ export default function ConditionalNavbar({
                 />
               </div>
               <div className="flex flex-col">
-                <span className="text-xl font-bold text-primary">Chaff.ch</span>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 dark:from-blue-400 dark:to-blue-600 bg-clip-text text-transparent tracking-tight">
+                  Chaff.ch
+                </span>
+                <span className="text-xs text-muted-foreground/80 font-medium tracking-wide uppercase">
                   Analytics Business
                 </span>
               </div>
