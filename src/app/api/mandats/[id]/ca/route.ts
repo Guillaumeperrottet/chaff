@@ -323,6 +323,18 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       0
     );
 
+    // Calculer le CA total excluant le mois en cours pour les statistiques
+    const grandTotalExcludingCurrentMonth = statsData.reduce(
+      (sum, p) => sum + p.totalValue,
+      0
+    );
+
+    // Calculs pour les statistiques excluant le mois en cours
+    const totalPreviousYearRevenueExcludingCurrent = statsData.reduce(
+      (sum, p) => sum + p.yearOverYear.previousYearRevenue,
+      0
+    );
+
     return NextResponse.json({
       mandate: {
         id: mandate.id,
@@ -334,6 +346,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       summary: {
         totalPeriods: caData.length,
         grandTotal: cumulativeTotal,
+        grandTotalExcludingCurrentMonth, // Nouveau champ pour les statistiques
         averagePerPeriod: cumulativeTotal / caData.length,
         bestPeriod:
           statsData.length > 0
@@ -365,6 +378,14 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             totalPreviousYearRevenue > 0
               ? ((cumulativeTotal - totalPreviousYearRevenue) /
                   totalPreviousYearRevenue) *
+                100
+              : null,
+          // Nouvelle croissance basée sur les données excluant le mois en cours
+          revenueExcludingCurrentMonth:
+            totalPreviousYearRevenueExcludingCurrent > 0
+              ? ((grandTotalExcludingCurrentMonth -
+                  totalPreviousYearRevenueExcludingCurrent) /
+                  totalPreviousYearRevenueExcludingCurrent) *
                 100
               : null,
           payroll:
