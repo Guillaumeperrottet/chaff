@@ -19,7 +19,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/app/components/ui/dropdown-menu";
 import {
@@ -821,15 +820,17 @@ export default function DashboardPage() {
   // ✅ NOUVEAU: Calculer le Top général (meilleur jour du total général)
   const calculateGrandTop = (): string => {
     if (!dashboardData) return "Aucune donnée";
-    const mergedData = getMergedData();
-    if (mergedData.length === 0) return "Aucune donnée";
+
+    // ✅ CORRECTION: Utiliser TOUTES les données brutes (non filtrées)
+    const allData = dashboardData.data;
+    if (allData.length === 0) return "Aucune donnée";
 
     // Utiliser TOUTES les colonnes pour calculer le grand total
     const allColumns = dashboardData.columnLabels;
     const dailyGrandTotals: Record<string, number> = {};
 
     allColumns.forEach((col) => {
-      const dailyTotal = mergedData.reduce((sum, campus) => {
+      const dailyTotal = allData.reduce((sum, campus) => {
         const valueStr = campus.values[col.key] || "0,00";
         // Nettoyer la valeur : supprimer apostrophes et espaces, puis remplacer virgules par points
         const cleanedValue = valueStr.replace(/['\s]/g, "").replace(",", ".");
@@ -1292,7 +1293,6 @@ export default function DashboardPage() {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push(
@@ -1383,9 +1383,6 @@ export default function DashboardPage() {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                  <DropdownMenuLabel>
-                                    Actions du type
-                                  </DropdownMenuLabel>
                                   <DropdownMenuItem
                                     onClick={() =>
                                       router.push("/dashboard/ca-types")
