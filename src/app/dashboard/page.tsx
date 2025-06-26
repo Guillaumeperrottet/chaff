@@ -244,6 +244,14 @@ export default function DashboardPage() {
     EstablishmentType[]
   >([]);
 
+  // ✅ NOUVEAU: État pour stocker le meilleur jour global historique
+  const [bestDayGlobal, setBestDayGlobal] = useState<{
+    date: string;
+    formattedDate: string;
+    totalValue: number;
+    formattedValue: string;
+  } | null>(null);
+
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
@@ -264,6 +272,22 @@ export default function DashboardPage() {
     }
   };
 
+  // ✅ NOUVEAU: FONCTION POUR RÉCUPÉRER LE MEILLEUR JOUR GLOBAL HISTORIQUE
+  const fetchBestDayGlobal = async () => {
+    try {
+      const response = await fetch("/api/dashboard/best-day-global");
+      if (response.ok) {
+        const data = await response.json();
+        setBestDayGlobal(data.bestDay);
+      }
+    } catch (error) {
+      console.error(
+        "Erreur lors du chargement du meilleur jour global:",
+        error
+      );
+    }
+  };
+
   // ✅ FONCTION POUR OBTENIR LE LABEL D'UN TYPE
   const getTypeLabel = (groupId: string): string => {
     // Types par défaut
@@ -277,13 +301,14 @@ export default function DashboardPage() {
     return customType?.label || groupId; // Fallback vers l'ID si pas trouvé
   };
 
-  // ✅ MODIFIER LE useEffect POUR CHARGER AUSSI LES TYPES
+  // ✅ MODIFIER LE useEffect POUR CHARGER AUSSI LES TYPES ET LE MEILLEUR JOUR GLOBAL
   useEffect(() => {
     const loadAllData = async () => {
       await Promise.all([
         fetchDashboardData(),
         fetchPayrollRatios(),
         fetchEstablishmentTypes(), // ✅ Ajouter ici
+        fetchBestDayGlobal(), // ✅ NOUVEAU: Charger le meilleur jour global
       ]);
       setLoading(false);
     };
@@ -817,11 +842,16 @@ export default function DashboardPage() {
     return totals;
   };
 
-  // ✅ NOUVEAU: Calculer le Top général (meilleur jour du total général)
+  // ✅ MODIFIÉ: Calculer le Top général (meilleur jour historique de tous les temps)
   const calculateGrandTop = (): string => {
+    // ✅ CHANGEMENT: Utiliser les données du meilleur jour global historique
+    if (bestDayGlobal) {
+      return `${bestDayGlobal.formattedValue} / ${bestDayGlobal.formattedDate}`;
+    }
+
+    // Fallback: calculer sur la période actuelle si les données historiques ne sont pas disponibles
     if (!dashboardData) return "Aucune donnée";
 
-    // ✅ CORRECTION: Utiliser TOUTES les données brutes (non filtrées)
     const allData = dashboardData.data;
     if (allData.length === 0) return "Aucune donnée";
 
@@ -855,7 +885,7 @@ export default function DashboardPage() {
     });
 
     return maxValue > 0
-      ? `${formatCurrency(maxValue)} / ${bestDate}`
+      ? `${formatCurrency(maxValue)} / ${bestDate} (période actuelle)`
       : "Aucune donnée";
   };
 
