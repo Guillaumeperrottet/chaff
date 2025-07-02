@@ -138,9 +138,7 @@ export async function GET(request: NextRequest) {
       totalMandates: currentPeriodStats.uniqueMandates,
       totalValues: currentPeriodStats.totalValues,
       averageDaily:
-        overviewDays > 0
-          ? currentPeriodStats.totalRevenue / overviewDays
-          : 0,
+        overviewDays > 0 ? currentPeriodStats.totalRevenue / overviewDays : 0,
       growth: {
         revenue: calculateGrowthPercentage(
           currentPeriodStats.totalRevenue,

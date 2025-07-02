@@ -205,8 +205,11 @@ export default function AnalyticsPage() {
         }
 
         // Construire les paramètres avec les périodes spécifiques
+        // Pour les années, récupérer toutes les données historiques (depuis 2015)
+        const mainPeriod = chartTimeUnit === "year" ? "5000" : "3650"; // Toutes les données historiques ou 10 ans
+
         const params = new URLSearchParams({
-          period: "3650", // Période principale large pour les données temporelles
+          period: mainPeriod, // Période principale pour les données temporelles
           overviewPeriod: overviewPeriod,
           topMandatesPeriod: topMandatesPeriod,
           mandatesPeriod: mandatesPeriod,
@@ -230,7 +233,7 @@ export default function AnalyticsPage() {
         setRefreshing(false);
       }
     },
-    [overviewPeriod, topMandatesPeriod, mandatesPeriod]
+    [overviewPeriod, topMandatesPeriod, mandatesPeriod, chartTimeUnit]
   );
 
   useEffect(() => {
@@ -474,7 +477,7 @@ export default function AnalyticsPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Moyenne Journalière
+              Moyenne Journalière du CA total
             </CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -590,7 +593,6 @@ export default function AnalyticsPage() {
                       </div>
                       <div className="flex items-center justify-between text-xs text-muted-foreground">
                         <span>{mandate.group}</span>
-                        <span>{mandate.valueCount} saisies</span>
                       </div>
                     </div>
                   </div>
@@ -747,7 +749,15 @@ export default function AnalyticsPage() {
                       tick={{ fontSize: 12 }}
                       tickLine={false}
                       axisLine={false}
-                      tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+                      tickFormatter={(value) => {
+                        if (value >= 1000000) {
+                          return `${(value / 1000000).toFixed(1)}M`;
+                        } else if (value >= 1000) {
+                          return `${(value / 1000).toFixed(0)}k`;
+                        } else {
+                          return value.toString();
+                        }
+                      }}
                     />
                     <Tooltip
                       content={({ active, payload, label }) => {
@@ -914,9 +924,6 @@ export default function AnalyticsPage() {
                       <TableCell>
                         <div>
                           <div className="font-medium">{mandate.name}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {mandate.id}
-                          </div>
                         </div>
                       </TableCell>
                       <TableCell>
