@@ -128,13 +128,18 @@ export async function GET(request: NextRequest) {
       getPeriodStats(previousPeriodStart, periodStart),
     ]);
 
+    // Calculer le nombre de jours dans la période pour la moyenne journalière
+    const overviewDays = Math.ceil(
+      (now.getTime() - overviewStart.getTime()) / (24 * 60 * 60 * 1000)
+    );
+
     const overview = {
       totalRevenue: currentPeriodStats.totalRevenue,
       totalMandates: currentPeriodStats.uniqueMandates,
       totalValues: currentPeriodStats.totalValues,
       averageDaily:
-        currentPeriodStats.totalValues > 0
-          ? currentPeriodStats.totalRevenue / currentPeriodStats.totalValues
+        overviewDays > 0
+          ? currentPeriodStats.totalRevenue / overviewDays
           : 0,
       growth: {
         revenue: calculateGrowthPercentage(

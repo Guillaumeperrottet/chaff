@@ -483,7 +483,7 @@ export default function AnalyticsPage() {
               {formatCurrency(data.overview.averageDaily)}
             </div>
             <p className="text-xs text-muted-foreground">
-              Par saisie sur la période
+              Par jour sur la période
             </p>
           </CardContent>
         </Card>
