@@ -33,6 +33,16 @@ interface AnalyticsData {
     lastEntry: string | null;
     growthPercentage: number;
   }>;
+  topMandatesData: Array<{
+    id: string;
+    name: string;
+    group: string;
+    totalRevenue: number;
+    valueCount: number;
+    averageDaily: number;
+    lastEntry: string | null;
+    growthPercentage: number;
+  }>;
   groupAnalysis: {
     hebergement: {
       totalRevenue: number;
@@ -78,7 +88,12 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
 
-    // Calculer les dates de période
+    // Nouveaux paramètres pour les sections spécifiques
+    const overviewPeriod = searchParams.get("overviewPeriod") || period;
+    const topMandatesPeriod = searchParams.get("topMandatesPeriod") || period;
+    const mandatesPeriod = searchParams.get("mandatesPeriod") || period;
+
+    // Calculer les dates de période pour la vue d'ensemble
     const now = new Date();
     const daysAgo = parseInt(period);
     const periodStart = startDate
@@ -86,14 +101,30 @@ export async function GET(request: NextRequest) {
       : new Date(now.getTime() - daysAgo * 24 * 60 * 60 * 1000);
     const periodEnd = endDate ? new Date(endDate) : now;
 
-    // Période précédente pour les comparaisons
+    // Calculer les dates pour les différentes sections
+    const overviewDaysAgo = parseInt(overviewPeriod);
+    const overviewStart = new Date(
+      now.getTime() - overviewDaysAgo * 24 * 60 * 60 * 1000
+    );
+
+    const topMandatesDaysAgo = parseInt(topMandatesPeriod);
+    const topMandatesStart = new Date(
+      now.getTime() - topMandatesDaysAgo * 24 * 60 * 60 * 1000
+    );
+
+    const mandatesDaysAgo = parseInt(mandatesPeriod);
+    const mandatesStart = new Date(
+      now.getTime() - mandatesDaysAgo * 24 * 60 * 60 * 1000
+    );
+
+    // Période précédente pour les comparaisons (basée sur la période principale)
     const previousPeriodStart = new Date(
       periodStart.getTime() - (periodEnd.getTime() - periodStart.getTime())
     );
 
-    // 1. Vue d'ensemble
+    // 1. Vue d'ensemble (utilise overviewPeriod)
     const [currentPeriodStats, previousPeriodStats] = await Promise.all([
-      getPeriodStats(periodStart, periodEnd),
+      getPeriodStats(overviewStart, now),
       getPeriodStats(previousPeriodStart, periodStart),
     ]);
 
@@ -121,25 +152,30 @@ export async function GET(request: NextRequest) {
       },
     };
 
-    // 2. Données temporelles
+    // 2. Données temporelles (utilise la période principale)
     const timeSeriesData = await getTimeSeriesData(periodStart, periodEnd);
 
-    // 3. Performance des mandats
-    const mandatePerformance = await getMandatePerformance(
-      periodStart,
-      periodEnd
+    // 3. Performance des mandats (utilise mandatesPeriod)
+    const mandatePerformance = await getMandatePerformance(mandatesStart, now);
+
+    // 3.5. Top mandats avec période spécifique
+    const topMandatesData = await getTopMandatesPerformance(
+      topMandatesStart,
+      now,
+      5
     );
 
-    // 4. Analyse par groupe
+    // 4. Analyse par groupe (utilise la période principale)
     const groupAnalysis = await getGroupAnalysis(periodStart, periodEnd);
 
-    // 5. Analyse périodique
+    // 5. Analyse périodique (utilise la période principale)
     const periodicAnalysis = await getPeriodicAnalysis(periodStart, periodEnd);
 
     const analyticsData: AnalyticsData = {
       overview,
       timeSeriesData,
       mandatePerformance,
+      topMandatesData, // Nouvelle propriété
       groupAnalysis,
       periodicAnalysis,
     };
@@ -314,6 +350,76 @@ async function getMandatePerformance(startDate: Date, endDate: Date) {
       };
     })
   );
+}
+
+// Nouvelle fonction spécifique pour les top mandats avec période personnalisée
+async function getTopMandatesPerformance(
+  startDate: Date,
+  endDate: Date,
+  limit: number = 5
+) {
+  const mandates = await prisma.mandate.findMany({
+    include: {
+      dayValues: {
+        where: {
+          date: {
+            gte: startDate,
+            lte: endDate,
+          },
+        },
+      },
+    },
+  });
+
+  // Calculer la période précédente pour la croissance
+  const previousPeriodStart = new Date(
+    startDate.getTime() - (endDate.getTime() - startDate.getTime())
+  );
+
+  const mandatePerformances = await Promise.all(
+    mandates.map(async (mandate) => {
+      const currentRevenue = mandate.dayValues.reduce(
+        (sum, dv) => sum + dv.value,
+        0
+      );
+      const currentValueCount = mandate.dayValues.length;
+
+      // Revenue de la période précédente
+      const previousValues = await prisma.dayValue.findMany({
+        where: {
+          mandateId: mandate.id,
+          date: {
+            gte: previousPeriodStart,
+            lt: startDate,
+          },
+        },
+      });
+      const previousRevenue = previousValues.reduce(
+        (sum, dv) => sum + dv.value,
+        0
+      );
+
+      return {
+        id: mandate.id,
+        name: mandate.name,
+        group: mandate.group === "HEBERGEMENT" ? "Hébergement" : "Restauration",
+        totalRevenue: currentRevenue,
+        valueCount: currentValueCount,
+        averageDaily:
+          currentValueCount > 0 ? currentRevenue / currentValueCount : 0,
+        lastEntry: mandate.lastEntry?.toISOString().split("T")[0] || null,
+        growthPercentage: calculateGrowthPercentage(
+          currentRevenue,
+          previousRevenue
+        ),
+      };
+    })
+  );
+
+  // Trier par revenue et retourner le top N
+  return mandatePerformances
+    .sort((a, b) => b.totalRevenue - a.totalRevenue)
+    .slice(0, limit);
 }
 
 async function getGroupAnalysis(startDate: Date, endDate: Date) {
