@@ -44,7 +44,9 @@ export default function CreateDayValuePage() {
   // État du formulaire
   const [formData, setFormData] = useState({
     mandateId: "",
-    date: new Date().toISOString().split("T")[0],
+    date: new Date(Date.now() - 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split("T")[0],
     value: "",
   });
 
