@@ -246,60 +246,115 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       };
     });
 
-    // Calculer les totaux cumulés (année courante et année précédente)
-    let cumulativeTotal = 0;
-    let cumulativePayroll = 0;
-    let cumulativePreviousYearRevenue = 0;
-    let cumulativePreviousYearPayroll = 0;
+    // Calculer les totaux cumulés ANNUELS (depuis le début de l'année)
+    // Pour chaque période, calculer le cumul depuis janvier jusqu'à cette période
+    const cumulativeData = await Promise.all(
+      caData.map(async (period) => {
+        // Récupérer toutes les données depuis le début de l'année jusqu'à ce mois
+        const yearStartDate = new Date(period.year, 0, 1);
+        const periodEndDate = new Date(period.year, period.month, 0);
 
-    const cumulativeData = caData.map((period) => {
-      cumulativeTotal += period.totalValue;
-      cumulativePreviousYearRevenue += period.yearOverYear.previousYearRevenue;
+        // Données CA cumulées depuis le début de l'année courante
+        const yearToDateValues = await prisma.dayValue.findMany({
+          where: {
+            mandateId: id,
+            date: {
+              gte: yearStartDate,
+              lte: periodEndDate,
+            },
+          },
+        });
 
-      if (period.payrollData) {
-        cumulativePayroll += period.payrollData.totalCost;
-      }
+        // Données CA cumulées depuis le début de l'année précédente (même période)
+        const previousYearStartDate = new Date(period.year - 1, 0, 1);
+        const previousYearEndDate = new Date(period.year - 1, period.month, 0);
 
-      if (period.yearOverYear.previousYearPayroll) {
-        cumulativePreviousYearPayroll +=
-          period.yearOverYear.previousYearPayroll;
-      }
+        const previousYearToDateValues = await prisma.dayValue.findMany({
+          where: {
+            mandateId: id,
+            date: {
+              gte: previousYearStartDate,
+              lte: previousYearEndDate,
+            },
+          },
+        });
 
-      // Calculer l'évolution des cumuls
-      const cumulativeRevenueGrowth =
-        cumulativePreviousYearRevenue > 0
-          ? ((cumulativeTotal - cumulativePreviousYearRevenue) /
-              cumulativePreviousYearRevenue) *
-            100
-          : null;
+        // Données masse salariale cumulées depuis le début de l'année courante
+        const yearToDatePayroll = await prisma.manualPayrollEntry.findMany({
+          where: {
+            mandateId: id,
+            year: period.year,
+            month: {
+              gte: 1,
+              lte: period.month,
+            },
+          },
+        });
 
-      const cumulativePayrollGrowth =
-        cumulativePreviousYearPayroll > 0 && cumulativePayroll > 0
-          ? ((cumulativePayroll - cumulativePreviousYearPayroll) /
-              cumulativePreviousYearPayroll) *
-            100
-          : null;
+        // Données masse salariale cumulées depuis le début de l'année précédente
+        const previousYearToDatePayroll =
+          await prisma.manualPayrollEntry.findMany({
+            where: {
+              mandateId: id,
+              year: period.year - 1,
+              month: {
+                gte: 1,
+                lte: period.month,
+              },
+            },
+          });
 
-      return {
-        ...period,
-        cumulativeTotal,
-        cumulativePayroll,
-        cumulativePreviousYearRevenue,
-        cumulativePreviousYearPayroll,
-        cumulativeRevenueGrowth,
-        cumulativePayrollGrowth,
-      };
-    });
+        // Calculer les cumuls
+        const cumulativeTotal = yearToDateValues.reduce(
+          (sum, v) => sum + v.value,
+          0
+        );
+        const cumulativePreviousYearRevenue = previousYearToDateValues.reduce(
+          (sum, v) => sum + v.value,
+          0
+        );
+        const cumulativePayroll = yearToDatePayroll.reduce(
+          (sum, p) => sum + p.totalCost,
+          0
+        );
+        const cumulativePreviousYearPayroll = previousYearToDatePayroll.reduce(
+          (sum, p) => sum + p.totalCost,
+          0
+        );
 
-    // Calculs pour le résumé
-    const totalPreviousYearRevenue = caData.reduce(
-      (sum, p) => sum + p.yearOverYear.previousYearRevenue,
-      0
+        // Calculer l'évolution des cumuls
+        const cumulativeRevenueGrowth =
+          cumulativePreviousYearRevenue > 0
+            ? ((cumulativeTotal - cumulativePreviousYearRevenue) /
+                cumulativePreviousYearRevenue) *
+              100
+            : null;
+
+        const cumulativePayrollGrowth =
+          cumulativePreviousYearPayroll > 0 && cumulativePayroll > 0
+            ? ((cumulativePayroll - cumulativePreviousYearPayroll) /
+                cumulativePreviousYearPayroll) *
+              100
+            : null;
+
+        return {
+          ...period,
+          cumulativeTotal,
+          cumulativePayroll,
+          cumulativePreviousYearRevenue,
+          cumulativePreviousYearPayroll,
+          cumulativeRevenueGrowth,
+          cumulativePayrollGrowth,
+        };
+      })
     );
-    const totalPreviousYearPayroll = caData.reduce(
-      (sum, p) => sum + (p.yearOverYear.previousYearPayroll || 0),
-      0
-    );
+
+    // Calculs pour le résumé - utiliser les données cumulatives
+    const lastPeriodData = cumulativeData[cumulativeData.length - 1];
+    const grandTotal = lastPeriodData?.cumulativeTotal || 0;
+    const totalPreviousYearRevenue =
+      lastPeriodData?.cumulativePreviousYearRevenue || 0;
+    const totalPayrollCost = lastPeriodData?.cumulativePayroll || 0;
 
     // Filtrer les données pour exclure le mois en cours des statistiques
     const currentDate = new Date();
@@ -345,9 +400,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       comparisons,
       summary: {
         totalPeriods: caData.length,
-        grandTotal: cumulativeTotal,
+        grandTotal,
         grandTotalExcludingCurrentMonth, // Nouveau champ pour les statistiques
-        averagePerPeriod: cumulativeTotal / caData.length,
+        averagePerPeriod: grandTotal / caData.length,
         bestPeriod:
           statsData.length > 0
             ? statsData.reduce((best, current) =>
@@ -368,15 +423,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         // Nouveaux indicateurs - utiliser statsTotalPayrollCost pour exclure le mois en cours
         totalPayrollCost: statsTotalPayrollCost,
         globalPayrollRatio:
-          cumulativeTotal > 0 && statsTotalPayrollCost > 0
-            ? (statsTotalPayrollCost / cumulativeTotal) * 100
+          grandTotal > 0 && statsTotalPayrollCost > 0
+            ? (statsTotalPayrollCost / grandTotal) * 100
             : null,
 
         // Comparaisons annuelles
         yearOverYearGrowth: {
           revenue:
             totalPreviousYearRevenue > 0
-              ? ((cumulativeTotal - totalPreviousYearRevenue) /
+              ? ((grandTotal - totalPreviousYearRevenue) /
                   totalPreviousYearRevenue) *
                 100
               : null,
@@ -389,9 +444,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
                 100
               : null,
           payroll:
-            totalPreviousYearPayroll > 0 && statsTotalPayrollCost > 0
-              ? ((statsTotalPayrollCost - totalPreviousYearPayroll) /
-                  totalPreviousYearPayroll) *
+            totalPayrollCost > 0 && statsTotalPayrollCost > 0
+              ? ((statsTotalPayrollCost - totalPayrollCost) /
+                  totalPayrollCost) *
                 100
               : null,
         },
