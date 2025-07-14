@@ -1180,64 +1180,16 @@ export default function GlobalCAPage() {
                 <div className="space-y-2">
                   <div className="text-2xl font-bold">
                     {(() => {
-                      // Filtrer les périodes pour exclure le mois en cours
-                      const currentDate = new Date();
-                      const currentYear = currentDate.getFullYear();
-                      const currentMonth = currentDate.getMonth() + 1;
-
-                      const filteredPeriods = caData.periods.filter(
-                        (period) => {
-                          // Exclure le mois en cours s'il n'est pas complet
-                          if (
-                            period.year === currentYear &&
-                            period.month === currentMonth
-                          ) {
-                            return false;
-                          }
-                          // Ne garder que les périodes avec des données réelles (> 0)
-                          return period.totalValue > 0;
-                        }
+                      // Pour les cartes stats, on doit récupérer les données de l'année complète
+                      // pas seulement de la période affichée (semestre)
+                      if (!caData.summary.bestPeriod) return formatCurrency(0);
+                      return formatCurrency(
+                        caData.summary.bestPeriod.totalValue
                       );
-
-                      if (filteredPeriods.length === 0)
-                        return formatCurrency(0);
-
-                      const bestPeriod = filteredPeriods.reduce(
-                        (best, current) =>
-                          current.totalValue > best.totalValue ? current : best
-                      );
-
-                      return formatCurrency(bestPeriod.totalValue);
                     })()}
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    {(() => {
-                      // Même logique pour le label
-                      const currentDate = new Date();
-                      const currentYear = currentDate.getFullYear();
-                      const currentMonth = currentDate.getMonth() + 1;
-
-                      const filteredPeriods = caData.periods.filter(
-                        (period) => {
-                          if (
-                            period.year === currentYear &&
-                            period.month === currentMonth
-                          ) {
-                            return false;
-                          }
-                          return period.totalValue > 0;
-                        }
-                      );
-
-                      if (filteredPeriods.length === 0) return "-";
-
-                      const bestPeriod = filteredPeriods.reduce(
-                        (best, current) =>
-                          current.totalValue > best.totalValue ? current : best
-                      );
-
-                      return bestPeriod.label;
-                    })()}
+                    {caData.summary.bestPeriod?.label || "-"}
                   </div>
                 </div>
               </CardContent>
@@ -1252,68 +1204,16 @@ export default function GlobalCAPage() {
                 <div className="space-y-2">
                   <div className="text-2xl font-bold">
                     {(() => {
-                      // Filtrer les périodes pour exclure le mois en cours
-                      const currentDate = new Date();
-                      const currentYear = currentDate.getFullYear();
-                      const currentMonth = currentDate.getMonth() + 1;
-
-                      const filteredPeriods = caData.periods.filter(
-                        (period) => {
-                          // Exclure le mois en cours s'il n'est pas complet
-                          if (
-                            period.year === currentYear &&
-                            period.month === currentMonth
-                          ) {
-                            return false;
-                          }
-                          // Ne garder que les périodes avec des données réelles (> 0)
-                          return period.totalValue > 0;
-                        }
+                      // Pour les cartes stats, on doit récupérer les données de l'année complète
+                      // pas seulement de la période affichée (semestre)
+                      if (!caData.summary.worstPeriod) return formatCurrency(0);
+                      return formatCurrency(
+                        caData.summary.worstPeriod.totalValue
                       );
-
-                      if (filteredPeriods.length === 0)
-                        return formatCurrency(0);
-
-                      const worstPeriod = filteredPeriods.reduce(
-                        (worst, current) =>
-                          current.totalValue < worst.totalValue
-                            ? current
-                            : worst
-                      );
-
-                      return formatCurrency(worstPeriod.totalValue);
                     })()}
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    {(() => {
-                      // Même logique pour le label
-                      const currentDate = new Date();
-                      const currentYear = currentDate.getFullYear();
-                      const currentMonth = currentDate.getMonth() + 1;
-
-                      const filteredPeriods = caData.periods.filter(
-                        (period) => {
-                          if (
-                            period.year === currentYear &&
-                            period.month === currentMonth
-                          ) {
-                            return false;
-                          }
-                          return period.totalValue > 0;
-                        }
-                      );
-
-                      if (filteredPeriods.length === 0) return "-";
-
-                      const worstPeriod = filteredPeriods.reduce(
-                        (worst, current) =>
-                          current.totalValue < worst.totalValue
-                            ? current
-                            : worst
-                      );
-
-                      return worstPeriod.label;
-                    })()}
+                    {caData.summary.worstPeriod?.label || "-"}
                   </div>
                 </div>
               </CardContent>
