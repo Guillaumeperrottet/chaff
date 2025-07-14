@@ -48,6 +48,7 @@ import {
   FileSpreadsheet,
   Info,
   ChevronDown,
+  BarChart3,
 } from "lucide-react";
 import { toast } from "sonner";
 import PrintableCAReport from "@/app/components/ca/PrintableCAReport";
@@ -1402,10 +1403,54 @@ export default function MandateCAPage() {
               complet.
             </span>
           </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+            {/* Nouvelle carte pour le cumul annuel réel */}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-base">CA Total</CardTitle>
+                <CardTitle className="text-base">Cumul Annuel</CardTitle>
+                <BarChart3 className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="text-2xl font-bold">
+                    {caData.periods.length > 0
+                      ? formatCurrency(
+                          caData.periods[caData.periods.length - 1]
+                            .cumulativeTotal || 0
+                        )
+                      : formatCurrency(0)}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Depuis janvier {selectedYear}
+                  </div>
+                  {caData.periods.length > 0 &&
+                    caData.periods[caData.periods.length - 1]
+                      .cumulativeRevenueGrowth !== null &&
+                    caData.periods[caData.periods.length - 1]
+                      .cumulativeRevenueGrowth !== undefined && (
+                      <div className="flex items-center text-sm">
+                        {getGrowthIcon(
+                          caData.periods[caData.periods.length - 1]
+                            .cumulativeRevenueGrowth!
+                        )}
+                        <span className="ml-1">
+                          {formatPercentage(
+                            caData.periods[caData.periods.length - 1]
+                              .cumulativeRevenueGrowth!,
+                            true,
+                            2
+                          )}{" "}
+                          vs {parseInt(selectedYear) - 1}
+                        </span>
+                      </div>
+                    )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-base">CA Période</CardTitle>
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -1414,6 +1459,12 @@ export default function MandateCAPage() {
                     {formatCurrency(
                       caData.summary.grandTotalExcludingCurrentMonth
                     )}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {selectedSemester === "1"
+                      ? "1er semestre"
+                      : "2ème semestre"}{" "}
+                    {selectedYear}
                   </div>
                   {caData.summary.yearOverYearGrowth
                     .revenueExcludingCurrentMonth !== null && (
