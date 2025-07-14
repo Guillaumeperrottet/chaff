@@ -556,6 +556,55 @@ export async function GET(request: NextRequest) {
     const currentYearForStats = currentDate.getFullYear();
     const currentMonthForStats = currentDate.getMonth() + 1;
 
+    // NOUVEAU : Récupérer les données de l'année complète pour les stats best/worst
+    const fullYearPeriods = generatePeriodsRange(year, 1, 12);
+    const fullYearData = await Promise.all(
+      fullYearPeriods.map(async (periodInfo) => {
+        const startDate = new Date(periodInfo.year, periodInfo.month - 1, 1);
+        const endDate = new Date(periodInfo.year, periodInfo.month, 0);
+
+        // Récupérer toutes les données CA pour tous les mandats pour ce mois
+        const currentYearValues = await prisma.dayValue.findMany({
+          where: {
+            date: {
+              gte: startDate,
+              lte: endDate,
+            },
+            mandate: {
+              organizationId: userWithOrg.Organization?.id,
+            },
+          },
+          include: {
+            mandate: true,
+          },
+        });
+
+        const totalValue = currentYearValues.reduce(
+          (sum, value) => sum + value.value,
+          0
+        );
+
+        return {
+          year: periodInfo.year,
+          month: periodInfo.month,
+          label: periodInfo.label,
+          totalValue,
+          // Pas besoin des autres champs pour les stats
+        };
+      })
+    );
+
+    // Filtrer les données de l'année complète pour exclure le mois en cours
+    const fullYearStatsData = fullYearData.filter((period) => {
+      if (
+        period.year === currentYearForStats &&
+        period.month === currentMonthForStats
+      ) {
+        return false;
+      }
+      return period.totalValue > 0; // Exclure aussi les mois sans données
+    });
+
     const statsData = cumulativeData.filter((period) => {
       // Exclure le mois en cours si c'est la même année
       if (
@@ -597,21 +646,65 @@ export async function GET(request: NextRequest) {
         grandTotalExcludingCurrentMonth, // Nouveau champ pour les statistiques
         averagePerPeriod: grandTotal / cumulativeData.length,
         bestPeriod:
-          statsData.length > 0
-            ? statsData.reduce((best, current) =>
-                current.totalValue > best.totalValue ? current : best
-              )
-            : cumulativeData.reduce((best, current) =>
-                current.totalValue > best.totalValue ? current : best
-              ),
+          fullYearStatsData.length > 0
+            ? (() => {
+                const best = fullYearStatsData.reduce((best, current) =>
+                  current.totalValue > best.totalValue ? current : best
+                );
+                return {
+                  year: best.year,
+                  month: best.month,
+                  label: best.label,
+                  totalValue: best.totalValue,
+                  dailyValues: [],
+                  previousYearDailyValues: [],
+                  averageDaily: 0,
+                  daysWithData: 0,
+                  yearOverYear: {
+                    previousYearRevenue: 0,
+                    revenueGrowth: null,
+                    payrollGrowth: null,
+                  },
+                  mandateDetails: [],
+                } as PeriodData;
+              })()
+            : statsData.length > 0
+              ? statsData.reduce((best, current) =>
+                  current.totalValue > best.totalValue ? current : best
+                )
+              : cumulativeData.reduce((best, current) =>
+                  current.totalValue > best.totalValue ? current : best
+                ),
         worstPeriod:
-          statsData.length > 0
-            ? statsData.reduce((worst, current) =>
-                current.totalValue < worst.totalValue ? current : worst
-              )
-            : cumulativeData.reduce((worst, current) =>
-                current.totalValue < worst.totalValue ? current : worst
-              ),
+          fullYearStatsData.length > 0
+            ? (() => {
+                const worst = fullYearStatsData.reduce((worst, current) =>
+                  current.totalValue < worst.totalValue ? current : worst
+                );
+                return {
+                  year: worst.year,
+                  month: worst.month,
+                  label: worst.label,
+                  totalValue: worst.totalValue,
+                  dailyValues: [],
+                  previousYearDailyValues: [],
+                  averageDaily: 0,
+                  daysWithData: 0,
+                  yearOverYear: {
+                    previousYearRevenue: 0,
+                    revenueGrowth: null,
+                    payrollGrowth: null,
+                  },
+                  mandateDetails: [],
+                } as PeriodData;
+              })()
+            : statsData.length > 0
+              ? statsData.reduce((worst, current) =>
+                  current.totalValue < worst.totalValue ? current : worst
+                )
+              : cumulativeData.reduce((worst, current) =>
+                  current.totalValue < worst.totalValue ? current : worst
+                ),
         totalPayrollCost: statsTotalPayrollCost,
         globalPayrollRatio:
           grandTotal > 0 && statsTotalPayrollCost > 0

@@ -361,6 +361,57 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const currentYearForStats = currentDate.getFullYear();
     const currentMonthForStats = currentDate.getMonth() + 1;
 
+    // NOUVEAU : Récupérer les données de l'année complète pour les stats best/worst
+    const fullYearPeriods = [];
+    for (let month = 1; month <= 12; month++) {
+      fullYearPeriods.push({
+        year,
+        month,
+        label: `${getMonthName(month)} ${year}`,
+      });
+    }
+
+    const fullYearData = await Promise.all(
+      fullYearPeriods.map(async (periodInfo) => {
+        const startDate = new Date(periodInfo.year, periodInfo.month - 1, 1);
+        const endDate = new Date(periodInfo.year, periodInfo.month, 0);
+
+        // Récupérer toutes les données CA pour ce mandat pour ce mois
+        const dayValues = await prisma.dayValue.findMany({
+          where: {
+            mandateId: id,
+            date: {
+              gte: startDate,
+              lte: endDate,
+            },
+          },
+        });
+
+        const totalValue = dayValues.reduce(
+          (sum, value) => sum + value.value,
+          0
+        );
+
+        return {
+          year: periodInfo.year,
+          month: periodInfo.month,
+          label: periodInfo.label,
+          totalValue,
+        };
+      })
+    );
+
+    // Filtrer les données de l'année complète pour exclure le mois en cours
+    const fullYearStatsData = fullYearData.filter((period) => {
+      if (
+        period.year === currentYearForStats &&
+        period.month === currentMonthForStats
+      ) {
+        return false;
+      }
+      return period.totalValue > 0; // Exclure aussi les mois sans données
+    });
+
     const statsData = caData.filter((period) => {
       // Exclure le mois en cours si c'est la même année
       if (
@@ -404,21 +455,29 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         grandTotalExcludingCurrentMonth, // Nouveau champ pour les statistiques
         averagePerPeriod: grandTotal / caData.length,
         bestPeriod:
-          statsData.length > 0
-            ? statsData.reduce((best, current) =>
+          fullYearStatsData.length > 0
+            ? fullYearStatsData.reduce((best, current) =>
                 current.totalValue > best.totalValue ? current : best
               )
-            : caData.reduce((best, current) =>
-                current.totalValue > best.totalValue ? current : best
-              ),
+            : statsData.length > 0
+              ? statsData.reduce((best, current) =>
+                  current.totalValue > best.totalValue ? current : best
+                )
+              : caData.reduce((best, current) =>
+                  current.totalValue > best.totalValue ? current : best
+                ),
         worstPeriod:
-          statsData.length > 0
-            ? statsData.reduce((worst, current) =>
+          fullYearStatsData.length > 0
+            ? fullYearStatsData.reduce((worst, current) =>
                 current.totalValue < worst.totalValue ? current : worst
               )
-            : caData.reduce((worst, current) =>
-                current.totalValue < worst.totalValue ? current : worst
-              ),
+            : statsData.length > 0
+              ? statsData.reduce((worst, current) =>
+                  current.totalValue < worst.totalValue ? current : worst
+                )
+              : caData.reduce((worst, current) =>
+                  current.totalValue < worst.totalValue ? current : worst
+                ),
 
         // Nouveaux indicateurs - utiliser statsTotalPayrollCost pour exclure le mois en cours
         totalPayrollCost: statsTotalPayrollCost,

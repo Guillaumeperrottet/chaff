@@ -490,6 +490,65 @@ export async function GET(request: NextRequest) {
     const currentYearForStats = currentDate.getFullYear();
     const currentMonthForStats = currentDate.getMonth() + 1; // getMonth() retourne 0-11
 
+    // NOUVEAU : Récupérer les données de l'année complète pour les stats best/worst
+    const fullYearPeriods = [];
+    for (let month = 1; month <= 12; month++) {
+      fullYearPeriods.push({
+        year,
+        month,
+        label: getMonthName(month) + " " + year,
+      });
+    }
+
+    const fullYearData = await Promise.all(
+      fullYearPeriods.map(async (periodInfo) => {
+        const startDate = new Date(periodInfo.year, periodInfo.month - 1, 1);
+        const endDate = new Date(periodInfo.year, periodInfo.month, 0);
+
+        // Récupérer toutes les données CA pour tous les mandats pour ce mois
+        const currentYearValues = await prisma.dayValue.findMany({
+          where: {
+            date: {
+              gte: startDate,
+              lte: endDate,
+            },
+            mandate: {
+              organizationId: userWithOrg.Organization?.id,
+              group: selectedType
+                ? selectedType
+                : { in: ["HEBERGEMENT", "RESTAURATION"] },
+            },
+          },
+          include: {
+            mandate: true,
+          },
+        });
+
+        const totalValue = currentYearValues.reduce(
+          (sum, value) => sum + value.value,
+          0
+        );
+
+        return {
+          year: periodInfo.year,
+          month: periodInfo.month,
+          label: periodInfo.label,
+          totalValue,
+        };
+      })
+    );
+
+    // Filtrer les données de l'année complète pour exclure le mois en cours
+    const fullYearStatsData = fullYearData.filter((period) => {
+      if (
+        period.year === currentYearForStats &&
+        period.month === currentMonthForStats
+      ) {
+        return false;
+      }
+      return period.totalValue > 0; // Exclure aussi les mois sans données
+    });
+
     // Filtrer les données pour les statistiques (exclure le mois courant de l'année courante)
     const statsData = periodsWithCumuls.filter(
       (period) =>
@@ -548,21 +607,65 @@ export async function GET(request: NextRequest) {
         grandTotalExcludingCurrentMonth: statsGrandTotal, // Nouveau champ pour les statistiques
         averagePerPeriod: grandTotal / periodsWithCumuls.length,
         bestPeriod:
-          statsData.length > 0
-            ? statsData.reduce((best, current) =>
-                current.totalValue > best.totalValue ? current : best
-              )
-            : periodsWithCumuls.reduce((best, current) =>
-                current.totalValue > best.totalValue ? current : best
-              ),
+          fullYearStatsData.length > 0
+            ? (() => {
+                const best = fullYearStatsData.reduce((best, current) =>
+                  current.totalValue > best.totalValue ? current : best
+                );
+                return {
+                  year: best.year,
+                  month: best.month,
+                  label: best.label,
+                  totalValue: best.totalValue,
+                  dailyValues: [],
+                  previousYearDailyValues: [],
+                  averageDaily: 0,
+                  daysWithData: 0,
+                  yearOverYear: {
+                    previousYearRevenue: 0,
+                    revenueGrowth: null,
+                    payrollGrowth: null,
+                  },
+                  mandateDetails: [],
+                } as PeriodData;
+              })()
+            : statsData.length > 0
+              ? statsData.reduce((best, current) =>
+                  current.totalValue > best.totalValue ? current : best
+                )
+              : periodsWithCumuls.reduce((best, current) =>
+                  current.totalValue > best.totalValue ? current : best
+                ),
         worstPeriod:
-          statsData.length > 0
-            ? statsData.reduce((worst, current) =>
-                current.totalValue < worst.totalValue ? current : worst
-              )
-            : periodsWithCumuls.reduce((worst, current) =>
-                current.totalValue < worst.totalValue ? current : worst
-              ),
+          fullYearStatsData.length > 0
+            ? (() => {
+                const worst = fullYearStatsData.reduce((worst, current) =>
+                  current.totalValue < worst.totalValue ? current : worst
+                );
+                return {
+                  year: worst.year,
+                  month: worst.month,
+                  label: worst.label,
+                  totalValue: worst.totalValue,
+                  dailyValues: [],
+                  previousYearDailyValues: [],
+                  averageDaily: 0,
+                  daysWithData: 0,
+                  yearOverYear: {
+                    previousYearRevenue: 0,
+                    revenueGrowth: null,
+                    payrollGrowth: null,
+                  },
+                  mandateDetails: [],
+                } as PeriodData;
+              })()
+            : statsData.length > 0
+              ? statsData.reduce((worst, current) =>
+                  current.totalValue < worst.totalValue ? current : worst
+                )
+              : periodsWithCumuls.reduce((worst, current) =>
+                  current.totalValue < worst.totalValue ? current : worst
+                ),
         totalPayrollCost: statsTotalPayrollCost,
         globalPayrollRatio:
           statsGrandTotal > 0
