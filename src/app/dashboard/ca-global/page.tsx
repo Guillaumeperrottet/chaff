@@ -1136,18 +1136,37 @@ export default function GlobalCAPage() {
               <CardContent>
                 <div className="space-y-2">
                   <div className="text-2xl font-bold">
-                    {formatCurrency(caData.summary.totalPayrollCost)}
+                    {caData.periods.length > 0
+                      ? formatCurrency(
+                          caData.periods[caData.periods.length - 1]
+                            .cumulativePayroll || 0
+                        )
+                      : formatCurrency(0)}
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    Ratio global:{" "}
-                    {caData.summary.globalPayrollRatio
-                      ? formatPercentage(
-                          caData.summary.globalPayrollRatio,
-                          false,
-                          2
-                        )
-                      : "-"}
+                    Cumul annuel depuis janvier {selectedYear}
                   </div>
+                  {caData.periods.length > 0 &&
+                    caData.periods[caData.periods.length - 1]
+                      .cumulativePayrollGrowth !== null &&
+                    caData.periods[caData.periods.length - 1]
+                      .cumulativePayrollGrowth !== undefined && (
+                      <div className="flex items-center text-sm">
+                        {getGrowthIcon(
+                          caData.periods[caData.periods.length - 1]
+                            .cumulativePayrollGrowth!
+                        )}
+                        <span className="ml-1">
+                          {formatPercentage(
+                            caData.periods[caData.periods.length - 1]
+                              .cumulativePayrollGrowth!,
+                            true,
+                            2
+                          )}{" "}
+                          vs {parseInt(selectedYear) - 1}
+                        </span>
+                      </div>
+                    )}
                 </div>
               </CardContent>
             </Card>
@@ -1160,10 +1179,55 @@ export default function GlobalCAPage() {
               <CardContent>
                 <div className="space-y-2">
                   <div className="text-2xl font-bold">
-                    {formatCurrency(caData.summary.bestPeriod.totalValue)}
+                    {(() => {
+                      // Filtrer les périodes pour exclure le mois en cours
+                      const currentDate = new Date();
+                      const currentYear = currentDate.getFullYear();
+                      const currentMonth = currentDate.getMonth() + 1;
+
+                      const filteredPeriods = caData.periods.filter(
+                        (period) =>
+                          !(
+                            period.year === currentYear &&
+                            period.month === currentMonth
+                          )
+                      );
+
+                      if (filteredPeriods.length === 0)
+                        return formatCurrency(0);
+
+                      const bestPeriod = filteredPeriods.reduce(
+                        (best, current) =>
+                          current.totalValue > best.totalValue ? current : best
+                      );
+
+                      return formatCurrency(bestPeriod.totalValue);
+                    })()}
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    {caData.summary.bestPeriod.label}
+                    {(() => {
+                      // Même logique pour le label
+                      const currentDate = new Date();
+                      const currentYear = currentDate.getFullYear();
+                      const currentMonth = currentDate.getMonth() + 1;
+
+                      const filteredPeriods = caData.periods.filter(
+                        (period) =>
+                          !(
+                            period.year === currentYear &&
+                            period.month === currentMonth
+                          )
+                      );
+
+                      if (filteredPeriods.length === 0) return "-";
+
+                      const bestPeriod = filteredPeriods.reduce(
+                        (best, current) =>
+                          current.totalValue > best.totalValue ? current : best
+                      );
+
+                      return bestPeriod.label;
+                    })()}
                   </div>
                 </div>
               </CardContent>
@@ -1177,10 +1241,59 @@ export default function GlobalCAPage() {
               <CardContent>
                 <div className="space-y-2">
                   <div className="text-2xl font-bold">
-                    {formatCurrency(caData.summary.worstPeriod.totalValue)}
+                    {(() => {
+                      // Filtrer les périodes pour exclure le mois en cours
+                      const currentDate = new Date();
+                      const currentYear = currentDate.getFullYear();
+                      const currentMonth = currentDate.getMonth() + 1;
+
+                      const filteredPeriods = caData.periods.filter(
+                        (period) =>
+                          !(
+                            period.year === currentYear &&
+                            period.month === currentMonth
+                          )
+                      );
+
+                      if (filteredPeriods.length === 0)
+                        return formatCurrency(0);
+
+                      const worstPeriod = filteredPeriods.reduce(
+                        (worst, current) =>
+                          current.totalValue < worst.totalValue
+                            ? current
+                            : worst
+                      );
+
+                      return formatCurrency(worstPeriod.totalValue);
+                    })()}
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    {caData.summary.worstPeriod.label}
+                    {(() => {
+                      // Même logique pour le label
+                      const currentDate = new Date();
+                      const currentYear = currentDate.getFullYear();
+                      const currentMonth = currentDate.getMonth() + 1;
+
+                      const filteredPeriods = caData.periods.filter(
+                        (period) =>
+                          !(
+                            period.year === currentYear &&
+                            period.month === currentMonth
+                          )
+                      );
+
+                      if (filteredPeriods.length === 0) return "-";
+
+                      const worstPeriod = filteredPeriods.reduce(
+                        (worst, current) =>
+                          current.totalValue < worst.totalValue
+                            ? current
+                            : worst
+                      );
+
+                      return worstPeriod.label;
+                    })()}
                   </div>
                 </div>
               </CardContent>
