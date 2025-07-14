@@ -1251,17 +1251,23 @@ export default function TypesCAPage() {
                 <div className="space-y-2">
                   <div className="text-2xl font-bold">
                     {(() => {
-                      // Filtrer les périodes pour exclure le mois en cours
+                      // Filtrer les périodes pour ne garder que celles avec des données
                       const currentDate = new Date();
                       const currentYear = currentDate.getFullYear();
                       const currentMonth = currentDate.getMonth() + 1;
 
                       const filteredPeriods = caData.periods.filter(
-                        (period) =>
-                          !(
+                        (period) => {
+                          // Exclure le mois en cours s'il n'est pas complet
+                          if (
                             period.year === currentYear &&
                             period.month === currentMonth
-                          )
+                          ) {
+                            return false;
+                          }
+                          // Ne garder que les périodes avec des données réelles (> 0)
+                          return period.totalValue > 0;
+                        }
                       );
 
                       if (filteredPeriods.length === 0)
@@ -1283,11 +1289,15 @@ export default function TypesCAPage() {
                       const currentMonth = currentDate.getMonth() + 1;
 
                       const filteredPeriods = caData.periods.filter(
-                        (period) =>
-                          !(
+                        (period) => {
+                          if (
                             period.year === currentYear &&
                             period.month === currentMonth
-                          )
+                          ) {
+                            return false;
+                          }
+                          return period.totalValue > 0;
+                        }
                       );
 
                       if (filteredPeriods.length === 0) return "-";
@@ -1313,17 +1323,23 @@ export default function TypesCAPage() {
                 <div className="space-y-2">
                   <div className="text-2xl font-bold">
                     {(() => {
-                      // Filtrer les périodes pour exclure le mois en cours
+                      // Filtrer les périodes pour ne garder que celles avec des données
                       const currentDate = new Date();
                       const currentYear = currentDate.getFullYear();
                       const currentMonth = currentDate.getMonth() + 1;
 
                       const filteredPeriods = caData.periods.filter(
-                        (period) =>
-                          !(
+                        (period) => {
+                          // Exclure le mois en cours s'il n'est pas complet
+                          if (
                             period.year === currentYear &&
                             period.month === currentMonth
-                          )
+                          ) {
+                            return false;
+                          }
+                          // Ne garder que les périodes avec des données réelles (> 0)
+                          return period.totalValue > 0;
+                        }
                       );
 
                       if (filteredPeriods.length === 0)
@@ -1347,11 +1363,15 @@ export default function TypesCAPage() {
                       const currentMonth = currentDate.getMonth() + 1;
 
                       const filteredPeriods = caData.periods.filter(
-                        (period) =>
-                          !(
+                        (period) => {
+                          if (
                             period.year === currentYear &&
                             period.month === currentMonth
-                          )
+                          ) {
+                            return false;
+                          }
+                          return period.totalValue > 0;
+                        }
                       );
 
                       if (filteredPeriods.length === 0) return "-";
@@ -1371,52 +1391,6 @@ export default function TypesCAPage() {
             </Card>
           </div>
         </div>
-
-        {/* Détail par types */}
-        <Card className="print:hidden">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5" />
-              Détail par types d&apos;établissements
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {(caData.summary.typesBreakdown &&
-                caData.summary.typesBreakdown.length > 0 &&
-                caData.summary.typesBreakdown.map((type) => (
-                  <div
-                    key={type.id}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                  >
-                    <div className="flex items-center space-x-3 flex-1">
-                      <div className="flex items-center justify-center w-8 h-8 bg-purple-100 rounded-lg">
-                        {getTypeIcon(type.id)}
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-medium text-sm">{type.label}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {type.mandatesCount} mandats
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-right space-y-1">
-                      <div className="text-sm font-bold">
-                        {formatCurrency(type.totalRevenue)}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {type.contribution.toFixed(1)}% du total
-                      </div>
-                    </div>
-                  </div>
-                ))) || (
-                <div className="text-center text-muted-foreground">
-                  Aucun type trouvé
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Informations supplémentaires */}
         <div className="text-sm text-gray-600 print:hidden">

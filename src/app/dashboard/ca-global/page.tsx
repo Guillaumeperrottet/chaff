@@ -1186,11 +1186,17 @@ export default function GlobalCAPage() {
                       const currentMonth = currentDate.getMonth() + 1;
 
                       const filteredPeriods = caData.periods.filter(
-                        (period) =>
-                          !(
+                        (period) => {
+                          // Exclure le mois en cours s'il n'est pas complet
+                          if (
                             period.year === currentYear &&
                             period.month === currentMonth
-                          )
+                          ) {
+                            return false;
+                          }
+                          // Ne garder que les périodes avec des données réelles (> 0)
+                          return period.totalValue > 0;
+                        }
                       );
 
                       if (filteredPeriods.length === 0)
@@ -1212,11 +1218,15 @@ export default function GlobalCAPage() {
                       const currentMonth = currentDate.getMonth() + 1;
 
                       const filteredPeriods = caData.periods.filter(
-                        (period) =>
-                          !(
+                        (period) => {
+                          if (
                             period.year === currentYear &&
                             period.month === currentMonth
-                          )
+                          ) {
+                            return false;
+                          }
+                          return period.totalValue > 0;
+                        }
                       );
 
                       if (filteredPeriods.length === 0) return "-";
@@ -1248,11 +1258,17 @@ export default function GlobalCAPage() {
                       const currentMonth = currentDate.getMonth() + 1;
 
                       const filteredPeriods = caData.periods.filter(
-                        (period) =>
-                          !(
+                        (period) => {
+                          // Exclure le mois en cours s'il n'est pas complet
+                          if (
                             period.year === currentYear &&
                             period.month === currentMonth
-                          )
+                          ) {
+                            return false;
+                          }
+                          // Ne garder que les périodes avec des données réelles (> 0)
+                          return period.totalValue > 0;
+                        }
                       );
 
                       if (filteredPeriods.length === 0)
@@ -1276,11 +1292,15 @@ export default function GlobalCAPage() {
                       const currentMonth = currentDate.getMonth() + 1;
 
                       const filteredPeriods = caData.periods.filter(
-                        (period) =>
-                          !(
+                        (period) => {
+                          if (
                             period.year === currentYear &&
                             period.month === currentMonth
-                          )
+                          ) {
+                            return false;
+                          }
+                          return period.totalValue > 0;
+                        }
                       );
 
                       if (filteredPeriods.length === 0) return "-";
@@ -1300,47 +1320,6 @@ export default function GlobalCAPage() {
             </Card>
           </div>
         </div>
-
-        {/* Détail par mandats */}
-        <Card className="print:hidden">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5" />
-              Détail par mandats
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {(caData.summary.mandatesBreakdown &&
-                caData.summary.mandatesBreakdown.length > 0 &&
-                caData.summary.mandatesBreakdown.map((mandate) => (
-                  <div
-                    key={mandate.id}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                  >
-                    <div className="flex-1">
-                      <div className="font-medium text-sm">{mandate.name}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {mandate.group}
-                      </div>
-                    </div>
-                    <div className="text-right space-y-1">
-                      <div className="text-sm font-bold">
-                        {formatCurrency(mandate.totalRevenue)}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {mandate.contribution.toFixed(1)}% du total
-                      </div>
-                    </div>
-                  </div>
-                ))) || (
-                <div className="text-center text-muted-foreground">
-                  Aucun mandat trouvé
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Informations supplémentaires */}
         <div className="text-sm text-gray-600 print:hidden">

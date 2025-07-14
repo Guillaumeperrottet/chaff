@@ -1540,17 +1540,23 @@ export default function MandateCAPage() {
                 <div className="space-y-2">
                   <div className="text-2xl font-bold">
                     {(() => {
-                      // Filtrer les périodes pour exclure le mois en cours
+                      // Filtrer les périodes pour ne garder que celles avec des données
                       const currentDate = new Date();
                       const currentYear = currentDate.getFullYear();
                       const currentMonth = currentDate.getMonth() + 1;
 
                       const filteredPeriods = caData.periods.filter(
-                        (period) =>
-                          !(
+                        (period) => {
+                          // Exclure le mois en cours s'il n'est pas complet
+                          if (
                             period.year === currentYear &&
                             period.month === currentMonth
-                          )
+                          ) {
+                            return false;
+                          }
+                          // Ne garder que les périodes avec des données réelles (> 0)
+                          return period.totalValue > 0;
+                        }
                       );
 
                       if (filteredPeriods.length === 0)
@@ -1572,11 +1578,15 @@ export default function MandateCAPage() {
                       const currentMonth = currentDate.getMonth() + 1;
 
                       const filteredPeriods = caData.periods.filter(
-                        (period) =>
-                          !(
+                        (period) => {
+                          if (
                             period.year === currentYear &&
                             period.month === currentMonth
-                          )
+                          ) {
+                            return false;
+                          }
+                          return period.totalValue > 0;
+                        }
                       );
 
                       if (filteredPeriods.length === 0) return "-";
@@ -1602,17 +1612,23 @@ export default function MandateCAPage() {
                 <div className="space-y-2">
                   <div className="text-2xl font-bold">
                     {(() => {
-                      // Filtrer les périodes pour exclure le mois en cours
+                      // Filtrer les périodes pour ne garder que celles avec des données
                       const currentDate = new Date();
                       const currentYear = currentDate.getFullYear();
                       const currentMonth = currentDate.getMonth() + 1;
 
                       const filteredPeriods = caData.periods.filter(
-                        (period) =>
-                          !(
+                        (period) => {
+                          // Exclure le mois en cours s'il n'est pas complet
+                          if (
                             period.year === currentYear &&
                             period.month === currentMonth
-                          )
+                          ) {
+                            return false;
+                          }
+                          // Ne garder que les périodes avec des données réelles (> 0)
+                          return period.totalValue > 0;
+                        }
                       );
 
                       if (filteredPeriods.length === 0)
@@ -1636,11 +1652,15 @@ export default function MandateCAPage() {
                       const currentMonth = currentDate.getMonth() + 1;
 
                       const filteredPeriods = caData.periods.filter(
-                        (period) =>
-                          !(
+                        (period) => {
+                          if (
                             period.year === currentYear &&
                             period.month === currentMonth
-                          )
+                          ) {
+                            return false;
+                          }
+                          return period.totalValue > 0;
+                        }
                       );
 
                       if (filteredPeriods.length === 0) return "-";
