@@ -311,7 +311,7 @@ const EditableCell: React.FC<EditableCellProps> = ({
         setEditValue(rawValue);
         setIsEditing(true);
       }}
-      title="Cliquer pour modifier (année courante uniquement)"
+      title="Cliquer pour modifier"
     >
       {displayValue}
       <span className="ml-1 opacity-0 group-hover:opacity-50 text-xs">✏️</span>
