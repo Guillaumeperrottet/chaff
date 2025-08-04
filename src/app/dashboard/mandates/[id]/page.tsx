@@ -288,7 +288,7 @@ const EditableCell: React.FC<EditableCellProps> = ({
           onKeyDown={handleKeyDown}
           onBlur={handleSave}
           className="h-8 text-sm text-center border-blue-500 focus:ring-2 focus:ring-blue-500"
-          placeholder="0.00"
+          placeholder=""
           autoFocus
           disabled={isSaving}
         />
@@ -308,7 +308,10 @@ const EditableCell: React.FC<EditableCellProps> = ({
       className="text-sm font-medium cursor-pointer hover:bg-blue-50 hover:text-blue-700 rounded px-1 py-1 transition-colors group"
       onClick={() => {
         const rawValue = getRawValue(value);
-        setEditValue(rawValue);
+        // Si la valeur est 0 ou 0.00, commencer avec un champ vide
+        const initialEditValue =
+          rawValue === "0" || rawValue === "0.00" ? "" : rawValue;
+        setEditValue(initialEditValue);
         setIsEditing(true);
       }}
       title="Cliquer pour modifier"

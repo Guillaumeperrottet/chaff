@@ -57,6 +57,18 @@ export async function POST(req: NextRequest) {
     // ✅ MODIFIÉ: Permettre la modification de toutes les années
     // Pas de restriction sur l'année - possibilité de modifier les années précédentes
 
+    // Traiter les valeurs vides comme 0
+    const numericValue =
+      value === "" || value == null ? 0 : parseFloat(value.toString());
+
+    // Vérifier si la valeur est valide
+    if (isNaN(numericValue)) {
+      return NextResponse.json(
+        { error: "Valeur numérique invalide" },
+        { status: 400 }
+      );
+    }
+
     // Vérifier si une entrée existe déjà pour cette date et ce mandat
     const existingEntry = await prisma.dayValue.findUnique({
       where: {
@@ -74,7 +86,7 @@ export async function POST(req: NextRequest) {
           id: existingEntry.id,
         },
         data: {
-          value: parseFloat(value.toString()),
+          value: numericValue,
           updatedAt: new Date(),
         },
       });
@@ -84,7 +96,7 @@ export async function POST(req: NextRequest) {
         data: {
           mandateId,
           date: entryDate,
-          value: parseFloat(value.toString()),
+          value: numericValue,
           createdAt: new Date(),
           updatedAt: new Date(),
         },
