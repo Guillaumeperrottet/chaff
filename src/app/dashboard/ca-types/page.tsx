@@ -143,10 +143,17 @@ export default function TypesCAPage() {
   const router = useRouter();
   const [caData, setCaData] = useState<TypesCAResponse | null>(null);
   const [availableTypes, setAvailableTypes] = useState<
-    Array<{ id: string; name: string; label: string }>
+    Array<{
+      id: string;
+      name: string;
+      label: string;
+      isCustom?: boolean;
+      mandatesCount?: number;
+    }>
   >([]);
   const [selectedType, setSelectedType] = useState("HEBERGEMENT"); // Type par défaut
   const [loading, setLoading] = useState(true);
+  const [loadingTypes, setLoadingTypes] = useState(true);
   const [selectedYear, setSelectedYear] = useState(
     new Date().getFullYear().toString()
   );
@@ -161,20 +168,42 @@ export default function TypesCAPage() {
   useEffect(() => {
     const loadAvailableTypes = async () => {
       try {
-        // Types par défaut + types personnalisés
+        setLoadingTypes(true);
+        // Charger les types depuis l'API (par défaut + personnalisés)
+        const response = await fetch("/api/establishment-types/custom");
+
+        if (!response.ok) {
+          throw new Error("Erreur lors du chargement des types");
+        }
+
+        const data = await response.json();
+        setAvailableTypes(data.types);
+
+        // Si le type sélectionné n'existe pas dans la liste, sélectionner le premier disponible
+        if (
+          data.types.length > 0 &&
+          !data.types.find(
+            (type: { id: string; name: string; label: string }) =>
+              type.id === selectedType
+          )
+        ) {
+          setSelectedType(data.types[0].id);
+        }
+      } catch (error) {
+        console.error("Erreur lors du chargement des types:", error);
+        // Fallback vers les types par défaut en cas d'erreur
         const defaultTypes = [
           { id: "HEBERGEMENT", name: "HEBERGEMENT", label: "Hébergement" },
           { id: "RESTAURATION", name: "RESTAURATION", label: "Restauration" },
         ];
-
-        // TODO: Ajouter la logique pour charger les types personnalisés depuis l'API
         setAvailableTypes(defaultTypes);
-      } catch (error) {
-        console.error("Erreur lors du chargement des types:", error);
+        toast.error("Erreur lors du chargement des types personnalisés");
+      } finally {
+        setLoadingTypes(false);
       }
     };
     loadAvailableTypes();
-  }, []);
+  }, [selectedType]);
 
   // Charger les données CA par type depuis l'API
   useEffect(() => {
@@ -362,7 +391,8 @@ export default function TypesCAPage() {
   const getTypeIcon = (typeId: string) => {
     if (typeId === "HEBERGEMENT") return <Building2 className="h-4 w-4" />;
     if (typeId === "RESTAURATION") return <MapPin className="h-4 w-4" />;
-    return <Building2 className="h-4 w-4" />; // Icône par défaut
+    // Pour les types personnalisés, utiliser une icône générique
+    return <Building2 className="h-4 w-4" />;
   };
 
   // Créer la structure de données pour le tableau
@@ -486,39 +516,76 @@ export default function TypesCAPage() {
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start" className="w-64">
-                      {/* Sélection des types disponibles */}
-                      {availableTypes.map((type) => (
-                        <DropdownMenuItem
-                          key={type.id}
-                          onClick={() => handleTypeChange(type.id)}
-                          className={`cursor-pointer ${
-                            selectedType === type.id ? "bg-purple-50" : ""
-                          }`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <div
-                              className={`w-8 h-8 bg-gradient-to-br ${
-                                type.id === "HEBERGEMENT"
-                                  ? "from-blue-500 to-blue-600"
-                                  : "from-orange-500 to-orange-600"
-                              } rounded-lg flex items-center justify-center text-white font-bold text-sm`}
+                      {loadingTypes ? (
+                        <div className="flex items-center justify-center py-4">
+                          <Loader2 className="h-4 w-4 animate-spin text-purple-600" />
+                          <span className="ml-2 text-sm text-muted-foreground">
+                            Chargement des types...
+                          </span>
+                        </div>
+                      ) : (
+                        <>
+                          {/* Sélection des types disponibles */}
+                          {availableTypes.map((type) => (
+                            <DropdownMenuItem
+                              key={type.id}
+                              onClick={() => handleTypeChange(type.id)}
+                              className={`cursor-pointer ${
+                                selectedType === type.id ? "bg-purple-50" : ""
+                              }`}
                             >
-                              {getTypeIcon(type.id)}
-                            </div>
-                            <div>
-                              <div className="font-medium flex items-center gap-2">
-                                {type.label}
-                                {selectedType === type.id && (
-                                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                                )}
+                              <div className="flex items-center gap-3">
+                                <div
+                                  className={`w-8 h-8 bg-gradient-to-br ${
+                                    type.id === "HEBERGEMENT"
+                                      ? "from-blue-500 to-blue-600"
+                                      : type.id === "RESTAURATION"
+                                        ? "from-orange-500 to-orange-600"
+                                        : "from-purple-500 to-purple-600" // Couleur pour les types personnalisés
+                                  } rounded-lg flex items-center justify-center text-white font-bold text-sm`}
+                                >
+                                  {getTypeIcon(type.id)}
+                                </div>
+                                <div className="flex-1">
+                                  <div className="font-medium flex items-center gap-2">
+                                    {type.label}
+                                    {selectedType === type.id && (
+                                      <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                                    )}
+                                    {type.isCustom && (
+                                      <span className="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full">
+                                        Personnalisé
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {type.isCustom
+                                      ? `Type personnalisé • ${type.mandatesCount || 0} mandats`
+                                      : `Analyse quotidienne ${type.label.toLowerCase()}`}
+                                  </div>
+                                </div>
                               </div>
-                              <div className="text-xs text-muted-foreground">
-                                Analyse quotidienne {type.label.toLowerCase()}
+                            </DropdownMenuItem>
+                          ))}
+
+                          {/* Message informatif */}
+                          {availableTypes.filter((type) => type.isCustom)
+                            .length === 0 && (
+                            <>
+                              <div className="border-t my-1"></div>
+                              <div className="px-3 py-2 text-center">
+                                <div className="text-xs text-muted-foreground">
+                                  Aucun type personnalisé créé
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  Créez des types via la gestion des
+                                  établissements
+                                </div>
                               </div>
-                            </div>
-                          </div>
-                        </DropdownMenuItem>
-                      ))}
+                            </>
+                          )}
+                        </>
+                      )}
 
                       <div className="border-t my-1"></div>
 
