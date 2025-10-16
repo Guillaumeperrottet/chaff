@@ -34,8 +34,25 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
 
-    const dayValue = await prisma.dayValue.findUnique({
-      where: { id },
+    // Récupérer l'utilisateur avec son organizationId
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { organizationId: true },
+    });
+
+    if (!user?.organizationId) {
+      return NextResponse.json(
+        { error: "Utilisateur sans organisation" },
+        { status: 403 }
+      );
+    }
+
+    // Récupérer SEULEMENT si appartient à l'organisation
+    const dayValue = await prisma.dayValue.findFirst({
+      where: {
+        id,
+        mandate: { organizationId: user.organizationId },
+      },
       include: {
         mandate: {
           select: {
@@ -78,12 +95,28 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
 
+    // Récupérer l'utilisateur avec son organizationId
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { organizationId: true },
+    });
+
+    if (!user?.organizationId) {
+      return NextResponse.json(
+        { error: "Utilisateur sans organisation" },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const validatedData = UpdateDayValueSchema.parse(body);
 
-    // Vérifier que la valeur existe
-    const existingValue = await prisma.dayValue.findUnique({
-      where: { id },
+    // Vérifier que la valeur existe ET appartient à l'organisation
+    const existingValue = await prisma.dayValue.findFirst({
+      where: {
+        id,
+        mandate: { organizationId: user.organizationId },
+      },
     });
 
     if (!existingValue) {
@@ -93,15 +126,18 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Si le mandat est modifié, vérifier qu'il existe et est actif
+    // Si le mandat est modifié, vérifier qu'il existe, est actif ET appartient à l'organisation
     if (validatedData.mandateId) {
-      const mandate = await prisma.mandate.findUnique({
-        where: { id: validatedData.mandateId },
+      const mandate = await prisma.mandate.findFirst({
+        where: {
+          id: validatedData.mandateId,
+          organizationId: user.organizationId,
+        },
       });
 
       if (!mandate) {
         return NextResponse.json(
-          { error: "Mandat non trouvé" },
+          { error: "Mandat non trouvé ou non autorisé" },
           { status: 404 }
         );
       }
@@ -238,9 +274,25 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
 
-    // Récupérer la valeur avant suppression pour mettre à jour les stats
-    const existingValue = await prisma.dayValue.findUnique({
-      where: { id },
+    // Récupérer l'utilisateur avec son organizationId
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { organizationId: true },
+    });
+
+    if (!user?.organizationId) {
+      return NextResponse.json(
+        { error: "Utilisateur sans organisation" },
+        { status: 403 }
+      );
+    }
+
+    // Récupérer la valeur SEULEMENT si appartient à l'organisation
+    const existingValue = await prisma.dayValue.findFirst({
+      where: {
+        id,
+        mandate: { organizationId: user.organizationId },
+      },
     });
 
     if (!existingValue) {

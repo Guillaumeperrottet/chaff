@@ -39,6 +39,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
 
+    // Récupérer l'utilisateur avec son organizationId
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { organizationId: true },
+    });
+
+    if (!user?.organizationId) {
+      return NextResponse.json(
+        { error: "Utilisateur sans organisation" },
+        { status: 403 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const employeeId = searchParams.get("employeeId");
     const mandateId = searchParams.get("mandateId");
@@ -47,7 +60,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "50");
     const offset = parseInt(searchParams.get("offset") || "0");
 
-    // Construire les filtres
+    // Construire les filtres - TOUJOURS filtrer par organizationId
     const where: {
       employeeId?: string;
       mandateId?: string;
@@ -55,7 +68,10 @@ export async function GET(request: NextRequest) {
         gte?: Date;
         lte?: Date;
       };
-    } = {};
+      mandate: { organizationId: string };
+    } = {
+      mandate: { organizationId: user.organizationId },
+    };
 
     if (employeeId) {
       where.employeeId = employeeId;
@@ -136,30 +152,49 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
 
+    // Récupérer l'utilisateur avec son organizationId
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { organizationId: true },
+    });
+
+    if (!user?.organizationId) {
+      return NextResponse.json(
+        { error: "Utilisateur sans organisation" },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const validatedData = CreateTimeEntrySchema.parse(body);
 
-    // Vérifier que l'employé existe
-    const employee = await prisma.employee.findUnique({
-      where: { id: validatedData.employeeId },
+    // Vérifier que l'employé existe ET appartient à l'organisation
+    const employee = await prisma.employee.findFirst({
+      where: {
+        id: validatedData.employeeId,
+        mandate: { organizationId: user.organizationId },
+      },
       include: { mandate: true },
     });
 
     if (!employee) {
       return NextResponse.json(
-        { error: "Employé non trouvé" },
+        { error: "Employé non trouvé ou non autorisé" },
         { status: 404 }
       );
     }
 
-    // Vérifier que le mandat existe
-    const mandate = await prisma.mandate.findUnique({
-      where: { id: validatedData.mandateId },
+    // Vérifier que le mandat existe ET appartient à l'organisation
+    const mandate = await prisma.mandate.findFirst({
+      where: {
+        id: validatedData.mandateId,
+        organizationId: user.organizationId,
+      },
     });
 
     if (!mandate) {
       return NextResponse.json(
-        { error: "Établissement non trouvé" },
+        { error: "Établissement non trouvé ou non autorisé" },
         { status: 404 }
       );
     }

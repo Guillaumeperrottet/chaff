@@ -25,6 +25,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
 
+    // Récupérer l'utilisateur avec son organizationId
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { organizationId: true },
+    });
+
+    if (!user?.organizationId) {
+      return NextResponse.json(
+        { error: "Utilisateur sans organisation" },
+        { status: 403 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const mandateId = searchParams.get("mandateId");
     const startDate = searchParams.get("startDate");
@@ -32,14 +45,17 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "50");
     const offset = parseInt(searchParams.get("offset") || "0");
 
-    // Construire les filtres
+    // Construire les filtres - TOUJOURS filtrer par organizationId
     const where: {
       mandateId?: string;
       date?: {
         gte?: Date;
         lte?: Date;
       };
-    } = {};
+      mandate: { organizationId: string };
+    } = {
+      mandate: { organizationId: user.organizationId },
+    };
 
     if (mandateId) {
       where.mandateId = mandateId;
@@ -104,16 +120,37 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
 
+    // Récupérer l'utilisateur avec son organizationId
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { organizationId: true },
+    });
+
+    if (!user?.organizationId) {
+      return NextResponse.json(
+        { error: "Utilisateur sans organisation" },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const validatedData = CreateDayValueSchema.parse(body);
 
-    // Vérifier que le mandat existe et est actif
-    const mandate = await prisma.mandate.findUnique({
-      where: { id: validatedData.mandateId },
+    // Vérifier que le mandat existe, est actif ET appartient à l'organisation
+    const mandate = await prisma.mandate.findFirst({
+      where: {
+        id: validatedData.mandateId,
+        organizationId: user.organizationId,
+      },
     });
 
     if (!mandate) {
-      return NextResponse.json({ error: "Mandat non trouvé" }, { status: 404 });
+      return NextResponse.json(
+        {
+          error: "Mandat non trouvé ou non autorisé",
+        },
+        { status: 404 }
+      );
     }
 
     if (!mandate.active) {
