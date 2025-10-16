@@ -44,6 +44,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
 
+    // Récupérer l'utilisateur avec son organizationId
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { organizationId: true },
+    });
+
+    if (!user?.organizationId) {
+      return NextResponse.json(
+        { error: "Utilisateur sans organisation" },
+        { status: 403 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const period = searchParams.get("period") || "30";
     const format = searchParams.get("format") || "csv";
@@ -53,12 +66,15 @@ export async function GET(request: NextRequest) {
     const daysAgo = parseInt(period);
     const startDate = new Date(now.getTime() - daysAgo * 24 * 60 * 60 * 1000);
 
-    // Récupérer les données complètes
+    // Récupérer les données complètes - FILTRER par organizationId
     const dayValues = await prisma.dayValue.findMany({
       where: {
         date: {
           gte: startDate,
           lte: now,
+        },
+        mandate: {
+          organizationId: user.organizationId,
         },
       },
       include: {
@@ -74,6 +90,9 @@ export async function GET(request: NextRequest) {
     });
 
     const mandateStats = await prisma.mandate.findMany({
+      where: {
+        organizationId: user.organizationId,
+      },
       include: {
         dayValues: {
           where: {

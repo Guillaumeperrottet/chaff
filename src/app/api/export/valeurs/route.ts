@@ -15,6 +15,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
 
+    // Récupérer l'utilisateur avec son organizationId
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { organizationId: true },
+    });
+
+    if (!user?.organizationId) {
+      return NextResponse.json(
+        { error: "Utilisateur sans organisation" },
+        { status: 403 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const mandateId = searchParams.get("mandateId");
     const startDate = searchParams.get("startDate");
@@ -22,32 +35,34 @@ export async function GET(request: NextRequest) {
     const group = searchParams.get("group"); // ✅ NOUVEAU: Filtre par groupe (HEBERGEMENT/RESTAURATION)
     const establishmentTypeId = searchParams.get("establishmentTypeId"); // ✅ NOUVEAU: Filtre par type personnalisé
 
-    // Construire les filtres
+    // Construire les filtres - TOUJOURS filtrer par organizationId
     const where: {
       mandateId?: string;
       date?: {
         gte?: Date;
         lte?: Date;
       };
-      mandate?: {
+      mandate: {
+        organizationId: string;
         group?: string;
         establishmentTypeId?: string;
       };
-    } = {};
+    } = {
+      mandate: {
+        organizationId: user.organizationId,
+      },
+    };
 
     if (mandateId) {
       where.mandateId = mandateId;
     }
 
     // ✅ NOUVEAU: Filtrage par groupe ou type d'établissement
-    if (group || establishmentTypeId) {
-      where.mandate = {};
-      if (group) {
-        where.mandate.group = group;
-      }
-      if (establishmentTypeId) {
-        where.mandate.establishmentTypeId = establishmentTypeId;
-      }
+    if (group) {
+      where.mandate.group = group;
+    }
+    if (establishmentTypeId) {
+      where.mandate.establishmentTypeId = establishmentTypeId;
     }
 
     if (startDate || endDate) {

@@ -28,6 +28,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
 
+    // Récupérer l'utilisateur avec son organizationId
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { organizationId: true },
+    });
+
+    if (!user?.organizationId) {
+      return NextResponse.json(
+        { error: "Utilisateur sans organisation" },
+        { status: 403 }
+      );
+    }
+
     // Récupérer le fichier depuis FormData
     const formData = await request.formData();
     const file = formData.get("file") as File;
@@ -47,13 +60,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Vérifier que le mandat existe
-    const mandate = await prisma.mandate.findUnique({
-      where: { id: mandateId },
+    // Vérifier que le mandat existe ET appartient à l'organisation
+    const mandate = await prisma.mandate.findFirst({
+      where: {
+        id: mandateId,
+        organizationId: user.organizationId,
+      },
     });
 
     if (!mandate) {
-      return NextResponse.json({ error: "Mandat non trouvé" }, { status: 404 });
+      return NextResponse.json(
+        {
+          error: "Mandat non trouvé ou non autorisé",
+        },
+        { status: 404 }
+      );
     }
 
     // Vérifier le type de fichier

@@ -46,6 +46,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
 
+    // Récupérer l'utilisateur avec son organizationId
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { organizationId: true },
+    });
+
+    if (!user?.organizationId) {
+      return NextResponse.json(
+        { error: "Utilisateur sans organisation" },
+        { status: 403 }
+      );
+    }
+
     const body: PayrollCalculationRequest = await request.json();
     const { mandateId, periodStart, periodEnd, periodType, recalculate } = body;
 
@@ -64,8 +77,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Filtres pour les mandats
-    const mandateFilter = mandateId ? { id: mandateId } : {};
+    // Filtres pour les mandats - TOUJOURS filtrer par organizationId
+    const mandateFilter: { id?: string; organizationId: string } = {
+      organizationId: user.organizationId,
+    };
+
+    if (mandateId) {
+      mandateFilter.id = mandateId;
+    }
 
     // Récupérer les mandats concernés
     const mandates = await prisma.mandate.findMany({

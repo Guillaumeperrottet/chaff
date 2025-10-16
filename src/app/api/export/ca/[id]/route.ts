@@ -20,6 +20,19 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
 
+    // Récupérer l'utilisateur avec son organizationId
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { organizationId: true },
+    });
+
+    if (!user?.organizationId) {
+      return NextResponse.json(
+        { error: "Utilisateur sans organisation" },
+        { status: 403 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const year = parseInt(
       searchParams.get("year") || new Date().getFullYear().toString()
@@ -27,9 +40,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const startMonth = parseInt(searchParams.get("startMonth") || "7");
     const period = searchParams.get("period") || "6months";
 
-    // Vérifier que le mandat existe
-    const mandate = await prisma.mandate.findUnique({
-      where: { id },
+    // Vérifier que le mandat existe ET appartient à l'organisation
+    const mandate = await prisma.mandate.findFirst({
+      where: {
+        id,
+        organizationId: user.organizationId,
+      },
       select: {
         id: true,
         name: true,
@@ -38,7 +54,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     });
 
     if (!mandate) {
-      return NextResponse.json({ error: "Mandat non trouvé" }, { status: 404 });
+      return NextResponse.json(
+        {
+          error: "Mandat non trouvé ou non autorisé",
+        },
+        { status: 404 }
+      );
     }
 
     // Calculer les périodes
