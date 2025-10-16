@@ -83,6 +83,21 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
 
+    // Récupérer l'utilisateur avec son organizationId
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { organizationId: true },
+    });
+
+    if (!user?.organizationId) {
+      return NextResponse.json(
+        { error: "Utilisateur sans organisation" },
+        { status: 403 }
+      );
+    }
+
+    const organizationId = user.organizationId;
+
     const { searchParams } = new URL(request.url);
     const period = searchParams.get("period") || "30"; // 30 jours par défaut
     const startDate = searchParams.get("startDate");
@@ -124,8 +139,8 @@ export async function GET(request: NextRequest) {
 
     // 1. Vue d'ensemble (utilise overviewPeriod)
     const [currentPeriodStats, previousPeriodStats] = await Promise.all([
-      getPeriodStats(overviewStart, now),
-      getPeriodStats(previousPeriodStart, periodStart),
+      getPeriodStats(overviewStart, now, organizationId),
+      getPeriodStats(previousPeriodStart, periodStart, organizationId),
     ]);
 
     // Calculer le nombre de jours dans la période pour la moyenne journalière
@@ -156,23 +171,40 @@ export async function GET(request: NextRequest) {
     };
 
     // 2. Données temporelles (utilise la période principale)
-    const timeSeriesData = await getTimeSeriesData(periodStart, periodEnd);
+    const timeSeriesData = await getTimeSeriesData(
+      periodStart,
+      periodEnd,
+      organizationId
+    );
 
     // 3. Performance des mandats (utilise mandatesPeriod)
-    const mandatePerformance = await getMandatePerformance(mandatesStart, now);
+    const mandatePerformance = await getMandatePerformance(
+      mandatesStart,
+      now,
+      organizationId
+    );
 
     // 3.5. Top mandats avec période spécifique
     const topMandatesData = await getTopMandatesPerformance(
       topMandatesStart,
       now,
-      5
+      5,
+      organizationId
     );
 
     // 4. Analyse par groupe (utilise la période principale)
-    const groupAnalysis = await getGroupAnalysis(periodStart, periodEnd);
+    const groupAnalysis = await getGroupAnalysis(
+      periodStart,
+      periodEnd,
+      organizationId
+    );
 
     // 5. Analyse périodique (utilise la période principale)
-    const periodicAnalysis = await getPeriodicAnalysis(periodStart, periodEnd);
+    const periodicAnalysis = await getPeriodicAnalysis(
+      periodStart,
+      periodEnd,
+      organizationId
+    );
 
     const analyticsData: AnalyticsData = {
       overview,
@@ -208,12 +240,19 @@ export async function GET(request: NextRequest) {
 
 // Fonctions utilitaires
 
-async function getPeriodStats(startDate: Date, endDate: Date) {
+async function getPeriodStats(
+  startDate: Date,
+  endDate: Date,
+  organizationId: string
+) {
   const stats = await prisma.dayValue.aggregate({
     where: {
       date: {
         gte: startDate,
         lte: endDate,
+      },
+      mandate: {
+        organizationId: organizationId,
       },
     },
     _sum: { value: true },
@@ -225,6 +264,9 @@ async function getPeriodStats(startDate: Date, endDate: Date) {
       date: {
         gte: startDate,
         lte: endDate,
+      },
+      mandate: {
+        organizationId: organizationId,
       },
     },
     select: { mandateId: true },
@@ -238,12 +280,19 @@ async function getPeriodStats(startDate: Date, endDate: Date) {
   };
 }
 
-async function getTimeSeriesData(startDate: Date, endDate: Date) {
+async function getTimeSeriesData(
+  startDate: Date,
+  endDate: Date,
+  organizationId: string
+) {
   const dayValues = await prisma.dayValue.findMany({
     where: {
       date: {
         gte: startDate,
         lte: endDate,
+      },
+      mandate: {
+        organizationId: organizationId,
       },
     },
     include: {
@@ -292,8 +341,15 @@ async function getTimeSeriesData(startDate: Date, endDate: Date) {
   }));
 }
 
-async function getMandatePerformance(startDate: Date, endDate: Date) {
+async function getMandatePerformance(
+  startDate: Date,
+  endDate: Date,
+  organizationId: string
+) {
   const mandates = await prisma.mandate.findMany({
+    where: {
+      organizationId: organizationId,
+    },
     include: {
       dayValues: {
         where: {
@@ -359,9 +415,13 @@ async function getMandatePerformance(startDate: Date, endDate: Date) {
 async function getTopMandatesPerformance(
   startDate: Date,
   endDate: Date,
-  limit: number = 5
+  limit: number = 5,
+  organizationId: string
 ) {
   const mandates = await prisma.mandate.findMany({
+    where: {
+      organizationId: organizationId,
+    },
     include: {
       dayValues: {
         where: {
@@ -425,8 +485,15 @@ async function getTopMandatesPerformance(
     .slice(0, limit);
 }
 
-async function getGroupAnalysis(startDate: Date, endDate: Date) {
+async function getGroupAnalysis(
+  startDate: Date,
+  endDate: Date,
+  organizationId: string
+) {
   const mandates = await prisma.mandate.findMany({
+    where: {
+      organizationId: organizationId,
+    },
     include: {
       dayValues: {
         where: {
@@ -481,12 +548,19 @@ async function getGroupAnalysis(startDate: Date, endDate: Date) {
   };
 }
 
-async function getPeriodicAnalysis(startDate: Date, endDate: Date) {
+async function getPeriodicAnalysis(
+  startDate: Date,
+  endDate: Date,
+  organizationId: string
+) {
   const dayValues = await prisma.dayValue.findMany({
     where: {
       date: {
         gte: startDate,
         lte: endDate,
+      },
+      mandate: {
+        organizationId: organizationId,
       },
     },
   });

@@ -40,21 +40,44 @@ export async function GET() {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
 
+    // Récupérer l'utilisateur avec son organizationId
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { organizationId: true },
+    });
+
+    if (!user?.organizationId) {
+      return NextResponse.json(
+        { error: "Utilisateur sans organisation" },
+        { status: 403 }
+      );
+    }
+
     // Dates de référence
     const now = new Date();
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
     // 1. Statistiques des mandats
-    const totalMandates = await prisma.mandate.count();
+    const totalMandates = await prisma.mandate.count({
+      where: { organizationId: user.organizationId },
+    });
     const activeMandates = await prisma.mandate.count({
-      where: { active: true },
+      where: {
+        organizationId: user.organizationId,
+        active: true,
+      },
     });
 
     // 2. Statistiques des valeurs journalières
-    const totalDayValues = await prisma.dayValue.count();
+    const totalDayValues = await prisma.dayValue.count({
+      where: {
+        mandate: { organizationId: user.organizationId },
+      },
+    });
 
     const recentValues = await prisma.dayValue.count({
       where: {
+        mandate: { organizationId: user.organizationId },
         createdAt: {
           gte: sevenDaysAgo,
         },
@@ -63,6 +86,9 @@ export async function GET() {
 
     // 3. Statistiques de revenus
     const revenueStats = await prisma.dayValue.aggregate({
+      where: {
+        mandate: { organizationId: user.organizationId },
+      },
       _sum: { value: true },
       _avg: { value: true },
     });
@@ -72,6 +98,7 @@ export async function GET() {
 
     // 4. Mandat le plus performant
     const topMandate = await prisma.mandate.findFirst({
+      where: { organizationId: user.organizationId },
       orderBy: { totalRevenue: "desc" },
       select: {
         name: true,
@@ -82,6 +109,7 @@ export async function GET() {
     // 5. Répartition par groupe (support types personnalisés)
     const mandatesByGroup = await prisma.mandate.groupBy({
       by: ["group"],
+      where: { organizationId: user.organizationId },
       _count: { _all: true },
     });
 
@@ -98,6 +126,7 @@ export async function GET() {
 
     // 6. Revenus par groupe (support types personnalisés)
     const mandatesWithRevenue = await prisma.mandate.findMany({
+      where: { organizationId: user.organizationId },
       select: {
         group: true,
         totalRevenue: true,
@@ -122,6 +151,7 @@ export async function GET() {
     const last7DaysData = await prisma.dayValue.groupBy({
       by: ["date"],
       where: {
+        mandate: { organizationId: user.organizationId },
         date: {
           gte: sevenDaysAgo,
         },
@@ -143,6 +173,7 @@ export async function GET() {
 
     const monthlyData = await prisma.dayValue.findMany({
       where: {
+        mandate: { organizationId: user.organizationId },
         date: {
           gte: sixMonthsAgo,
         },

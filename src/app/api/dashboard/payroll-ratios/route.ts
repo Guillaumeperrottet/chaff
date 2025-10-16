@@ -71,6 +71,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
 
+    // Récupérer l'utilisateur avec son organizationId
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { organizationId: true },
+    });
+
+    if (!user?.organizationId) {
+      return NextResponse.json(
+        { error: "Utilisateur sans organisation" },
+        { status: 403 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const year = parseInt(
       searchParams.get("year") || new Date().getFullYear().toString()
@@ -79,9 +92,12 @@ export async function GET(request: NextRequest) {
       searchParams.get("month") || (new Date().getMonth() + 1).toString()
     );
 
-    // Récupérer tous les mandats actifs
+    // Récupérer tous les mandats actifs de l'organisation
     const mandates = await prisma.mandate.findMany({
-      where: { active: true },
+      where: {
+        organizationId: user.organizationId,
+        active: true,
+      },
       select: {
         id: true,
         name: true,
