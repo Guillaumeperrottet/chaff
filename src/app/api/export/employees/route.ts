@@ -15,15 +15,31 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
 
+    // Récupérer l'utilisateur avec son organizationId
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { organizationId: true },
+    });
+
+    if (!user?.organizationId) {
+      return NextResponse.json(
+        { error: "Utilisateur sans organisation" },
+        { status: 403 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const includeInactive = searchParams.get("includeInactive") === "true";
     const mandateId = searchParams.get("mandateId");
 
-    // Construire les filtres
+    // Construire les filtres - TOUJOURS filtrer par organizationId
     const where: {
       mandateId?: string;
       isActive?: boolean;
-    } = {};
+      mandate: { organizationId: string };
+    } = {
+      mandate: { organizationId: user.organizationId },
+    };
 
     if (mandateId) {
       where.mandateId = mandateId;

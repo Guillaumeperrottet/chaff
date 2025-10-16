@@ -39,8 +39,25 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
 
-    const employee = await prisma.employee.findUnique({
-      where: { id },
+    // Récupérer l'utilisateur avec son organizationId
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { organizationId: true },
+    });
+
+    if (!user?.organizationId) {
+      return NextResponse.json(
+        { error: "Utilisateur sans organisation" },
+        { status: 403 }
+      );
+    }
+
+    // Récupérer l'employé SEULEMENT s'il appartient à l'organisation
+    const employee = await prisma.employee.findFirst({
+      where: {
+        id,
+        mandate: { organizationId: user.organizationId },
+      },
       include: {
         mandate: {
           select: {
@@ -89,12 +106,28 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
 
+    // Récupérer l'utilisateur avec son organizationId
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { organizationId: true },
+    });
+
+    if (!user?.organizationId) {
+      return NextResponse.json(
+        { error: "Utilisateur sans organisation" },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const validatedData = UpdateEmployeeSchema.parse(body);
 
-    // Vérifier que l'employé existe
-    const existingEmployee = await prisma.employee.findUnique({
-      where: { id },
+    // Vérifier que l'employé existe ET appartient à l'organisation
+    const existingEmployee = await prisma.employee.findFirst({
+      where: {
+        id,
+        mandate: { organizationId: user.organizationId },
+      },
     });
 
     if (!existingEmployee) {
@@ -104,32 +137,40 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Si l'employeeId change, vérifier l'unicité
+    // Si l'employeeId change, vérifier l'unicité dans l'organisation
     if (
       validatedData.employeeId &&
       validatedData.employeeId !== existingEmployee.employeeId
     ) {
-      const employeeWithSameId = await prisma.employee.findUnique({
-        where: { employeeId: validatedData.employeeId },
+      const employeeWithSameId = await prisma.employee.findFirst({
+        where: {
+          employeeId: validatedData.employeeId,
+          mandate: { organizationId: user.organizationId },
+        },
       });
 
       if (employeeWithSameId) {
         return NextResponse.json(
-          { error: "Un employé avec cet ID existe déjà" },
+          {
+            error: "Un employé avec cet ID existe déjà dans votre organisation",
+          },
           { status: 400 }
         );
       }
     }
 
-    // Si le mandat change, vérifier qu'il existe
+    // Si le mandat change, vérifier qu'il existe ET appartient à l'organisation
     if (validatedData.mandateId) {
-      const mandate = await prisma.mandate.findUnique({
-        where: { id: validatedData.mandateId },
+      const mandate = await prisma.mandate.findFirst({
+        where: {
+          id: validatedData.mandateId,
+          organizationId: user.organizationId,
+        },
       });
 
       if (!mandate) {
         return NextResponse.json(
-          { error: "Mandat non trouvé" },
+          { error: "Mandat non trouvé ou non autorisé" },
           { status: 404 }
         );
       }
@@ -232,9 +273,25 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
 
-    // Vérifier que l'employé existe
-    const existingEmployee = await prisma.employee.findUnique({
-      where: { id },
+    // Récupérer l'utilisateur avec son organizationId
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { organizationId: true },
+    });
+
+    if (!user?.organizationId) {
+      return NextResponse.json(
+        { error: "Utilisateur sans organisation" },
+        { status: 403 }
+      );
+    }
+
+    // Vérifier que l'employé existe ET appartient à l'organisation
+    const existingEmployee = await prisma.employee.findFirst({
+      where: {
+        id,
+        mandate: { organizationId: user.organizationId },
+      },
       include: {
         _count: {
           select: {
