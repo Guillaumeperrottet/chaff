@@ -47,7 +47,7 @@ export default function ChaffLandingPage() {
             {/* Logo mobile */}
             <div className="relative w-64 h-64 sm:w-80 sm:h-80">
               <Image
-                src="/logo-chaff.svg"
+                src="/chaff_logo.png"
                 alt="Chaff Logo"
                 fill
                 className="object-contain"
