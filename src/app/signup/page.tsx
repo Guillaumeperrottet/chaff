@@ -27,7 +27,7 @@ import {
 
 // Skeleton de chargement
 const SignUpSkeleton = () => (
-  <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
+  <div className="min-h-screen bg-white flex items-center justify-center">
     <div className="w-full max-w-md animate-pulse">
       <div className="bg-white rounded-2xl p-8 space-y-6">
         <div className="text-center">
@@ -110,7 +110,7 @@ function SignUpFormWithParams() {
   // Afficher l'écran de chargement pendant la redirection
   if (redirecting) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
           <p>Redirection vers la page d&apos;invitation...</p>
@@ -121,7 +121,7 @@ function SignUpFormWithParams() {
 
   if (showSuccess) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center p-6">
+      <div className="min-h-screen bg-white flex items-center justify-center p-6">
         <div className="w-full max-w-md">
           <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
             <div className="w-20 h-20 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -188,39 +188,21 @@ function SignUpFormWithParams() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex">
-      {/* Section gauche - Features avec design moderne */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800">
-        {/* Motifs géométriques en arrière-plan */}
-        <div className="absolute inset-0">
-          <div className="absolute top-16 left-16 w-40 h-40 bg-white/10 rounded-full blur-xl animate-pulse"></div>
-          <div
-            className="absolute bottom-24 right-12 w-56 h-56 bg-blue-400/20 rounded-3xl rotate-45 animate-bounce"
-            style={{ animationDuration: "4s" }}
-          ></div>
-          <div className="absolute top-1/3 left-1/3 w-28 h-28 bg-indigo-300/20 rounded-2xl rotate-12"></div>
-        </div>
-
-        <div className="relative z-10 flex flex-col justify-center px-12 py-16 text-white">
+    <div className="min-h-screen bg-white flex">
+      {/* Section gauche - Features minimaliste */}
+      <div className="hidden lg:flex lg:w-1/2 bg-slate-50">
+        <div className="flex flex-col justify-center px-12 py-16 max-w-xl mx-auto">
           {/* Logo et titre */}
           <div className="mb-12">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                <BarChart3 className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold">Chaff.ch</h1>
-                <p className="text-blue-200 text-sm">Analytics Business</p>
-              </div>
+            <div className="mb-8">
+              <h1 className="text-2xl font-bold text-slate-900">chaff.ch</h1>
+              <p className="text-slate-600 text-sm">Analytics Business</p>
             </div>
-            <div className="space-y-2">
-              <h2 className="text-4xl font-bold leading-tight">
-                Démarrez votre
-                <span className="block text-blue-200">
-                  transformation digitale
-                </span>
+            <div className="space-y-4">
+              <h2 className="text-4xl font-bold leading-tight text-slate-900">
+                Démarrez votre transformation digitale
               </h2>
-              <p className="text-blue-100 text-lg">
+              <p className="text-slate-600 text-lg leading-relaxed">
                 Rejoignez les entreprises qui optimisent déjà leur performance
                 avec nos analytics
               </p>
@@ -229,30 +211,28 @@ function SignUpFormWithParams() {
 
           {/* Avantages de l'inscription */}
           <div className="space-y-6">
-            <div className="group hover:bg-white/10 p-4 rounded-xl transition-all duration-300 cursor-pointer backdrop-blur-sm">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                  <Gift className="w-6 h-6 text-white" />
-                </div>
+            <div className="space-y-2">
+              <div className="flex items-start gap-3">
+                <div className="w-1.5 h-1.5 rounded-full bg-slate-900 flex-shrink-0 mt-2"></div>
                 <div>
-                  <h3 className="font-semibold text-lg">Démarrage gratuit</h3>
-                  <p className="text-blue-200 text-sm">
+                  <h3 className="font-semibold text-lg text-slate-900">
+                    Démarrage gratuit
+                  </h3>
+                  <p className="text-slate-600 text-sm">
                     Commencez immédiatement sans frais avec notre plan gratuit
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="group hover:bg-white/10 p-4 rounded-xl transition-all duration-300 cursor-pointer backdrop-blur-sm">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-purple-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                  <Zap className="w-6 h-6 text-white" />
-                </div>
+            <div className="space-y-2">
+              <div className="flex items-start gap-3">
+                <div className="w-1.5 h-1.5 rounded-full bg-slate-900 flex-shrink-0 mt-2"></div>
                 <div>
-                  <h3 className="font-semibold text-lg">
+                  <h3 className="font-semibold text-lg text-slate-900">
                     Visualisation intuitive
                   </h3>
-                  <p className="text-blue-200 text-sm">
+                  <p className="text-slate-600 text-sm">
                     Tableaux de bord clairs et graphiques interactifs pour
                     comprendre vos données en un coup d&apos;œil
                   </p>
@@ -260,14 +240,14 @@ function SignUpFormWithParams() {
               </div>
             </div>
 
-            <div className="group hover:bg-white/10 p-4 rounded-xl transition-all duration-300 cursor-pointer backdrop-blur-sm">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-amber-400 to-amber-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                  <TrendingUp className="w-6 h-6 text-white" />
-                </div>
+            <div className="space-y-2">
+              <div className="flex items-start gap-3">
+                <div className="w-1.5 h-1.5 rounded-full bg-slate-900 flex-shrink-0 mt-2"></div>
                 <div>
-                  <h3 className="font-semibold text-lg">Résultats immédiats</h3>
-                  <p className="text-blue-200 text-sm">
+                  <h3 className="font-semibold text-lg text-slate-900">
+                    Résultats immédiats
+                  </h3>
+                  <p className="text-slate-600 text-sm">
                     Visualisez vos KPIs dès la première connexion
                   </p>
                 </div>

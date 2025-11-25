@@ -4,7 +4,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // Image optimizations
   images: {
-    domains: ["res.cloudinary.com"],
+    domains: ["res.cloudinary.com", "www.webbing.ch"],
     formats: ["image/avif", "image/webp"],
     minimumCacheTTL: 86400,
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
