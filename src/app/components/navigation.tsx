@@ -21,10 +21,10 @@ export function Navigation() {
           {/* Navigation Desktop */}
           <div className="hidden md:flex items-center space-x-8">
             <Link
-              href="/"
+              href="/#features"
               className="text-sm font-medium text-slate-900 hover:text-blue-600 transition-colors"
             >
-              HOME
+              FONCTIONNALITÉS
             </Link>
             <Link
               href="/#pricing"
@@ -74,11 +74,11 @@ export function Navigation() {
         <div className="md:hidden bg-white border-t border-slate-100">
           <div className="px-4 py-6 space-y-4">
             <Link
-              href="/"
+              href="/#features"
               onClick={() => setIsMenuOpen(false)}
               className="block text-sm font-medium text-slate-900 hover:text-blue-600 transition-colors py-2"
             >
-              HOME
+              FONCTIONNALITÉS
             </Link>
             <Link
               href="/#pricing"
