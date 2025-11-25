@@ -16,13 +16,11 @@ import {
   Lock,
   ArrowRight,
   Home,
-  TrendingUp,
   User,
   Camera,
   X,
   CheckCircle,
   Gift,
-  Zap,
 } from "lucide-react";
 
 // Skeleton de chargement

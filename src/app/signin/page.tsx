@@ -14,9 +14,6 @@ import {
   Lock,
   ArrowRight,
   Home,
-  TrendingUp,
-  DollarSign,
-  PieChart,
 } from "lucide-react";
 
 // Skeleton de chargement
