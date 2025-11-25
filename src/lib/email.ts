@@ -23,12 +23,8 @@ function getResend(): Resend {
     // console.log(`✅ Instance Resend créée`);
   }
   return resend;
-  }
-  return resend;
 }
 
-// Export standalone pour compatibilité avec l'API contact
-export const sendEmail = EmailService.sendEmail.bind(EmailService);
 export const EmailService = {
   // Méthode générique pour envoyer des emails
   async sendEmail({
@@ -258,3 +254,6 @@ export const EmailService = {
     return features;
   },
 };
+
+// Export standalone pour compatibilité avec l'API contact
+export const sendEmail = EmailService.sendEmail.bind(EmailService);
