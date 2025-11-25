@@ -107,10 +107,6 @@ export default function PayrollRatioCard() {
     (currentDate.getMonth() + 1).toString()
   );
 
-  useEffect(() => {
-    fetchPayrollData();
-  }, [selectedYear, selectedMonth]);
-
   const fetchPayrollData = async (showRefreshing = false) => {
     try {
       if (showRefreshing) {
@@ -137,6 +133,11 @@ export default function PayrollRatioCard() {
       setRefreshing(false);
     }
   };
+
+  useEffect(() => {
+    fetchPayrollData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedYear, selectedMonth]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("fr-CH", {
