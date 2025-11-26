@@ -58,12 +58,18 @@ export default function ChaffLandingPage() {
             {/* Texte mobile */}
             <div className="space-y-6 max-w-md text-center px-4">
               <p className="text-slate-600 leading-relaxed text-sm sm:text-base">
-                Plateforme d&apos;analyse business pour transformer vos données
-                en insights stratégiques et prendre des décisions éclairées.
+                Suivez votre chiffre d&apos;affaires, analysez votre masse
+                salariale et pilotez vos établissements avec clarté.
               </p>
               <a
                 href="#features"
-                className="inline-flex flex-col items-center gap-2 text-slate-900 font-medium hover:text-blue-600 transition-colors group"
+                onClick={(e) => {
+                  e.preventDefault();
+                  document
+                    .getElementById("features")
+                    ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+                className="inline-flex flex-col items-center gap-2 text-slate-900 font-medium hover:text-blue-600 transition-colors group cursor-pointer"
               >
                 <span className="border-b-2 border-slate-900 group-hover:border-blue-600 pb-1">
                   En savoir plus
@@ -78,14 +84,19 @@ export default function ChaffLandingPage() {
             {/* Texte à gauche - encore plus décalé */}
             <div className="absolute left-0 lg:-left-12 xl:-left-20 space-y-6 z-20 max-w-md">
               <p className="text-slate-600 leading-relaxed text-base">
-                Plateforme d&apos;analyse business pour transformer vos données
-                en insights stratégiques et prendre
-                <br />
-                des décisions éclairées.
+                Suivez votre chiffre d&apos;affaires, analysez votre masse
+                salariale et pilotez vos établissements avec clarté et
+                simplificité.
               </p>
               <a
                 href="#features"
-                className="inline-flex flex-col items-center gap-2 text-slate-900 font-medium hover:text-blue-600 transition-colors group"
+                onClick={(e) => {
+                  e.preventDefault();
+                  document
+                    .getElementById("features")
+                    ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+                className="inline-flex flex-col items-center gap-2 text-slate-900 font-medium hover:text-blue-600 transition-colors group cursor-pointer"
               >
                 <span className="border-b-2 border-slate-900 group-hover:border-blue-600 pb-1">
                   En savoir plus
@@ -130,71 +141,93 @@ export default function ChaffLandingPage() {
               Fonctionnalités
             </h2>
             <p className="text-slate-600 text-base sm:text-lg max-w-2xl mx-auto px-4">
-              Des outils puissants pour transformer vos données en décisions
-              stratégiques
+              Pilotez vos établissements avec des outils conçus pour
+              l&apos;hôtellerie et la restauration et bien d&apos;autres
             </p>
           </div>
 
           {/* Grid de fonctionnalités avec numérotation */}
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-10 lg:gap-12 max-w-5xl mx-auto">
             <div className="space-y-4">
-              <div className="text-slate-300 text-5xl font-bold">01</div>
+              <div className="text-5xl font-bold relative inline-block">
+                <span className="text-blue-600 opacity-30">0</span>
+                <span className="text-blue-600 opacity-30">1</span>
+              </div>
               <h3 className="text-lg sm:text-xl font-bold text-slate-900">
-                Analytics en temps réel
+                Gestion multi-établissements
               </h3>
               <p className="text-slate-600 leading-relaxed text-sm sm:text-base">
-                Graphiques interactifs pour suivre vos performances en temps
-                réel
+                Centralisez tous vos établissements (restaurants, hôtels) dans
+                une seule interface
               </p>
             </div>
 
             <div className="space-y-4">
-              <div className="text-slate-300 text-5xl font-bold">02</div>
+              <div className="text-5xl font-bold relative inline-block">
+                <span className="text-blue-600 opacity-30">0</span>
+                <span className="text-blue-600 opacity-30">2</span>
+              </div>
               <h3 className="text-lg sm:text-xl font-bold text-slate-900">
                 Suivi du chiffre d&apos;affaires
               </h3>
               <p className="text-slate-600 leading-relaxed text-sm sm:text-base">
-                Analyse quotidienne et tendances de vos revenus
+                Saisie quotidienne du CA et visualisation des tendances
+                mensuelles et annuelles
               </p>
             </div>
 
             <div className="space-y-4">
-              <div className="text-slate-300 text-5xl font-bold">03</div>
+              <div className="text-5xl font-bold relative inline-block">
+                <span className="text-blue-600 opacity-30">0</span>
+                <span className="text-blue-600 opacity-30">3</span>
+              </div>
               <h3 className="text-lg sm:text-xl font-bold text-slate-900">
-                Gestion salariale
+                Analyse de la masse salariale
               </h3>
               <p className="text-slate-600 leading-relaxed text-sm sm:text-base">
-                Analyse complète de votre masse salariale et ratios
+                Calculez automatiquement le ratio masse salariale/CA pour
+                optimiser vos coûts
               </p>
             </div>
 
             <div className="space-y-4">
-              <div className="text-slate-300 text-5xl font-bold">04</div>
+              <div className="text-5xl font-bold relative inline-block">
+                <span className="text-blue-600 opacity-30">0</span>
+                <span className="text-blue-600 opacity-30">4</span>
+              </div>
               <h3 className="text-lg sm:text-xl font-bold text-slate-900">
-                Ratios de rentabilité
+                Import Gastrotime
               </h3>
               <p className="text-slate-600 leading-relaxed text-sm sm:text-base">
-                Calculs automatiques par période pour mesurer votre performance
+                Importez vos données RH en 1 clic et synchronisez avec votre CA
               </p>
             </div>
 
             <div className="space-y-4">
-              <div className="text-slate-300 text-5xl font-bold">05</div>
+              <div className="text-5xl font-bold relative inline-block">
+                <span className="text-blue-600 opacity-30">0</span>
+                <span className="text-blue-600 opacity-30">5</span>
+              </div>
               <h3 className="text-lg sm:text-xl font-bold text-slate-900">
-                Tableaux de bord
+                Comparaisons année/année
               </h3>
               <p className="text-slate-600 leading-relaxed text-sm sm:text-base">
-                Dashboards intuitifs et personnalisables selon vos besoins
+                Comparez vos performances avec l&apos;année précédente et suivez
+                votre croissance
               </p>
             </div>
 
             <div className="space-y-4">
-              <div className="text-slate-300 text-5xl font-bold">06</div>
+              <div className="text-5xl font-bold relative inline-block">
+                <span className="text-blue-600 opacity-30">0</span>
+                <span className="text-blue-600 opacity-30">6</span>
+              </div>
               <h3 className="text-lg sm:text-xl font-bold text-slate-900">
-                Conformité RGPD
+                Tableaux de bord intuitifs
               </h3>
               <p className="text-slate-600 leading-relaxed text-sm sm:text-base">
-                Hébergement européen sécurisé et conforme aux normes
+                Graphiques clairs et indicateurs clés pour prendre des décisions
+                rapides
               </p>
             </div>
           </div>

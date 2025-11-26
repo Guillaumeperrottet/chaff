@@ -14,8 +14,8 @@ export function Footer() {
               <span className="text-2xl font-bold">chaff.ch</span>
             </Link>
             <p className="text-slate-400 text-sm leading-relaxed">
-              La solution complète pour la gestion business professionnelle.
-              Simplifiez vos opérations et optimisez votre temps.
+              Pilotez vos établissements avec des données claires et des
+              analyses précises.
             </p>
 
             {/* Webbing Credit */}

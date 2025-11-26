@@ -7,6 +7,18 @@ import { Menu, X } from "lucide-react";
 export function Navigation() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
+  const handleSmoothScroll = (
+    e: React.MouseEvent<HTMLAnchorElement>,
+    targetId: string
+  ) => {
+    e.preventDefault();
+    const element = document.getElementById(targetId);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "start" });
+      setIsMenuOpen(false);
+    }
+  };
+
   return (
     <nav className="fixed top-0 left-0 right-0 bg-white z-50 border-b border-slate-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -20,18 +32,20 @@ export function Navigation() {
 
           {/* Navigation Desktop */}
           <div className="hidden md:flex items-center space-x-8">
-            <Link
-              href="/#features"
-              className="text-sm font-medium text-slate-900 hover:text-blue-600 transition-colors"
+            <a
+              href="#features"
+              onClick={(e) => handleSmoothScroll(e, "features")}
+              className="text-sm font-medium text-slate-900 hover:text-blue-600 transition-colors cursor-pointer"
             >
               FONCTIONNALITÉS
-            </Link>
-            <Link
-              href="/#pricing"
-              className="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors"
+            </a>
+            <a
+              href="#pricing"
+              onClick={(e) => handleSmoothScroll(e, "pricing")}
+              className="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors cursor-pointer"
             >
               TARIFS
-            </Link>
+            </a>
             <Link
               href="/contact"
               className="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors"
@@ -39,18 +53,15 @@ export function Navigation() {
               CONTACT
             </Link>
 
-            {/* Boutons CTA */}
+            {/* Séparateur vertical */}
+            <div className="h-6 w-px bg-slate-300"></div>
+
+            {/* Bouton CTA unique */}
             <Link
               href="/signin"
-              className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
-            >
-              CONNEXION
-            </Link>
-            <Link
-              href="/signup"
               className="px-6 py-2.5 bg-slate-900 text-white text-sm font-medium rounded-full hover:bg-blue-600 transition-all hover:scale-105"
             >
-              Créer un compte
+              Se connecter
             </Link>
           </div>
 
@@ -73,20 +84,20 @@ export function Navigation() {
       {isMenuOpen && (
         <div className="md:hidden bg-white border-t border-slate-100">
           <div className="px-4 py-6 space-y-4">
-            <Link
-              href="/#features"
-              onClick={() => setIsMenuOpen(false)}
-              className="block text-sm font-medium text-slate-900 hover:text-blue-600 transition-colors py-2"
+            <a
+              href="#features"
+              onClick={(e) => handleSmoothScroll(e, "features")}
+              className="block text-sm font-medium text-slate-900 hover:text-blue-600 transition-colors py-2 cursor-pointer"
             >
               FONCTIONNALITÉS
-            </Link>
-            <Link
-              href="/#pricing"
-              onClick={() => setIsMenuOpen(false)}
-              className="block text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors py-2"
+            </a>
+            <a
+              href="#pricing"
+              onClick={(e) => handleSmoothScroll(e, "pricing")}
+              className="block text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors py-2 cursor-pointer"
             >
               TARIFS
-            </Link>
+            </a>
             <Link
               href="/contact"
               onClick={() => setIsMenuOpen(false)}
@@ -94,19 +105,16 @@ export function Navigation() {
             >
               CONTACT
             </Link>
+
+            {/* Séparateur */}
+            <div className="border-t border-slate-200 my-4"></div>
+
             <Link
               href="/signin"
               onClick={() => setIsMenuOpen(false)}
-              className="block text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors py-2"
-            >
-              CONNEXION
-            </Link>
-            <Link
-              href="/signup"
-              onClick={() => setIsMenuOpen(false)}
               className="block w-full text-center px-6 py-3 bg-slate-900 text-white text-sm font-medium rounded-full hover:bg-blue-600 transition-all"
             >
-              Créer un compte
+              Se connecter
             </Link>
           </div>
         </div>
