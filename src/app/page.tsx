@@ -59,7 +59,8 @@ export default function ChaffLandingPage() {
             <div className="space-y-6 max-w-md text-center px-4">
               <p className="text-slate-600 leading-relaxed text-sm sm:text-base">
                 Suivez votre chiffre d&apos;affaires, analysez votre masse
-                salariale et pilotez vos établissements avec clarté.
+                salariale et pilotez vos établissements avec clarté et
+                simplificité.
               </p>
               <a
                 href="#features"
