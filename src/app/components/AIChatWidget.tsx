@@ -160,7 +160,7 @@ export function AIChatWidget() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-white">
-                      Assistant Chaff
+                      Chaffy | Chef des finances
                     </h3>
                     <p className="text-xs text-blue-100">
                       Analyse tes données en temps réel
@@ -466,9 +466,6 @@ export function AIChatWidget() {
                     )}
                   </Button>
                 </div>
-                <p className="text-xs text-slate-500 mt-2">
-                  💡 L&apos;IA analyse tes données en temps réel
-                </p>
               </form>
             </Card>
           </motion.div>
