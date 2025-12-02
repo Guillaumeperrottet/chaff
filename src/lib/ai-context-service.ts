@@ -20,6 +20,12 @@ interface MandateContext {
   revenueChange: number;
   averageDailyRevenue: number;
 
+  // Données historiques
+  historicalData: {
+    year: number;
+    totalRevenue: number;
+  }[];
+
   // Données masse salariale
   hasPayrollData: boolean;
   currentMonthPayroll: number | null;
@@ -106,6 +112,21 @@ export async function getUserAIContext(userId: string): Promise<UserAIContext> {
   // Traiter chaque mandat
   const mandatesContext: MandateContext[] = await Promise.all(
     org.mandates.map(async (mandate) => {
+      // Calculer le CA total par année pour l'historique
+      const revenueByYear = mandate.dayValues.reduce(
+        (acc, dv) => {
+          const year = dv.date.getFullYear();
+          acc[year] = (acc[year] || 0) + dv.value;
+          return acc;
+        },
+        {} as Record<number, number>
+      );
+
+      // Trouver les années avec données
+      const yearsWithData = Object.keys(revenueByYear)
+        .map(Number)
+        .sort((a, b) => b - a);
+
       // Calculer CA mois actuel
       const currentRevenue = mandate.dayValues
         .filter(
@@ -184,6 +205,12 @@ export async function getUserAIContext(userId: string): Promise<UserAIContext> {
         currentPayrollGastrotime?.totalEmployees ||
         null;
 
+      // Préparer les données historiques par année
+      const historicalData = yearsWithData.map((year) => ({
+        year,
+        totalRevenue: revenueByYear[year],
+      }));
+
       return {
         id: mandate.id,
         name: mandate.name,
@@ -191,6 +218,7 @@ export async function getUserAIContext(userId: string): Promise<UserAIContext> {
         active: mandate.active,
         totalRevenue: mandate.totalRevenue,
         lastEntry: mandate.lastEntry,
+        historicalData,
         currentMonthRevenue: currentRevenue,
         previousMonthRevenue: previousRevenue,
         revenueChange,
@@ -289,6 +317,10 @@ export function generateSystemPrompt(context: UserAIContext): string {
     .map(
       (m) => `
 - ${m.name} (${m.type}):
+  📊 **DONNÉES HISTORIQUES:**
+  ${m.historicalData.map((h) => `   • ${h.year}: ${formatCurrency(h.totalRevenue)}`).join("\n")}
+  
+  📅 **MOIS ACTUEL (${context.organization.period.current}):**
   • CA actuel: ${formatCurrency(m.currentMonthRevenue)}
   • CA précédent: ${formatCurrency(m.previousMonthRevenue)}
   • Évolution: ${m.revenueChange > 0 ? "+" : ""}${formatPercent(m.revenueChange)}
@@ -302,6 +334,19 @@ export function generateSystemPrompt(context: UserAIContext): string {
 
   return `Tu es un assistant IA expert en analyse financière et gestion pour le secteur de l'hôtellerie-restauration en Suisse.
 
+## ACCÈS COMPLET AUX DONNÉES
+
+**IMPORTANT:** Tu as accès à TOUTES les données historiques complètes de l'utilisateur dans la base de données :
+- ✅ Chiffres d'affaires journaliers depuis la création de chaque établissement
+- ✅ Masse salariale mensuelle complète (tous les mois/années)
+- ✅ Données de 2024, 2023, 2022, et années antérieures si disponibles
+- ✅ Évolutions année par année
+- ✅ Historique complet de tous les établissements
+
+**Tu peux analyser n'importe quelle période passée** : années complètes, comparaisons 2024 vs 2023, tendances sur plusieurs années, moyennes historiques, etc.
+
+Les données ci-dessous sont uniquement un **aperçu du mois actuel** pour contexte rapide, mais **tu as accès à l'intégralité de l'historique** pour répondre aux questions.
+
 ## CONTEXTE DE L'UTILISATEUR
 
 **Organisation:** ${context.organization.name}
@@ -309,17 +354,7 @@ export function generateSystemPrompt(context: UserAIContext): string {
 **Période actuelle:** ${context.organization.period.current}
 **Nombre d'établissements:** ${context.organization.activeMandates} actifs sur ${context.organization.totalMandates}
 
-## ACCÈS AUX DONNÉES
-
-Tu as accès à **TOUTES les données historiques** de l'utilisateur :
-- Chiffres d'affaires journaliers depuis le début
-- Masse salariale mensuelle complète
-- Évolutions sur plusieurs années
-- Historique complet de tous les établissements
-
-**IMPORTANT:** L'utilisateur peut te demander des analyses sur n'importe quelle période passée (années précédentes, comparaisons annuelles, tendances sur plusieurs années, etc.). Utilise toutes les données disponibles pour répondre.
-
-## DONNÉES FINANCIÈRES GLOBALES (MOIS ACTUEL)
+## DONNÉES FINANCIÈRES GLOBALES (APERÇU MOIS ACTUEL)
 
 **Chiffre d'affaires total:** ${formatCurrency(context.organization.totalRevenue)}
 **Masse salariale totale:** ${formatCurrency(context.organization.totalPayroll)}
