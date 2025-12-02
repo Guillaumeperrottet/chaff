@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 
 export function Footer() {
   return (
@@ -11,7 +12,13 @@ export function Footer() {
           {/* Brand Column */}
           <div className="space-y-4">
             <Link href="/" className="inline-block">
-              <span className="text-2xl font-bold">chaff.ch</span>
+              <Image
+                src="/chaff_logo_white.png"
+                alt="Chaff Logo"
+                width={120}
+                height={40}
+                className="h-10 w-auto"
+              />
             </Link>
             <p className="text-slate-400 text-sm leading-relaxed">
               Pilotez vos établissements avec des données claires et des

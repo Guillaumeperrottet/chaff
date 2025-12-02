@@ -109,7 +109,7 @@ export default function ChaffLandingPage() {
             {/* Logo centré (comme le rond jaune dans l'image) */}
             <div className="relative w-[600px] h-[600px] z-10">
               <Image
-                src="/logo-chaff.svg"
+                src="/chaff_logo.png"
                 alt="Chaff Logo"
                 fill
                 className="object-contain"
