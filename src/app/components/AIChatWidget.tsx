@@ -10,6 +10,7 @@ import { Input } from "@/app/components/ui/input";
 import { Card } from "@/app/components/ui/card";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
+import { useSession } from "@/lib/auth-client";
 
 const SUGGESTED_QUESTIONS = [
   "📊 Quel est mon meilleur établissement ce mois-ci ?",
@@ -28,6 +29,9 @@ export function AIChatWidget() {
   const [inputValue, setInputValue] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const { data: session } = useSession();
+  const userFirstName = session?.user?.name?.split(" ")[0] || "toi";
 
   const { messages, sendMessage, status, error } = useChat({
     transport: new DefaultChatTransport({
@@ -202,7 +206,7 @@ export function AIChatWidget() {
                       <MessageSquare className="h-8 w-8 text-white" />
                     </div>
                     <h4 className="font-semibold text-lg mb-2">
-                      Salut ! Je suis ton assistant IA
+                      Salut {userFirstName} ! 👋
                     </h4>
                     <p className="text-sm text-slate-600 mb-6">
                       Pose-moi des questions sur tes établissements, ton CA, ta
