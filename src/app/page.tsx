@@ -210,11 +210,11 @@ export default function ChaffLandingPage() {
                 <span className="text-blue-600 opacity-30">5</span>
               </div>
               <h3 className="text-lg sm:text-xl font-bold text-slate-900">
-                Comparaisons année/année
+                Comparaisons & Tableaux de bord
               </h3>
               <p className="text-slate-600 leading-relaxed text-sm sm:text-base">
-                Comparez vos performances avec l&apos;année précédente et suivez
-                votre croissance
+                Comparez vos performances année/année avec des graphiques clairs
+                et des indicateurs clés
               </p>
             </div>
 
@@ -224,11 +224,11 @@ export default function ChaffLandingPage() {
                 <span className="text-blue-600 opacity-30">6</span>
               </div>
               <h3 className="text-lg sm:text-xl font-bold text-slate-900">
-                Tableaux de bord intuitifs
+                Assistant IA 🤖
               </h3>
               <p className="text-slate-600 leading-relaxed text-sm sm:text-base">
-                Graphiques clairs et indicateurs clés pour prendre des décisions
-                rapides
+                Posez vos questions et obtenez des analyses personnalisées sur
+                vos données en temps réel
               </p>
             </div>
           </div>
