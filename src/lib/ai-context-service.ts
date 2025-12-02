@@ -25,6 +25,12 @@ interface MandateContext {
     year: number;
     totalRevenue: number;
   }[];
+  monthlyData: {
+    period: string;
+    year: number;
+    month: number;
+    revenue: number;
+  }[];
 
   // Données masse salariale
   hasPayrollData: boolean;
@@ -211,6 +217,32 @@ export async function getUserAIContext(userId: string): Promise<UserAIContext> {
         totalRevenue: revenueByYear[year],
       }));
 
+      // Préparer les données mensuelles détaillées (tous les mois historiques)
+      const monthlyData = mandate.dayValues
+        .reduce(
+          (acc, dv) => {
+            const yearMonth = `${dv.date.getFullYear()}-${String(dv.date.getMonth() + 1).padStart(2, "0")}`;
+            if (!acc.find((m) => m.period === yearMonth)) {
+              acc.push({
+                period: yearMonth,
+                year: dv.date.getFullYear(),
+                month: dv.date.getMonth() + 1,
+                revenue: 0,
+              });
+            }
+            const monthData = acc.find((m) => m.period === yearMonth)!;
+            monthData.revenue += dv.value;
+            return acc;
+          },
+          [] as Array<{
+            period: string;
+            year: number;
+            month: number;
+            revenue: number;
+          }>
+        )
+        .sort((a, b) => b.period.localeCompare(a.period)); // Tri décroissant (plus récent en premier)
+
       return {
         id: mandate.id,
         name: mandate.name,
@@ -219,6 +251,7 @@ export async function getUserAIContext(userId: string): Promise<UserAIContext> {
         totalRevenue: mandate.totalRevenue,
         lastEntry: mandate.lastEntry,
         historicalData,
+        monthlyData,
         currentMonthRevenue: currentRevenue,
         previousMonthRevenue: previousRevenue,
         revenueChange,
@@ -313,12 +346,38 @@ export function generateSystemPrompt(context: UserAIContext): string {
 
   const formatPercent = (value: number) => `${value.toFixed(1)}%`;
 
+  const getMonthName = (month: number) => {
+    const months = [
+      "janvier",
+      "février",
+      "mars",
+      "avril",
+      "mai",
+      "juin",
+      "juillet",
+      "août",
+      "septembre",
+      "octobre",
+      "novembre",
+      "décembre",
+    ];
+    return months[month - 1];
+  };
+
   const mandatesData = context.mandates
     .map(
       (m) => `
 - ${m.name} (${m.type}):
-  📊 **DONNÉES HISTORIQUES:**
+  📊 **DONNÉES HISTORIQUES ANNUELLES:**
   ${m.historicalData.map((h) => `   • ${h.year}: ${formatCurrency(h.totalRevenue)}`).join("\n")}
+  
+  📆 **DONNÉES MENSUELLES COMPLÈTES (${m.monthlyData.length} mois):**
+  ${m.monthlyData
+    .map(
+      (month) =>
+        `   • ${month.period} (${getMonthName(month.month)} ${month.year}): ${formatCurrency(month.revenue)}`
+    )
+    .join("\n")}
   
   📅 **MOIS ACTUEL (${context.organization.period.current}):**
   • CA actuel: ${formatCurrency(m.currentMonthRevenue)}
@@ -334,18 +393,15 @@ export function generateSystemPrompt(context: UserAIContext): string {
 
   return `Tu es un assistant IA expert en analyse financière et gestion pour le secteur de l'hôtellerie-restauration en Suisse.
 
-## ACCÈS COMPLET AUX DONNÉES
+## DONNÉES DISPONIBLES
 
-**IMPORTANT:** Tu as accès à TOUTES les données historiques complètes de l'utilisateur dans la base de données :
-- ✅ Chiffres d'affaires journaliers depuis la création de chaque établissement
-- ✅ Masse salariale mensuelle complète (tous les mois/années)
-- ✅ Données de 2024, 2023, 2022, et années antérieures si disponibles
-- ✅ Évolutions année par année
-- ✅ Historique complet de tous les établissements
+Tu as accès à **TOUTES les données historiques complètes** ci-dessous :
+- ✅ Données mensuelles détaillées (TOUS les mois depuis la création)
+- ✅ Totaux annuels pour toutes les années
+- ✅ Masse salariale mensuelle
+- ✅ Évolutions et comparaisons
 
-**Tu peux analyser n'importe quelle période passée** : années complètes, comparaisons 2024 vs 2023, tendances sur plusieurs années, moyennes historiques, etc.
-
-Les données ci-dessous sont uniquement un **aperçu du mois actuel** pour contexte rapide, mais **tu as accès à l'intégralité de l'historique** pour répondre aux questions.
+Tu peux analyser n'importe quelle période : années complètes, mois spécifiques, comparaisons, tendances, etc.
 
 ## CONTEXTE DE L'UTILISATEUR
 
