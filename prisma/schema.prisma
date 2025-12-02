@@ -35,6 +35,7 @@ model User {
   sessions                  Session[]
   OrganizationUser          OrganizationUser?
   Organization              Organization?     @relation(fields: [organizationId], references: [id])
+  chatConversations         ChatConversation[]
 
   @@index([inviteCode], map: "user_inviteCode_key")
   @@map("user")
@@ -651,4 +652,68 @@ model PayrollImportEmployee {
   
   @@index([importHistoryId])
   @@map("payroll_import_employees")
+}
+
+// ==========================================
+// SYSTÈME DE CHATBOT IA
+// ==========================================
+
+model ChatConversation {
+  id             String        @id @default(cuid())
+  userId         String
+  organizationId String
+  title          String?       // Titre auto-généré ou personnalisé
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  lastMessageAt  DateTime      @default(now())
+  
+  // Relations
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages       ChatMessage[]
+  
+  @@index([userId])
+  @@index([organizationId])
+  @@index([lastMessageAt])
+  @@map("chat_conversations")
+}
+
+model ChatMessage {
+  id             String           @id @default(cuid())
+  conversationId String
+  role           ChatMessageRole
+  content        String           @db.Text
+  tokens         Int?             // Nombre de tokens utilisés
+  cost           Float?           // Coût en USD
+  metadata       Json?            // Contexte, graphiques générés, etc.
+  createdAt      DateTime         @default(now())
+  
+  // Relations
+  conversation   ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  
+  @@index([conversationId])
+  @@index([createdAt])
+  @@map("chat_messages")
+}
+
+model ChatUsage {
+  id             String   @id @default(cuid())
+  userId         String
+  organizationId String
+  year           Int
+  month          Int
+  messageCount   Int      @default(0)
+  totalTokens    Int      @default(0)
+  totalCost      Float    @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  @@unique([userId, year, month])
+  @@index([organizationId, year, month])
+  @@map("chat_usage")
+}
+
+enum ChatMessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
 }

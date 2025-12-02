@@ -247,11 +247,6 @@ function ChaffNavbar() {
                   className="object-contain"
                 />
               </div>
-              <div className="flex flex-col">
-                <span className="text-2xl font-bold bg-blue-600 bg-clip-text text-transparent tracking-tight">
-                  Chaff.ch
-                </span>
-              </div>
             </Link>
           </div>
 

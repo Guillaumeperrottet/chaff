@@ -482,11 +482,11 @@ export async function POST(request: NextRequest) {
     console.error("❌ Erreur lors de la création du mandat:", error);
 
     if (error instanceof z.ZodError) {
-      console.log("❌ Erreur de validation Zod:", error.errors);
+      console.log("❌ Erreur de validation Zod:", error.issues);
       return NextResponse.json(
         {
           error: "Données invalides",
-          details: error.errors,
+          details: error.issues,
           receivedData: request.body,
         },
         { status: 400 }

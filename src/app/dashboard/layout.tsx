@@ -1,6 +1,7 @@
 "use client";
 
 import ProtectedRoute from "@/app/components/ProtectedRoute";
+import { AIChatWidget } from "@/app/components/AIChatWidget";
 
 export default function DashboardLayout({
   children,
@@ -13,7 +14,10 @@ export default function DashboardLayout({
         {/* Contenu principal avec padding pour la navbar sticky */}
         <main className="md:flex md:flex-1 md:flex-col md:gap-4 md:p-4">
           {children}
-        </main>{" "}
+        </main>
+
+        {/* Chatbot IA flottant */}
+        <AIChatWidget />
       </div>
     </ProtectedRoute>
   );
