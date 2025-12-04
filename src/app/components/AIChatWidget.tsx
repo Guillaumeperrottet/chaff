@@ -27,12 +27,13 @@ export function AIChatWidget() {
     null
   );
   const [inputValue, setInputValue] = useState("");
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { data: session } = useSession();
   const userFirstName = session?.user?.name?.split(" ")[0] || "toi";
-
   const { messages, sendMessage, status, error } = useChat({
     transport: new DefaultChatTransport({
       api: "/api/ai/chat",
@@ -148,16 +149,25 @@ export function AIChatWidget() {
       <AnimatePresence>
         {isOpen && (
           <motion.div
+            drag
+            dragMomentum={false}
+            dragElastic={0}
+            onDragStart={() => setIsDragging(true)}
+            onDragEnd={(e, info) => {
+              setIsDragging(false);
+              setPosition({ x: info.offset.x, y: info.offset.y });
+            }}
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-6 right-6 z-50 w-[420px] max-w-[calc(100vw-3rem)]"
+            className="fixed bottom-6 right-6 z-50 w-[420px] max-w-[calc(100vw-3rem)] touch-none"
+            style={{ cursor: isDragging ? "grabbing" : "grab" }}
           >
-            <Card className="flex flex-col h-[600px] max-h-[calc(100vh-6rem)] shadow-2xl border-2">
+            <Card className="flex flex-col h-[600px] max-h-[calc(100vh-6rem)] shadow-2xl border-2 pointer-events-auto">
               {/* Header */}
-              <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-blue-600 to-purple-600">
-                <div className="flex items-center gap-3">
+              <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-blue-600 to-purple-600 cursor-grab active:cursor-grabbing">
+                <div className="flex items-center gap-3 pointer-events-none">
                   <div className="relative">
                     <Bot className="h-6 w-6 text-white" />
                     <span className="absolute -bottom-1 -right-1 h-3 w-3 bg-green-400 rounded-full border-2 border-white"></span>
@@ -171,7 +181,7 @@ export function AIChatWidget() {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 pointer-events-auto">
                   {messagesRemaining !== null && (
                     <span className="text-xs text-white/80 bg-white/20 px-2 py-1 rounded-full">
                       {messagesRemaining} restants
