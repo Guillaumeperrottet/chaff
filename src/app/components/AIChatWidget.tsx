@@ -27,7 +27,6 @@ export function AIChatWidget() {
     null
   );
   const [inputValue, setInputValue] = useState("");
-  const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -153,10 +152,7 @@ export function AIChatWidget() {
             dragMomentum={false}
             dragElastic={0}
             onDragStart={() => setIsDragging(true)}
-            onDragEnd={(e, info) => {
-              setIsDragging(false);
-              setPosition({ x: info.offset.x, y: info.offset.y });
-            }}
+            onDragEnd={() => setIsDragging(false)}
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
